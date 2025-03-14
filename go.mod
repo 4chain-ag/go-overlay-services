@@ -5,6 +5,8 @@ go 1.24.1
 require (
 	github.com/bsv-blockchain/go-sdk v1.1.22
 	github.com/jackc/pgx/v5 v5.7.1
+	github.com/joho/godotenv v1.5.1
+	github.com/shruggr/go-block-headers-client v0.0.0-20250314203441-bf638acc3683
 )
 
 require (
@@ -18,5 +20,3 @@ require (
 )
 
 replace github.com/bsv-blockchain/go-sdk => ../go-sdk
-
-replace github.com/shruggr/go-block-headers-client => ../go-block-headers-client
