@@ -4,12 +4,12 @@ import (
 	"context"
 	"strings"
 
+	"github.com/4chain-ag/go-overlay-services/storage"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/shruggr/goverlay/storage"
-	// "github.com/shruggr/goverlay/types"
+	// "github.com/4chain-ag/go-overlay-services/types"
 )
 
 type PostgresStorage struct {

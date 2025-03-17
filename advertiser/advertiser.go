@@ -2,7 +2,6 @@ package advertiser
 
 import (
 	"github.com/bsv-blockchain/go-sdk/overlay"
-	"github.com/bsv-blockchain/go-sdk/overlay/topic"
 	"github.com/bsv-blockchain/go-sdk/script"
 )
 
@@ -19,8 +18,8 @@ type AdvertisementData struct {
 }
 
 type Advertiser interface {
-	CreateAdvertisements(adsData []AdvertisementData) (topic.TaggedBEEF, error)
+	CreateAdvertisements(adsData []AdvertisementData) (overlay.TaggedBEEF, error)
 	FindAllAdvertisements(protocol overlay.Protocol) ([]AdvertisementData, error)
-	RevokeAdvertisements(advertisements []Advertisement) (topic.TaggedBEEF, error)
+	RevokeAdvertisements(advertisements []Advertisement) (overlay.TaggedBEEF, error)
 	ParseAdvertisement(outputScript *script.Script) (Advertisement, error)
 }

@@ -13,8 +13,8 @@ import (
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/bsv-blockchain/go-sdk/transaction/chaintracker"
 
-	"github.com/shruggr/goverlay/advertiser"
-	"github.com/shruggr/goverlay/storage"
+	"github.com/4chain-ag/go-overlay-services/advertiser"
+	"github.com/4chain-ag/go-overlay-services/storage"
 )
 
 type SumbitMode string
