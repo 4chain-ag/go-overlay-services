@@ -38,7 +38,7 @@ type Engine struct {
 var ErrUnknownTopic = fmt.Errorf("unknown-topic")
 var ErrInvalidTransaction = fmt.Errorf("invalid-transaction")
 
-func (e *Engine) Submit(ctx context.Context, taggedBEEF topic.TaggedBEEF, mode SumbitMode, onCtxReady func(subCtx *overlay.SubmitContext)) (*overlay.SubmitContext, error) {
+func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode SumbitMode, onCtxReady func(subCtx *overlay.SubmitContext)) (*overlay.SubmitContext, error) {
 	for _, topic := range taggedBEEF.Topics {
 		if _, ok := e.Managers[topic]; !ok {
 			return nil, ErrUnknownTopic
@@ -75,6 +75,15 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF topic.TaggedBEEF, mode S
 		}
 
 		for _, topic := range taggedBEEF.Topics {
+			if exists, err := e.Storage.DoesAppliedTransactionExist(ctx, &overlay.AppliedTransaction{
+				Txid:  subCtx.Txid,
+				Topic: topic,
+			}); err != nil {
+				return nil, err
+			} else if exists {
+				subCtx.TopicAdmittance[topic] = &overlay.Admittance{}
+				continue
+			}
 			admittance := subCtx.TopicAdmittance[topic]
 			inputs := subCtx.TopicInputs[topic]
 			consumedOutpoints := make([]*overlay.Outpoint, 0, len(admittance.CoinsToRetain))
@@ -98,7 +107,10 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF topic.TaggedBEEF, mode S
 			newOutpoints := make([]*overlay.Outpoint, 0, len(admittance.OutputsToAdmit))
 			for _, vout := range admittance.OutputsToAdmit {
 				out := subCtx.Tx.Outputs[vout]
-				outpoint := overlay.NewOutpointFromHash(subCtx.Txid, uint32(vout))
+				outpoint := &overlay.Outpoint{
+					Txid: subCtx.Txid,
+					Vout: uint32(vout),
+				}
 				if err := e.Storage.InsertOutput(ctx, &overlay.Output{
 					Outpoint:        outpoint,
 					Script:          *out.LockingScript,
@@ -166,7 +178,10 @@ func (e *Engine) ExecuteTopicManager(ctx context.Context, subCtx *overlay.Submit
 	}
 	outpoints := make([]*overlay.Outpoint, 0, len(subCtx.Tx.Inputs))
 	for _, input := range subCtx.Tx.Inputs {
-		outpoints = append(outpoints, overlay.NewOutpointFromHash(input.SourceTXID, input.SourceTxOutIndex))
+		outpoints = append(outpoints, &overlay.Outpoint{
+			Txid: input.SourceTXID,
+			Vout: input.SourceTxOutIndex,
+		})
 	}
 	if subCtx.TopicInputs[topic], err = e.Storage.FindOutputs(ctx, outpoints, topic, false, false); err != nil {
 		return err
@@ -205,7 +220,7 @@ func (e *Engine) deleteUTXODeep(ctx context.Context, output *overlay.Output) err
 			consumedBy := staleOutput.ConsumedBy
 			staleOutput.ConsumedBy = make([]*overlay.Outpoint, 0, len(consumedBy))
 			for _, outpoint := range consumedBy {
-				if !bytes.Equal(*outpoint, *output.Outpoint) {
+				if !bytes.Equal(outpoint.TxBytes(), output.Outpoint.TxBytes()) {
 					staleOutput.ConsumedBy = append(staleOutput.ConsumedBy, outpoint)
 				}
 			}
