@@ -9,7 +9,6 @@ import (
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	// "github.com/4chain-ag/go-overlay-services/types"
 )
 
 type PostgresStorage struct {

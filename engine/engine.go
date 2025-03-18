@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/4chain-ag/go-overlay-services/advertiser"
+	"github.com/4chain-ag/go-overlay-services/storage"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/bsv-blockchain/go-sdk/overlay/topic"
 	"github.com/bsv-blockchain/go-sdk/spv"
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/bsv-blockchain/go-sdk/transaction/chaintracker"
-
-	"github.com/4chain-ag/go-overlay-services/advertiser"
-	"github.com/4chain-ag/go-overlay-services/storage"
 )
 
 type SumbitMode string
