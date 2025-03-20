@@ -29,7 +29,7 @@ type HTTP struct {
 
 func NewHTTP(cfg *Config) *HTTP {
 	noopEngine := &engine.NoopEngineProvider{}
-	overlayApp := &app.Application{
+	fiberApp := initFiberApp(&app.Application{
 		Commands: &app.Commands{
 			SubmitTransactionHandler: commands.NewSubmitTransactionCommandHandler(noopEngine),
 			SyncAdvertismentsHandler: commands.NewSyncAdvertismentsHandler(noopEngine),
@@ -37,16 +37,19 @@ func NewHTTP(cfg *Config) *HTTP {
 		Queries: &app.Queries{
 			TopicManagerDocumentationHandler: queries.NewTopicManagerDocumentationHandler(noopEngine),
 		},
-	}
+	}, cfg.AdminBearerToken)
 
 	log.SetLevel(log.LevelDebug)
-	return &HTTP{app: initFiberApp(overlayApp, cfg.AdminBearerToken), cfg: cfg}
+
+	return &HTTP{
+		app: fiberApp,
+		cfg: cfg}
 }
 
 func (h *HTTP) ListenAndServe() { log.Fatal(h.app.Listen(h.cfg.SocketAddr())) }
 
-func initFiberApp(overlayApp *app.Application, token string) *fiber.App {
-	fiberAPI := fiber.New(fiber.Config{
+func initFiberApp(overlayAPI *app.Application, token string) *fiber.App {
+	fiberApp := fiber.New(fiber.Config{
 		CaseSensitive: true,
 		StrictRouting: true,
 		ServerHeader:  "Overlay API",
@@ -54,22 +57,22 @@ func initFiberApp(overlayApp *app.Application, token string) *fiber.App {
 	})
 
 	// Middlewares:
-	fiberAPI.Use(idempotency.New())
-	fiberAPI.Use(requestid.New())
-	fiberAPI.Use(logger.New())
+	fiberApp.Use(idempotency.New())
+	fiberApp.Use(requestid.New())
+	fiberApp.Use(logger.New())
 
 	// Routes:
-	api := fiberAPI.Group("/api")
+	api := fiberApp.Group("/api")
 	v1 := api.Group("/v1")
 
 	// Non-Admin:
-	v1.Post("/submit", overlayApp.Commands.SubmitTransactionHandler.Handle)
-	v1.Get("/topic-managers", overlayApp.Queries.TopicManagerDocumentationHandler.Handle)
+	v1.Post("/submit", overlayAPI.Commands.SubmitTransactionHandler.Handle)
+	v1.Get("/topic-managers", overlayAPI.Queries.TopicManagerDocumentationHandler.Handle)
 
 	// Admin:
 	admin := v1.Group("/admin")
 	admin.Use(AdminRoutesAuthorizationMiddleware(token))
-	admin.Post("/advertisements-sync", overlayApp.Commands.SyncAdvertismentsHandler.Handle)
+	admin.Post("/advertisements-sync", overlayAPI.Commands.SyncAdvertismentsHandler.Handle)
 
-	return fiberAPI
+	return fiberApp
 }
