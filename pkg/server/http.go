@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app"
@@ -9,10 +10,29 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/queries"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/fiber/v2/middleware/idempotency"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/requestid"
 )
+
+type HTTPOption func(*HTTP)
+
+func WithLoggingMiddleware(f func(http.Handler) http.Handler) HTTPOption {
+	return func(h *HTTP) {
+		h.middlewares = append(h.middlewares, adaptor.HTTPMiddleware(f))
+	}
+}
+
+func WithConfig(cfg *Config) HTTPOption {
+	return func(h *HTTP) {
+		h.cfg = cfg
+	}
+}
+
+func WithAdminBearerToken(s string) HTTPOption {
+	return func(h *HTTP) {
+		h.cfg.AdminBearerToken = s
+	}
+}
 
 type Config struct {
 	AdminBearerToken string
@@ -23,13 +43,14 @@ type Config struct {
 func (c *Config) SocketAddr() string { return fmt.Sprintf("%s:%d", c.Addr, c.Port) }
 
 type HTTP struct {
-	app *fiber.App
-	cfg *Config
+	middlewares []fiber.Handler
+	app         *fiber.App
+	cfg         *Config
 }
 
-func NewHTTP(cfg *Config) *HTTP {
+func New(opts ...HTTPOption) *HTTP {
 	noopEngine := &engine.NoopEngineProvider{}
-	fiberApp := initFiberApp(&app.Application{
+	overlayAPI := &app.Application{
 		Commands: &app.Commands{
 			SubmitTransactionHandler: commands.NewSubmitTransactionCommandHandler(noopEngine),
 			SyncAdvertismentsHandler: commands.NewSyncAdvertismentsHandler(noopEngine),
@@ -37,32 +58,28 @@ func NewHTTP(cfg *Config) *HTTP {
 		Queries: &app.Queries{
 			TopicManagerDocumentationHandler: queries.NewTopicManagerDocumentationHandler(noopEngine),
 		},
-	}, cfg.AdminBearerToken)
+	}
 
-	log.SetLevel(log.LevelDebug)
+	http := HTTP{
+		app: fiber.New(fiber.Config{
+			CaseSensitive: true,
+			StrictRouting: true,
+			ServerHeader:  "Overlay API",
+			AppName:       "Overlay API v0.0.0",
+		}),
+		middlewares: []fiber.Handler{idempotency.New()},
+	}
 
-	return &HTTP{
-		app: fiberApp,
-		cfg: cfg}
-}
+	for _, o := range opts {
+		o(&http)
+	}
 
-func (h *HTTP) ListenAndServe() { log.Fatal(h.app.Listen(h.cfg.SocketAddr())) }
-
-func initFiberApp(overlayAPI *app.Application, token string) *fiber.App {
-	fiberApp := fiber.New(fiber.Config{
-		CaseSensitive: true,
-		StrictRouting: true,
-		ServerHeader:  "Overlay API",
-		AppName:       "Overlay API v0.0.0",
-	})
-
-	// Middlewares:
-	fiberApp.Use(idempotency.New())
-	fiberApp.Use(requestid.New())
-	fiberApp.Use(logger.New())
+	for _, m := range http.middlewares {
+		http.app.Use(m)
+	}
 
 	// Routes:
-	api := fiberApp.Group("/api")
+	api := http.app.Group("/api")
 	v1 := api.Group("/v1")
 
 	// Non-Admin:
@@ -71,8 +88,10 @@ func initFiberApp(overlayAPI *app.Application, token string) *fiber.App {
 
 	// Admin:
 	admin := v1.Group("/admin")
-	admin.Use(AdminRoutesAuthorizationMiddleware(token))
+	admin.Use(AdminRoutesAuthorizationMiddleware(http.cfg.AdminBearerToken))
 	admin.Post("/advertisements-sync", overlayAPI.Commands.SyncAdvertismentsHandler.Handle)
 
-	return fiberApp
+	return &http
 }
+
+func (h *HTTP) ListenAndServe() { log.Fatal(h.app.Listen(h.cfg.SocketAddr())) }
