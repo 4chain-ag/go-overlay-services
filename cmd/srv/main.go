@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server"
@@ -10,17 +11,18 @@ import (
 func main() {
 	opts := []server.HTTPOption{
 		server.WithConfig(&server.Config{
-			AdminBearerToken: "12345678secret!",
-			Addr:             "localhost",
-			Port:             8080,
+			Addr: "localhost",
+			Port: 8080,
 		}),
-		server.WithLoggingMiddleware(loggingMiddleware),
+		server.WithMiddleware(loggingMiddleware),
 	}
 
 	httpAPI := server.New(opts...)
-	httpAPI.ListenAndServe()
+
+	log.Fatal(httpAPI.ListenAndServe())
 }
 
+// loggingMiddleware is a custom definition of the logging middleware format accepted by the HTTP API.
 func loggingMiddleware(next http.Handler) http.Handler {
 	slog.SetLogLevel(slog.DebugLevel)
 	slog.SetFormatter(slog.NewJSONFormatter(func(f *slog.JSONFormatter) {
