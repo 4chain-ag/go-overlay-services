@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/4chain-ag/go-overlay-services/types"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 )
@@ -12,18 +13,18 @@ var ErrNotFound = fmt.Errorf("not-found")
 
 type Storage interface {
 	// Adds a new output to storage
-	InsertOutput(ctx context.Context, utxo *overlay.Output) error
+	InsertOutput(ctx context.Context, utxo *types.Output) error
 
 	// Finds an output from storage
-	FindOutput(ctx context.Context, outpoint *overlay.Outpoint, topic string, spent bool, includeBEEF bool) (*overlay.Output, error)
+	FindOutput(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*types.Output, error)
 
-	FindOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic string, spent bool, includeBEEF bool) ([]*overlay.Output, error)
+	FindOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) ([]*types.Output, error)
 
 	// Finds outputs with a matching transaction ID from storage
-	FindOutputsForTransaction(ctx context.Context, txid *chainhash.Hash, includeBEEF bool) ([]*overlay.Output, error)
+	FindOutputsForTransaction(ctx context.Context, txid *chainhash.Hash, includeBEEF bool) ([]*types.Output, error)
 
 	// Finds current UTXOs that have been admitted into a given topic
-	FindUTXOsForTopic(ctx context.Context, topic string, since float64, includeBEEF bool) ([]*overlay.Output, error)
+	FindUTXOsForTopic(ctx context.Context, topic string, since float64, includeBEEF bool) ([]*types.Output, error)
 
 	// Deletes an output from storage
 	DeleteOutput(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
@@ -32,9 +33,9 @@ type Storage interface {
 	DeleteOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic string) error
 
 	// Updates a UTXO as spent
-	MarkUTXOAsSpent(ctx context.Context, outpoint *overlay.Outpoint, topic string, spendTxid *chainhash.Hash) error
+	MarkUTXOAsSpent(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
 
-	MarkUTXOsAsSpent(ctx context.Context, outpoints []*overlay.Outpoint, topic string, spendTxid *chainhash.Hash) error
+	MarkUTXOsAsSpent(ctx context.Context, outpoints []*overlay.Outpoint, topic string) error
 
 	// Updates which outputs are consumed by this output
 	UpdateConsumedBy(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error

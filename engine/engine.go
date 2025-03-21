@@ -3,18 +3,23 @@ package engine
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"errors"
 	"slices"
 
 	"github.com/4chain-ag/go-overlay-services/advertiser"
+	"github.com/4chain-ag/go-overlay-services/gasp"
 	"github.com/4chain-ag/go-overlay-services/storage"
+	"github.com/4chain-ag/go-overlay-services/types"
+	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
-	"github.com/bsv-blockchain/go-sdk/overlay/topic"
 	"github.com/bsv-blockchain/go-sdk/spv"
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/bsv-blockchain/go-sdk/transaction/chaintracker"
 )
+
+var TRUE = true
+var FALSE = false
 
 type SumbitMode string
 
@@ -24,8 +29,8 @@ var (
 )
 
 type Engine struct {
-	Managers       map[string]topic.TopicManager
-	LookupServices map[string]lookup.LookupService
+	Managers       map[string]types.TopicManager
+	LookupServices map[string]types.LookupService
 	Storage        storage.Storage
 	ChainTracker   chaintracker.ChainTracker
 	Broadcaster    transaction.Broadcaster
@@ -34,10 +39,11 @@ type Engine struct {
 	Advertiser     *advertiser.Advertiser
 }
 
-var ErrUnknownTopic = fmt.Errorf("unknown-topic")
-var ErrInvalidTransaction = fmt.Errorf("invalid-transaction")
+var ErrUnknownTopic = errors.New("unknown-topic")
+var ErrInvalidTransaction = errors.New("invalid-transaction")
+var ErrMissingInput = errors.New("missing-input")
 
-func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode SumbitMode, onCtxReady func(subCtx *overlay.SubmitContext)) (*overlay.SubmitContext, error) {
+func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode SumbitMode, onSteakReady func(steak overlay.Steak)) (map[string]*types.TopicContext, error) {
 	for _, topic := range taggedBEEF.Topics {
 		if _, ok := e.Managers[topic]; !ok {
 			return nil, ErrUnknownTopic
@@ -51,155 +57,281 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 	} else if !valid {
 		return nil, ErrInvalidTransaction
 	} else {
-		subCtx := &overlay.SubmitContext{
-			Txid:            tx.TxID(),
-			Tx:              tx,
-			Beef:            taggedBEEF.Beef,
-			TopicAdmittance: make(overlay.Steak),
-			TopicInputs:     make(map[string][]*overlay.Output),
-		}
-		for _, topic := range taggedBEEF.Topics {
-			if err := e.ExecuteTopicManager(ctx, subCtx, topic); err != nil {
-				return nil, err
-			}
-		}
-		if mode != SubmitModeHistorical && e.Broadcaster != nil {
-			if _, failure := e.Broadcaster.Broadcast(subCtx.Tx); failure != nil {
-				return nil, failure
-			}
-		}
-
-		if onCtxReady != nil {
-			onCtxReady(subCtx)
-		}
-
-		for _, topic := range taggedBEEF.Topics {
-			if exists, err := e.Storage.DoesAppliedTransactionExist(ctx, &overlay.AppliedTransaction{
-				Txid:  subCtx.Txid,
-				Topic: topic,
-			}); err != nil {
-				return nil, err
-			} else if exists {
-				subCtx.TopicAdmittance[topic] = &overlay.Admittance{}
-				continue
-			}
-			admittance := subCtx.TopicAdmittance[topic]
-			inputs := subCtx.TopicInputs[topic]
-			consumedOutpoints := make([]*overlay.Outpoint, 0, len(admittance.CoinsToRetain))
-			consumedOutputs := make([]*overlay.Output, 0, len(admittance.CoinsToRetain))
-
-			for vin, input := range inputs {
-				if input == nil {
-					continue
-				}
-				if slices.Contains(admittance.CoinsToRetain, uint32(vin)) {
-					consumedOutpoints = append(consumedOutpoints, input.Outpoint)
-					consumedOutputs = append(consumedOutputs, input)
-				} else {
-					admittance.CoinsRemoved = append(admittance.CoinsRemoved, uint32(vin))
-					if err := e.deleteUTXODeep(ctx, input); err != nil {
-						return nil, err
-					}
-				}
-			}
-
-			newOutpoints := make([]*overlay.Outpoint, 0, len(admittance.OutputsToAdmit))
-			for _, vout := range admittance.OutputsToAdmit {
-				out := subCtx.Tx.Outputs[vout]
-				outpoint := &overlay.Outpoint{
-					Txid: subCtx.Txid,
-					Vout: uint32(vout),
-				}
-				if err := e.Storage.InsertOutput(ctx, &overlay.Output{
-					Outpoint:        outpoint,
-					Script:          *out.LockingScript,
-					Satoshis:        out.Satoshis,
-					Topic:           topic,
-					OutputsConsumed: consumedOutpoints,
-				}); err != nil {
-					return nil, err
-				}
-				newOutpoints = append(newOutpoints, outpoint)
-				for _, l := range e.LookupServices {
-					if err := l.OutputAdded(*subCtx, vout, topic); err != nil {
-						return nil, err
-					}
-				}
-			}
-			for _, output := range consumedOutputs {
-				outpointSet := make(map[string]struct{})
-				consumedBy := make([]*overlay.Outpoint, 0, len(output.ConsumedBy)+len(newOutpoints))
-				for _, outpoint := range output.ConsumedBy {
-					op := outpoint.String()
-					if _, ok := outpointSet[op]; !ok {
-						consumedBy = append(consumedBy, outpoint)
-						outpointSet[op] = struct{}{}
-					}
-				}
-				for _, outpoint := range newOutpoints {
-					op := outpoint.String()
-					if _, ok := outpointSet[op]; !ok {
-						consumedBy = append(consumedBy, outpoint)
-						outpointSet[op] = struct{}{}
-					}
-				}
-				if err := e.Storage.UpdateConsumedBy(ctx, output.Outpoint, output.Topic, consumedBy); err != nil {
-					return nil, err
-				}
-			}
-			if err := e.Storage.InsertAppliedTransaction(ctx, &overlay.AppliedTransaction{
-				Txid:  subCtx.Txid,
-				Topic: topic,
-			}); err != nil {
-				return nil, err
-			}
-		}
-		if e.Advertiser == nil || mode == SubmitModeHistorical {
-			return subCtx, nil
-		}
-
-		//TODO: Implement SYNC
-
-		return subCtx, nil
+		return e.submitTx(ctx, tx, taggedBEEF.Topics, mode, onSteakReady)
 	}
 }
 
-func (e *Engine) ExecuteTopicManager(ctx context.Context, subCtx *overlay.SubmitContext, topic string) (err error) {
-	if _, ok := subCtx.TopicAdmittance[topic]; ok {
-		return nil
-	}
-	manager := e.Managers[topic]
-	deps := manager.GetDependencies()
-	for _, dep := range deps {
-		if err := e.ExecuteTopicManager(ctx, subCtx, dep); err != nil {
-			return err
-		}
-	}
-	outpoints := make([]*overlay.Outpoint, 0, len(subCtx.Tx.Inputs))
-	for _, input := range subCtx.Tx.Inputs {
-		outpoints = append(outpoints, &overlay.Outpoint{
-			Txid: input.SourceTXID,
-			Vout: input.SourceTxOutIndex,
+func (e *Engine) submitTx(ctx context.Context, tx *transaction.Transaction, topics []string, mode SumbitMode, onSteakReady func(steak overlay.Steak)) (map[string]*types.TopicContext, error) {
+	txid := tx.TxID()
+	steak := make(overlay.Steak, len(topics))
+	contexts := make(map[string]*types.TopicContext, len(topics))
+	inpoints := make([]*overlay.Outpoint, 0, len(tx.Inputs))
+	for _, input := range tx.Inputs {
+		inpoints = append(inpoints, &overlay.Outpoint{
+			Txid:        input.SourceTXID,
+			OutputIndex: input.SourceTxOutIndex,
 		})
 	}
-	if subCtx.TopicInputs[topic], err = e.Storage.FindOutputs(ctx, outpoints, topic, false, false); err != nil {
-		return err
-	} else if subCtx.TopicAdmittance[topic], err = manager.IdentifyAdmissableOutputs(*subCtx); err != nil {
-		return err
-	} else if err := e.Storage.MarkUTXOsAsSpent(ctx, outpoints, topic, subCtx.Txid); err != nil {
-		return err
+	for _, topic := range topics {
+		manager := e.Managers[topic]
+		if exists, err := e.Storage.DoesAppliedTransactionExist(ctx, &overlay.AppliedTransaction{
+			Txid:  txid,
+			Topic: topic,
+		}); err != nil {
+			return nil, err
+		} else if exists {
+			steak[topic] = &overlay.AdmittanceInstructions{}
+			continue
+		}
+		tCtx := &types.TopicContext{
+			Inputs:  make(map[uint32]*types.Output, len(tx.Inputs)),
+			Outputs: make(map[uint32]*types.Output, len(tx.Outputs)),
+		}
+		contexts[topic] = tCtx
+		var err error
+		if tCtx.Result, err = manager.IdentifyAdmissableOutputs(tx, func(vin uint32) (output *types.Output, err error) {
+			if vin >= uint32(len(tx.Inputs)) {
+				return nil, ErrMissingInput
+			}
+			input := tx.Inputs[vin]
+			outpoint := &overlay.Outpoint{
+				Txid:        input.SourceTXID,
+				OutputIndex: input.SourceTxOutIndex,
+			}
+			if output, err = e.Storage.FindOutput(ctx, outpoint, &topic, &FALSE, false); err != nil {
+				return nil, err
+			} else if output == nil {
+				if input.SourceTransaction == nil {
+					return nil, ErrMissingInput
+				} else {
+					var mode SumbitMode
+					if input.SourceTransaction.MerklePath == nil {
+						mode = SubmitModeCurrent
+					} else {
+						mode = SubmitModeHistorical
+					}
+					if tCtx, err := e.submitTx(ctx, input.SourceTransaction, []string{topic}, mode, nil); err != nil {
+						return nil, err
+					} else if output = tCtx[topic].Outputs[input.SourceTxOutIndex]; output == nil {
+						out := input.SourceTransaction.Outputs[input.SourceTxOutIndex]
+						output = &types.Output{
+							Outpoint: outpoint,
+							Script:   out.LockingScript,
+							Satoshis: out.Satoshis,
+						}
+					}
+				}
+				tCtx.Inputs[vin] = output
+			}
+			return output, nil
+		}); err != nil {
+			return nil, err
+		} else {
+			steak[topic] = &tCtx.Result.Admit
+		}
+	}
+	for _, topic := range topics {
+		if err := e.Storage.MarkUTXOsAsSpent(ctx, inpoints, topic); err != nil {
+			return nil, err
+		}
+	}
+	if mode != SubmitModeHistorical && e.Broadcaster != nil {
+		if _, failure := e.Broadcaster.Broadcast(tx); failure != nil {
+			return nil, failure
+		}
 	}
 
+	if onSteakReady != nil {
+		onSteakReady(steak)
+	}
+
+	for _, topic := range topics {
+		tCtx := contexts[topic]
+		admittance := steak[topic]
+		consumedOutpoints := make([]*overlay.Outpoint, 0, len(admittance.CoinsToRetain))
+		consumedOutputs := make([]*types.Output, 0, len(admittance.CoinsToRetain))
+
+		for vin, input := range tCtx.Inputs {
+			if input == nil {
+				continue
+			}
+			if !slices.Contains(admittance.CoinsToRetain, uint32(vin)) {
+				admittance.CoinsRemoved = append(admittance.CoinsRemoved, uint32(vin))
+				if err := e.deleteUTXODeep(ctx, input); err != nil {
+					return nil, err
+				}
+			} else {
+				if input := tCtx.Inputs[vin]; input == nil {
+					return nil, ErrMissingInput
+				} else {
+					if tx.Inputs[vin].SourceTransaction == nil {
+						return nil, ErrMissingInput
+					}
+					if err := e.Storage.InsertOutput(ctx, input); err != nil {
+						return nil, err
+					}
+					for _, l := range e.LookupServices {
+						if err := l.OutputAdded(ctx, input); err != nil {
+							return nil, err
+						}
+					}
+				}
+				consumedOutpoints = append(consumedOutpoints, input.Outpoint)
+				consumedOutputs = append(consumedOutputs, input)
+			}
+		}
+
+		newOutpoints := make([]*overlay.Outpoint, 0, len(admittance.OutputsToAdmit))
+		for _, vout := range admittance.OutputsToAdmit {
+			out := tx.Outputs[vout]
+			outpoint := &overlay.Outpoint{
+				Txid:        txid,
+				OutputIndex: uint32(vout),
+			}
+			output := &types.Output{
+				Outpoint:        outpoint,
+				Script:          out.LockingScript,
+				Satoshis:        out.Satoshis,
+				Topic:           topic,
+				OutputsConsumed: consumedOutpoints,
+			}
+			tCtx.Outputs[uint32(vout)] = output
+			if err := e.Storage.InsertOutput(ctx, output); err != nil {
+				return nil, err
+			}
+			newOutpoints = append(newOutpoints, outpoint)
+			for _, l := range e.LookupServices {
+				if err := l.OutputAdded(ctx, output); err != nil {
+					return nil, err
+				}
+			}
+		}
+		for _, output := range consumedOutputs {
+			output.ConsumedBy = append(output.ConsumedBy, newOutpoints...)
+
+			if err := e.Storage.UpdateConsumedBy(ctx, output.Outpoint, output.Topic, output.ConsumedBy); err != nil {
+				return nil, err
+			}
+		}
+		if err := e.Storage.InsertAppliedTransaction(ctx, &overlay.AppliedTransaction{
+			Txid:  txid,
+			Topic: topic,
+		}); err != nil {
+			return nil, err
+		}
+	}
+	if e.Advertiser == nil || mode == SubmitModeHistorical {
+		return contexts, nil
+	}
+
+	//TODO: Implement SYNC
+
+	return contexts, nil
+}
+
+func (e *Engine) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
+	if l, ok := e.LookupServices[question.Service]; ok {
+		return nil, ErrUnknownTopic
+	} else if result, err := l.Lookup(ctx, question); err != nil {
+		return nil, err
+	} else if result.Type == lookup.AnswerTypeFreeform || result.Type == lookup.AnswerTypeOutputList {
+		return result, nil
+	} else {
+		hydratedOutputs := make([]*lookup.OutputListItem, 0, len(result.Outputs))
+		for _, formula := range result.Formulas {
+			if output, err := e.Storage.FindOutput(ctx, formula.Outpoint, nil, nil, true); err != nil {
+				return nil, err
+			} else if output != nil && output.Beef != nil {
+				if output, err := e.GetUTXOHistory(ctx, output, formula.Histoy, 0); err != nil {
+					return nil, err
+				} else if output != nil {
+					hydratedOutputs = append(hydratedOutputs, &lookup.OutputListItem{
+						Beef:        output.Beef,
+						OutputIndex: output.Outpoint.OutputIndex,
+					})
+				}
+			}
+		}
+		return &lookup.LookupAnswer{
+			Type:    lookup.AnswerTypeOutputList,
+			Outputs: hydratedOutputs,
+		}, nil
+	}
+}
+
+func (e *Engine) GetUTXOHistory(ctx context.Context, output *types.Output, historySelector func(beef []byte, outputIndex uint32, currentDepth uint32) bool, currentDepth uint32) (*types.Output, error) {
+	if historySelector == nil {
+		return output, nil
+	}
+	shouldTravelHistory := historySelector(output.Beef, output.Outpoint.OutputIndex, currentDepth)
+	if !shouldTravelHistory {
+		return nil, nil
+	}
+	if output != nil && len(output.OutputsConsumed) == 0 {
+		return output, nil
+	}
+	outputsConsumed := output.OutputsConsumed[:]
+	childHistories := make(map[string]*types.Output, len(outputsConsumed))
+	for _, outpoint := range outputsConsumed {
+		if output, err := e.Storage.FindOutput(ctx, outpoint, nil, nil, true); err != nil {
+			return nil, err
+		} else if output != nil {
+			if child, err := e.GetUTXOHistory(ctx, output, historySelector, currentDepth+1); err != nil {
+				return nil, err
+			} else if child != nil {
+				childHistories[child.Outpoint.String()] = child
+			}
+		}
+	}
+
+	if tx, err := transaction.NewTransactionFromBEEF(output.Beef); err != nil {
+		return nil, err
+	} else {
+		for _, txin := range tx.Inputs {
+			outpoint := &overlay.Outpoint{
+				Txid:        txin.SourceTXID,
+				OutputIndex: txin.SourceTxOutIndex,
+			}
+			if input := childHistories[outpoint.String()]; input != nil {
+				if input.Beef == nil {
+					return nil, errors.New("missing beef")
+				} else if txin.SourceTransaction, err = transaction.NewTransactionFromBEEF(input.Beef); err != nil {
+					return nil, err
+				}
+			}
+		}
+		if beef, err := tx.AtomicBEEF(false); err != nil {
+			return nil, err
+		} else {
+			output.Beef = beef
+			return output, nil
+		}
+	}
+}
+
+func (e *Engine) SyncAdvertisements() error {
 	return nil
 }
 
-func (e *Engine) deleteUTXODeep(ctx context.Context, output *overlay.Output) error {
+func (e *Engine) StartGASPSync() error {
+	return nil
+}
+
+func (e *Engine) ProvideForeignSyncResponse(initialRequest *gasp.InitialRequest, topic string) (*gasp.InitialResponse, error) {
+	return nil, nil
+}
+
+func (e *Engine) ProvideForeignGASPNode(graphId string, txid string, outputIndex uint32) (*gasp.GASPNode, error) {
+	return nil, nil
+}
+
+func (e *Engine) deleteUTXODeep(ctx context.Context, output *types.Output) error {
 	if len(output.ConsumedBy) == 0 {
 		if err := e.Storage.DeleteOutput(ctx, output.Outpoint, output.Topic); err != nil {
 			return err
 		}
 		for _, l := range e.LookupServices {
-			if err := l.OutputDeleted(output.Outpoint, output.Topic); err != nil {
+			if err := l.OutputDeleted(ctx, output.Outpoint, output.Topic); err != nil {
 				return err
 			}
 		}
@@ -209,7 +341,7 @@ func (e *Engine) deleteUTXODeep(ctx context.Context, output *overlay.Output) err
 	}
 
 	for _, outpoint := range output.OutputsConsumed {
-		staleOutput, err := e.Storage.FindOutput(ctx, outpoint, output.Topic, false, false)
+		staleOutput, err := e.Storage.FindOutput(ctx, outpoint, &output.Topic, nil, false)
 		if err != nil {
 			return err
 		} else if staleOutput == nil {
@@ -233,4 +365,74 @@ func (e *Engine) deleteUTXODeep(ctx context.Context, output *overlay.Output) err
 		}
 	}
 	return nil
+}
+
+func (e *Engine) updateInputProofs(ctx context.Context, tx *transaction.Transaction, txid chainhash.Hash, proof *transaction.MerklePath) (err error) {
+	if tx.MerklePath != nil {
+		tx.MerklePath = proof
+		return
+	}
+
+	if tx.TxID().Equal(txid) {
+		tx.MerklePath = proof
+	} else {
+		for _, input := range tx.Inputs {
+			if input.SourceTransaction == nil {
+				return errors.New("missing source transaction")
+			} else {
+				e.updateInputProofs(ctx, input.SourceTransaction, txid, proof)
+			}
+		}
+	}
+	return nil
+}
+
+func (e *Engine) updateMerkleProof(ctx context.Context, output *types.Output, txid chainhash.Hash, proof *transaction.MerklePath) error {
+	if len(output.Beef) == 0 {
+		return errors.New("missing beef")
+	} else if tx, err := transaction.NewTransactionFromBEEF(output.Beef); err != nil {
+		return err
+	} else if tx.MerklePath != nil {
+		tx.MerklePath = proof
+		return nil
+	} else if err = e.updateInputProofs(ctx, tx, txid, proof); err != nil {
+		return err
+	} else {
+		for _, outpoint := range output.ConsumedBy {
+			if consumedOutputs, err := e.Storage.FindOutputsForTransaction(ctx, outpoint.Txid, true); err != nil {
+				return err
+			} else {
+				for _, consumed := range consumedOutputs {
+					if err := e.updateMerkleProof(ctx, consumed, txid, proof); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (e *Engine) ListTopicManagers() map[string]*overlay.MetaData {
+	result := make(map[string]*overlay.MetaData, len(e.Managers))
+	for name, manager := range e.Managers {
+		result[name] = manager.GetMetaData()
+	}
+	return result
+}
+
+func (e *Engine) ListLookupServiceProviders() map[string]*overlay.MetaData {
+	result := make(map[string]*overlay.MetaData, len(e.LookupServices))
+	for name, provider := range e.LookupServices {
+		result[name] = provider.GetMetaData()
+	}
+	return result
+}
+
+func (e *Engine) GetDocumentationForLookupServiceProvider(provider string) string {
+	if l, ok := e.LookupServices[provider]; ok {
+		return "No documentation found!"
+	} else {
+		return l.GetDocumentation()
+	}
 }
