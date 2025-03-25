@@ -49,7 +49,7 @@ type HTTP struct {
 
 // New returns an instance of the HTTP server and applies all specified functional options before starting it.
 func New(opts ...HTTPOption) *HTTP {
-	overlayAPI := app.New(&NoopEngineProvider{})
+	overlayAPI := app.New(NewNoopEngineProvider())
 	http := HTTP{
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
