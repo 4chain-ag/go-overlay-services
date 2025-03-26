@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/server"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/dto"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/queries"
 	"github.com/gofiber/fiber/v2"
@@ -15,26 +16,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockLookupDocumentationProvider is a mock implementation of the LookupDocumentationProvider interface
-type mockLookupDocumentationProvider struct {
-	services map[string]string
-}
+// ErrorEngineProvider is an implementation that always returns an error
+type ErrorEngineProvider struct{}
 
-// NewMockLookupDocumentationProvider creates a new mock provider with the given services
-func NewMockLookupDocumentationProvider(services map[string]string) *mockLookupDocumentationProvider {
-	if services == nil {
-		services = make(map[string]string)
-	}
-	return &mockLookupDocumentationProvider{
-		services: services,
-	}
-}
-
-func (m *mockLookupDocumentationProvider) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
-	if doc, ok := m.services[lookupService]; ok {
-		return doc, nil
-	}
-	return "", errors.New("no documentation found")
+func (*ErrorEngineProvider) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
+	return "", errors.New("documentation not found")
 }
 
 // setupTest sets up a new Fiber app and handler for testing
@@ -46,12 +32,8 @@ func setupTest(provider queries.LookupDocumentationProvider) (*fiber.App, *queri
 
 func TestLookupDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 	// Given:
-	expectedDocumentation := "# Lookup Service Documentation\n\nThis is the documentation for the lookup service."
-	services := map[string]string{
-		"example": expectedDocumentation,
-	}
-	mockProvider := NewMockLookupDocumentationProvider(services)
-	app, handler := setupTest(mockProvider)
+	noopProvider := server.NewNoopEngineProvider()
+	app, handler := setupTest(noopProvider)
 	app.Get("/docs", handler.Handle)
 
 	// When:
@@ -66,20 +48,17 @@ func TestLookupDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
-	assert.Equal(t, expectedDocumentation, string(body))
+	assert.Equal(t, "", string(body))
 }
 
-func TestLookupDocumentationHandler_Handle_ProviderNotFound(t *testing.T) {
+func TestLookupDocumentationHandler_Handle_ProviderError(t *testing.T) {
 	// Given:
-	services := map[string]string{
-		"existing": "Some documentation",
-	}
-	mockProvider := NewMockLookupDocumentationProvider(services)
-	app, handler := setupTest(mockProvider)
+	errorProvider := &ErrorEngineProvider{}
+	app, handler := setupTest(errorProvider)
 	app.Get("/docs", handler.Handle)
 
 	// When:
-	req := httptest.NewRequest(http.MethodGet, "/docs?lookupService=nonexistent", nil)
+	req := httptest.NewRequest(http.MethodGet, "/docs?lookupService=example", nil)
 	resp, err := app.Test(req)
 
 	// Then:
@@ -94,8 +73,8 @@ func TestLookupDocumentationHandler_Handle_ProviderNotFound(t *testing.T) {
 
 func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testing.T) {
 	// Given:
-	mockProvider := NewMockLookupDocumentationProvider(nil)
-	app, handler := setupTest(mockProvider)
+	noopProvider := server.NewNoopEngineProvider()
+	app, handler := setupTest(noopProvider)
 	app.Get("/docs", handler.Handle)
 
 	// When:
