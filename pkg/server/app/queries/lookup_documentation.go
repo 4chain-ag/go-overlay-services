@@ -28,7 +28,7 @@ type LookupDocumentationHandler struct {
 // It extracts the lookupService query parameter, invokes the engine provider,
 // and returns the documentation as markdown with the appropriate status code.
 func (l *LookupDocumentationHandler) Handle(c *fiber.Ctx) error {
-	lookupService := c.Query("lookupService")	
+	lookupService := c.Query("lookupService")
 	documentation, err := l.provider.GetDocumentationForLookupServiceProvider(lookupService)
 	if err != nil {
 		if inner := c.Status(fiber.StatusBadRequest).JSON(dto.HandlerResponseNonOK); inner != nil {
@@ -42,7 +42,7 @@ func (l *LookupDocumentationHandler) Handle(c *fiber.Ctx) error {
 	if err := c.Status(fiber.StatusOK).Send([]byte(documentation)); err != nil {
 		return fmt.Errorf("failed to send markdown response: %w", err)
 	}
-	
+
 	return nil
 }
 
