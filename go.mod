@@ -8,6 +8,10 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gookit/slog v0.5.8
 	github.com/spf13/viper v1.20.0
+	github.com/go-resty/resty/v2 v2.16.5
+	github.com/gofiber/fiber/v2 v2.52.6
+	github.com/gookit/slog v0.5.8
+	github.com/jarcoal/httpmock v1.3.1
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -42,6 +46,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/crypto v0.35.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/term v0.29.0 // indirect

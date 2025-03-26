@@ -8,6 +8,7 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/idempotency"
 )
 
@@ -82,4 +83,22 @@ func (h *HTTP) ListenAndServe() error {
 		return fmt.Errorf("http server: fiber app listen failed: %w", err)
 	}
 	return nil
+}
+
+// WithDefaultCORS adds standard CORS middleware to the server.
+func WithDefaultCORS() HTTPOption {
+	return func(h *HTTP) {
+		h.middlewares = append(h.middlewares, cors.New(cors.Config{
+			AllowOrigins:     "*", // Allow all origins for now as i am not sure what the actual origin will be
+			AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+			AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+			ExposeHeaders:    "Content-Length",
+			AllowCredentials: false,
+		}))
+	}
+}
+
+// App returns the underlying fiber app instance.
+func (h *HTTP) App() *fiber.App {
+	return h.app
 }
