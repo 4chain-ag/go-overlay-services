@@ -96,13 +96,14 @@ func (h *HTTP) ListenAndServe() error {
 	return nil
 }
 
+// WithAdminAuthMiddleware adds a custom middleware to the HTTP server that checks the Authorization header for a valid Bearer token.
 func WithAdminAuthMiddleware(adminToken string) HTTPOption {
 	return func(h *HTTP) {
 		h.middlewares = append(h.middlewares, AdminAuthMiddlewareFiber(adminToken))
 	}
 }
 
-// AdminAuthMiddleware is a custom middleware that checks the Authorization header for a valid Bearer token.
+// AdminAuthMiddlewareFiber is a custom middleware that checks the Authorization header for a valid Bearer token.
 func AdminAuthMiddlewareFiber(adminToken string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
