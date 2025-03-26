@@ -29,11 +29,11 @@ type LookupDocumentationHandler struct {
 // and returns the documentation as markdown with the appropriate status code.
 func (l *LookupDocumentationHandler) Handle(c *fiber.Ctx) error {
 	lookupService := c.Query("lookupService")
-    if lookupService == "" {
-	     return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-		   "error": "lookupService query parameter is required",
-	    })
-    }
+	if lookupService == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "lookupService query parameter is required",
+		})
+	}
 	documentation, err := l.provider.GetDocumentationForLookupServiceProvider(lookupService)
 	if err != nil {
 		if inner := c.Status(fiber.StatusBadRequest).JSON(dto.HandlerResponseNonOK); inner != nil {

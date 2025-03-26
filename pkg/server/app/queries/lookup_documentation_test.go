@@ -47,7 +47,7 @@ func setupTest(provider queries.LookupDocumentationProvider) (*fiber.App, *queri
 func TestLookupDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 	// Given:
 	expectedDocumentation := "# Lookup Service Documentation\n\nThis is the documentation for the lookup service."
-	services := map[string]string{ 
+	services := map[string]string{
 		"example": expectedDocumentation,
 	}
 	mockProvider := NewMockLookupDocumentationProvider(services)
@@ -63,7 +63,7 @@ func TestLookupDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	contentType := resp.Header.Get("Content-Type")
 	require.NotEmpty(t, contentType, "Content-Type header should not be empty")
-	
+
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t, expectedDocumentation, string(body))
@@ -85,7 +85,7 @@ func TestLookupDocumentationHandler_Handle_ProviderNotFound(t *testing.T) {
 	// Then:
 	require.NoError(t, err)
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	
+
 	var response dto.HandlerResponse
 	err = readJSONResponse(resp, &response)
 	require.NoError(t, err)
@@ -105,7 +105,7 @@ func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testin
 	// Then:
 	require.NoError(t, err)
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	
+
 	var errorResponse map[string]string
 	err = readJSONResponse(resp, &errorResponse)
 	require.NoError(t, err)
@@ -116,7 +116,7 @@ func TestNewLookupDocumentationHandler_WithNilProvider(t *testing.T) {
 	// Given:
 	// When:
 	handler := queries.NewLookupDocumentationHandler(nil)
-	
+
 	// Then:
 	assert.Nil(t, handler, "Expected nil when provider is nil")
 }
@@ -128,4 +128,4 @@ func readJSONResponse(resp *http.Response, v interface{}) error {
 		return err
 	}
 	return json.Unmarshal(body, v)
-} 
+}
