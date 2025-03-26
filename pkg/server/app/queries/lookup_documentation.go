@@ -29,6 +29,11 @@ type LookupDocumentationHandler struct {
 // and returns the documentation as markdown with the appropriate status code.
 func (l *LookupDocumentationHandler) Handle(c *fiber.Ctx) error {
 	lookupService := c.Query("lookupService")
+    if lookupService == "" {
+	     return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		   "error": "lookupService query parameter is required",
+	    })
+    }
 	documentation, err := l.provider.GetDocumentationForLookupServiceProvider(lookupService)
 	if err != nil {
 		if inner := c.Status(fiber.StatusBadRequest).JSON(dto.HandlerResponseNonOK); inner != nil {
@@ -37,8 +42,7 @@ func (l *LookupDocumentationHandler) Handle(c *fiber.Ctx) error {
 		return nil
 	}
 
-	// Set Content-Type header to text/markdown
-	c.Set("Content-Type", "text/markdown")
+	c.Type("md")
 	if err := c.Status(fiber.StatusOK).Send([]byte(documentation)); err != nil {
 		return fmt.Errorf("failed to send markdown response: %w", err)
 	}
@@ -50,7 +54,7 @@ func (l *LookupDocumentationHandler) Handle(c *fiber.Ctx) error {
 // an implementation of LookupDocumentationProvider. If the provided argument is nil, it triggers a panic.
 func NewLookupDocumentationHandler(provider LookupDocumentationProvider) *LookupDocumentationHandler {
 	if provider == nil {
-		panic("lookup documentation provider is nil")
+		return nil
 	}
 	return &LookupDocumentationHandler{
 		provider: provider,
