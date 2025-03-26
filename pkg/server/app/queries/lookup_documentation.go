@@ -30,9 +30,12 @@ type LookupDocumentationHandler struct {
 func (l *LookupDocumentationHandler) Handle(c *fiber.Ctx) error {
 	lookupService := c.Query("lookupService")
 	if lookupService == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		if err := c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "lookupService query parameter is required",
-		})
+		}); err != nil {
+			return fmt.Errorf("failed to send JSON response for missing lookupService: %w", err)
+		}
+		return nil
 	}
 	documentation, err := l.provider.GetDocumentationForLookupServiceProvider(lookupService)
 	if err != nil {
