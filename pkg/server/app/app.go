@@ -10,6 +10,7 @@ import (
 type Commands struct {
 	SubmitTransactionHandler *commands.SubmitTransactionHandler
 	SyncAdvertismentsHandler *commands.SyncAdvertisementsHandler
+	//StartGaspSyncHandler     *commands.StartGaspSyncHandler
 }
 
 // Queries aggregate all the supported queries by the overlay API.

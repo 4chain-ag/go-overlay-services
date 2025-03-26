@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
@@ -30,6 +31,16 @@ func WithConfig(cfg *config.Config) HTTPOption {
 	}
 }
 
+<<<<<<< HEAD
+=======
+// Config describes the configuration of the HTTP server instance.
+type Config struct {
+	Addr       string
+	Port       int
+	AdminToken string
+}
+
+>>>>>>> b3bdc97 (adding tokenn to admin endpoint)
 // SocketAddr returns the socket address string based on the configured address and port combination.
 func (h *HTTP) SocketAddr() string { return fmt.Sprintf("%s:%d", h.cfg.Addr, h.cfg.Port) }
 
@@ -70,8 +81,9 @@ func New(opts ...HTTPOption) *HTTP {
 	v1.Get("/topic-managers", adaptor.HTTPHandlerFunc(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
 
 	// Admin:
-	admin := v1.Group("/admin")
-	admin.Post("/advertisements-sync", adaptor.HTTPHandlerFunc(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))
+	admin := v1.Group("/admin", AdminAuthMiddlewareFiber(http.cfg.AdminToken))
+	admin.Post("/advertisements-sync", overlayAPI.Commands.SyncAdvertismentsHandler.Handle)
+	//admin.Post("start-gasp-sync", overlayAPI.Commands.StartGaspSyncHandler.Handle)
 
 	return &http
 }
@@ -82,4 +94,33 @@ func (h *HTTP) ListenAndServe() error {
 		return fmt.Errorf("http server: fiber app listen failed: %w", err)
 	}
 	return nil
+}
+
+func WithAdminAuthMiddleware(adminToken string) HTTPOption {
+	return func(h *HTTP) {
+		h.middlewares = append(h.middlewares, AdminAuthMiddlewareFiber(adminToken))
+	}
+}
+
+// AdminAuthMiddleware is a custom middleware that checks the Authorization header for a valid Bearer token.
+func AdminAuthMiddlewareFiber(adminToken string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		authHeader := c.Get("Authorization")
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Unauthorized: Missing Bearer token",
+			})
+		}
+
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if token != adminToken {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Forbidden: Invalid Bearer token",
+			})
+		}
+
+		return c.Next()
+	}
 }

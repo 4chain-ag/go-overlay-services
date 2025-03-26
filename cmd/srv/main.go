@@ -30,6 +30,7 @@ func main() {
 	opts := []server.HTTPOption{
 		server.WithConfig(cfg),
 		server.WithMiddleware(loggingMiddleware),
+		server.WithAdminAuthMiddleware(adminToken),
 	}
 
 	httpAPI := server.New(opts...)
