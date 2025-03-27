@@ -89,7 +89,7 @@ func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testin
 func TestNewLookupDocumentationHandler_WithNilProvider(t *testing.T) {
 	// Given:
 	var provider queries.LookupDocumentationProvider = nil
-	
+
 	// When:
 	handler := queries.NewLookupDocumentationHandler(provider)
 
