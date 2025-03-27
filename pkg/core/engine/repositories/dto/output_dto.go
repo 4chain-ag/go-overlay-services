@@ -6,7 +6,7 @@ import (
 	"github.com/bsv-blockchain/go-sdk/script"
 )
 
-type OutputDTO struct {
+type Output struct {
 	Outpoint        overlay.Outpoint
 	Topic           string
 	Script          *script.Script
@@ -20,7 +20,7 @@ type OutputDTO struct {
 	Dependencies    []*chainhash.Hash
 }
 
-type InsertOutputDTO struct {
+type InsertOutput struct {
 	TxID        string
 	Vout        uint32
 	Topic       string
@@ -31,9 +31,10 @@ type InsertOutputDTO struct {
 	Spent       bool
 }
 
-type FindOutputDTO struct {
+type FindOutput struct {
 	TxID        string
 	OutputIndex uint32
 	Topic       string
 	Spent       bool
+	IncludeBEEF bool
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine/repositories/dto"
-	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/script"
 	"gorm.io/driver/postgres"
@@ -25,7 +24,7 @@ func (o *OutputsRepository) Close() error {
 	return db.Close()
 }
 
-func (o *OutputsRepository) InsertOutput(ctx context.Context, command dto.InsertOutputDTO) error {
+func (o *OutputsRepository) InsertOutput(ctx context.Context, command dto.InsertOutput) error {
 	conflicts := clause.OnConflict{
 		Columns:   []clause.Column{{Name: "outpoint"}, {Name: "topic"}},
 		DoNothing: true,
@@ -33,7 +32,7 @@ func (o *OutputsRepository) InsertOutput(ctx context.Context, command dto.Insert
 
 	err := o.db.
 		WithContext(ctx).
-		Create(CreateInsertOutputCommand(command)).
+		Create(CreateOutputEntity(command)).
 		Clauses(conflicts).
 		Error
 	if err != nil {
@@ -42,8 +41,9 @@ func (o *OutputsRepository) InsertOutput(ctx context.Context, command dto.Insert
 	return nil
 }
 
-func (o *OutputsRepository) FindOutput(ctx context.Context, query dto.FindOutputDTO) (*dto.OutputDTO, error) {
+func (o *OutputsRepository) FindOutput(ctx context.Context, query dto.FindOutput) (*dto.Output, error) {
 	var res Output
+
 	err := o.db.WithContext(ctx).
 		Where("txid = ?", query.TxID).
 		Where("vout = ?", query.OutputIndex).
@@ -55,7 +55,7 @@ func (o *OutputsRepository) FindOutput(ctx context.Context, query dto.FindOutput
 		return nil, fmt.Errorf("output entity query failed: %w", err)
 	}
 
-	return &dto.OutputDTO{
+	return &dto.Output{
 		Outpoint:    overlay.Outpoint{OutputIndex: res.Vout},
 		Topic:       res.Topic,
 		Script:      &script.Script{},
@@ -66,11 +66,7 @@ func (o *OutputsRepository) FindOutput(ctx context.Context, query dto.FindOutput
 	}, nil
 }
 
-func (*OutputsRepository) FindOutputWithBEEF() (*dto.OutputDTO, error) {
-	return nil, nil
-}
-
-func (*OutputsRepository) FindOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) ([]*dto.OutputDTO, error) {
+func (*OutputsRepository) FindOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) ([]*dto.Output, error) {
 	return nil, nil
 }
 
@@ -82,11 +78,7 @@ func (*OutputsRepository) DeleteOutputs(ctx context.Context, outpoints []*overla
 	return nil
 }
 
-func (*OutputsRepository) FindOutputsForTransaction(ctx context.Context, txid *chainhash.Hash, includeBEEF bool) ([]*dto.OutputDTO, error) {
-	return nil, nil
-}
-
-func (*OutputsRepository) FindUTXOsForTopic(ctx context.Context, topic string, since float64, includeBEEF bool) ([]*dto.OutputDTO, error) {
+func (*OutputsRepository) FindUTXOsForTopic(ctx context.Context, topic string, since float64, includeBEEF bool) ([]*dto.Output, error) {
 	return nil, nil
 }
 
@@ -120,7 +112,7 @@ func NewOutputsPostgresRepository() *OutputsRepository {
 	return &OutputsRepository{db: db}
 }
 
-func CreateInsertOutputCommand(data dto.InsertOutputDTO) *Output {
+func CreateOutputEntity(data dto.InsertOutput) *Output {
 	return &Output{
 		TxID:        data.TxID,
 		Vout:        data.Vout,
