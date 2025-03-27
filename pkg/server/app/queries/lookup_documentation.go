@@ -1,11 +1,21 @@
 package queries
 
 import (
-	"fmt"
+	"net/http"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server/app/dto"
-	"github.com/gofiber/fiber/v2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 )
+
+// LookupDocumentationHandlerResponse defines the response body content that
+// will be sent in JSON format after successfully processing the handler logic.
+type LookupDocumentationHandlerResponse struct {
+	Documentation string `json:"documentation"`
+}
+
+// ErrorResponse defines a simple error response structure
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
 
 // LookupDocumentationProvider defines the contract that must be fulfilled
 // to send a lookup service documentation request to the overlay engine for further processing.
@@ -26,35 +36,29 @@ type LookupDocumentationHandler struct {
 
 // Handle orchestrates the processing flow of a lookup documentation request.
 // It extracts the lookupService query parameter, invokes the engine provider,
-// and returns the documentation as markdown with the appropriate status code.
-func (l *LookupDocumentationHandler) Handle(c *fiber.Ctx) error {
-	lookupService := c.Query("lookupService")
+// and returns the a Markdown-formatted documentation string as JSON with the appropriate status code.
+func (l *LookupDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	lookupService := r.URL.Query().Get("lookupService")
 	if lookupService == "" {
-		if err := c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "lookupService query parameter is required",
-		}); err != nil {
-			return fmt.Errorf("failed to send JSON response for missing lookupService: %w", err)
-		}
-		return nil
+		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, ErrorResponse{
+			Error: "lookupService query parameter is required",
+		})
+		return
 	}
+
 	documentation, err := l.provider.GetDocumentationForLookupServiceProvider(lookupService)
 	if err != nil {
-		if inner := c.Status(fiber.StatusBadRequest).JSON(dto.HandlerResponseNonOK); inner != nil {
-			return fmt.Errorf("failed to send JSON response: %w", inner)
-		}
-		return nil
+		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+		return
 	}
 
-	c.Type("md")
-	if err := c.Status(fiber.StatusOK).Send([]byte(documentation)); err != nil {
-		return fmt.Errorf("failed to send markdown response: %w", err)
-	}
-
-	return nil
+	jsonutil.SendHTTPResponse(w, http.StatusOK, LookupDocumentationHandlerResponse{
+		Documentation: documentation,
+	})
 }
 
 // NewLookupDocumentationHandler returns an instance of a LookupDocumentationHandler, utilizing
-// an implementation of LookupDocumentationProvider. If the provided argument is nil, it triggers a panic.
+// an implementation of LookupDocumentationProvider. If the provided argument is nil, it returns nil.
 func NewLookupDocumentationHandler(provider LookupDocumentationProvider) *LookupDocumentationHandler {
 	if provider == nil {
 		return nil

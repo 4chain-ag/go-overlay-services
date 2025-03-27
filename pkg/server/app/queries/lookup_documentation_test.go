@@ -3,15 +3,12 @@ package queries_test
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server"
-	"github.com/4chain-ag/go-overlay-services/pkg/server/app/dto"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/queries"
-	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,92 +16,83 @@ import (
 // ErrorEngineProvider is an implementation that always returns an error
 type ErrorEngineProvider struct{}
 
-func (*ErrorEngineProvider) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
+func (*ErrorEngineProvider) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
 	return "", errors.New("documentation not found")
 }
 
-// setupTest sets up a new Fiber app and handler for testing
-func setupTest(provider queries.LookupDocumentationProvider) (*fiber.App, *queries.LookupDocumentationHandler) {
-	app := fiber.New()
-	handler := queries.NewLookupDocumentationHandler(provider)
-	return app, handler
+// CustomSuccessEngineProvider extends NoopEngineProvider to return custom documentation
+type CustomSuccessEngineProvider struct {
+	*server.NoopEngineProvider
+}
+
+func (*CustomSuccessEngineProvider) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
+	return "# Test Documentation\nThis is a test markdown document.", nil
 }
 
 func TestLookupDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 	// Given:
-	noopProvider := server.NewNoopEngineProvider()
-	app, handler := setupTest(noopProvider)
-	app.Get("/docs", handler.Handle)
+	handler := queries.NewLookupDocumentationHandler(&CustomSuccessEngineProvider{server.NewNoopEngineProvider().(*server.NoopEngineProvider)})
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
 
 	// When:
-	req := httptest.NewRequest(http.MethodGet, "/docs?lookupService=example", nil)
-	resp, err := app.Test(req)
+	res, err := ts.Client().Get(ts.URL + "?lookupService=example")
 
 	// Then:
 	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	contentType := resp.Header.Get("Content-Type")
-	require.NotEmpty(t, contentType, "Content-Type header should not be empty")
+	require.Equal(t, http.StatusOK, res.StatusCode)
+	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	defer res.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	var response queries.LookupDocumentationHandlerResponse
+	err = json.NewDecoder(res.Body).Decode(&response)
 	require.NoError(t, err)
-	assert.Equal(t, "", string(body))
+	assert.Equal(t, "# Test Documentation\nThis is a test markdown document.", response.Documentation)
 }
 
 func TestLookupDocumentationHandler_Handle_ProviderError(t *testing.T) {
 	// Given:
-	errorProvider := &ErrorEngineProvider{}
-	app, handler := setupTest(errorProvider)
-	app.Get("/docs", handler.Handle)
+	handler := queries.NewLookupDocumentationHandler(&ErrorEngineProvider{})
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
 
 	// When:
-	req := httptest.NewRequest(http.MethodGet, "/docs?lookupService=example", nil)
-	resp, err := app.Test(req)
+	res, err := ts.Client().Get(ts.URL + "?lookupService=example")
 
 	// Then:
 	require.NoError(t, err)
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-
-	var response dto.HandlerResponse
-	err = readJSONResponse(resp, &response)
-	require.NoError(t, err)
-	assert.Equal(t, dto.HandlerResponseNonOK.Message, response.Message)
+	require.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	defer res.Body.Close()
 }
 
 func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testing.T) {
 	// Given:
-	noopProvider := server.NewNoopEngineProvider()
-	app, handler := setupTest(noopProvider)
-	app.Get("/docs", handler.Handle)
+	handler := queries.NewLookupDocumentationHandler(server.NewNoopEngineProvider())
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
 
 	// When:
-	req := httptest.NewRequest(http.MethodGet, "/docs", nil)
-	resp, err := app.Test(req)
+	res, err := ts.Client().Get(ts.URL)
 
 	// Then:
 	require.NoError(t, err)
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	require.Equal(t, http.StatusBadRequest, res.StatusCode)
+	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	defer res.Body.Close()
 
 	var errorResponse map[string]string
-	err = readJSONResponse(resp, &errorResponse)
+	err = json.NewDecoder(res.Body).Decode(&errorResponse)
 	require.NoError(t, err)
 	assert.Equal(t, "lookupService query parameter is required", errorResponse["error"])
 }
 
 func TestNewLookupDocumentationHandler_WithNilProvider(t *testing.T) {
 	// Given:
+	var provider queries.LookupDocumentationProvider = nil
+	
 	// When:
-	handler := queries.NewLookupDocumentationHandler(nil)
+	handler := queries.NewLookupDocumentationHandler(provider)
 
 	// Then:
 	assert.Nil(t, handler, "Expected nil when provider is nil")
-}
-
-// Helper function to read JSON response
-func readJSONResponse(resp *http.Response, v interface{}) error {
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(body, v)
 }
