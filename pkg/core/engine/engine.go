@@ -156,7 +156,7 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 						}
 					}
 				}
-				if admit, err := e.Managers[topic].IdentifyAdmissableOutputs(beef, txid, previousCoins); err != nil {
+				if admit, err := e.Managers[topic].IdentifyAdmissableOutputs(ctx, beef, txid, previousCoins); err != nil {
 					return nil, err
 				} else {
 					steak[topic] = &admit
