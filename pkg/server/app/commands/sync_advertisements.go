@@ -1,11 +1,16 @@
 package commands
 
 import (
-	"fmt"
+	"net/http"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server/app/dto"
-	"github.com/gofiber/fiber/v2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 )
+
+// SyncAdvertisementsHandlerResponse defines the response body content that
+// will be sent in JSON format after successfully processing the handler logic.
+type SyncAdvertisementsHandlerResponse struct {
+	Message string `json:"message"`
+}
 
 // SyncAdvertisementsProvider defines the contract that must be fulfilled
 // to send synchronize advertisements request to the overlay engine for further processing.
@@ -24,19 +29,13 @@ type SyncAdvertisementsHandler struct {
 // Handle orchestrates the processing flow of a synchronize advertisements request.
 // It prepares and sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
-func (s *SyncAdvertisementsHandler) Handle(c *fiber.Ctx) error {
+func (s *SyncAdvertisementsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	err := s.provider.SyncAdvertisements()
 	if err != nil {
-		if inner := c.Status(fiber.StatusInternalServerError).JSON(dto.HandlerResponseNonOK); inner != nil {
-			return fmt.Errorf("failed to send JSON response: %w", inner)
-		}
-		return nil
+		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
 	}
 
-	if err := c.Status(fiber.StatusOK).JSON(dto.HandlerResponseOK); err != nil {
-		return fmt.Errorf("failed to send JSON response: %w", nil)
-	}
-	return nil
+	jsonutil.SendHTTPResponse(w, http.StatusOK, SyncAdvertisementsHandlerResponse{Message: "OK"})
 }
 
 // NewSyncAdvertisementsHandler returns an instance of a SyncAdvertismentsHandler, utilizing

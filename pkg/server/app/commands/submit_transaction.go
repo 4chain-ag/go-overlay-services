@@ -2,13 +2,18 @@ package commands
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
-	"github.com/4chain-ag/go-overlay-services/pkg/server/app/dto"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 	"github.com/bsv-blockchain/go-sdk/overlay"
-	"github.com/gofiber/fiber/v2"
 )
+
+// SubmitTransactionHandlerResponse defines the response body content that
+// will be sent in JSON format after successfully processing the handler logic.
+type SubmitTransactionHandlerResponse struct {
+	overlay.Steak `json:"steak"`
+}
 
 // SubmitTransactionProvider defines the contract that must be fulfilled
 // to send a transaction request to the overlay engine for further processing.
@@ -29,19 +34,14 @@ type SubmitTransactionHandler struct {
 // Handle orchestrates the processing flow of a transaction. It prepares and
 // sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
-func (s *SubmitTransactionHandler) Handle(c *fiber.Ctx) error {
-	_, err := s.provider.Submit(c.Context(), overlay.TaggedBEEF{}, engine.SubmitModeCurrent, func(steak overlay.Steak) {})
+func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	// TODO: Add custom validation logic.
+	steak, err := s.provider.Submit(r.Context(), overlay.TaggedBEEF{}, engine.SubmitModeCurrent, func(steak overlay.Steak) {})
 	if err != nil {
-		if inner := c.Status(fiber.StatusInternalServerError).JSON(dto.HandlerResponseNonOK); inner != nil {
-			return fmt.Errorf("failed to send JSON response: %w", inner)
-		}
-		return nil
+		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
 	}
 
-	if err := c.Status(fiber.StatusOK).JSON(dto.HandlerResponseOK); err != nil {
-		return fmt.Errorf("failed to send JSON response: %w", nil)
-	}
-	return nil
+	jsonutil.SendHTTPResponse(w, http.StatusCreated, SubmitTransactionHandlerResponse{Steak: steak})
 }
 
 // NewSubmitTransactionCommandHandler returns an instance of a SubmitTransactionHandler, utilizing

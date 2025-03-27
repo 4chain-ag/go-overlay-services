@@ -1,11 +1,16 @@
 package queries
 
 import (
-	"fmt"
+	"net/http"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server/app/dto"
-	"github.com/gofiber/fiber/v2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 )
+
+// TopicManagerDocumentationHandlerResponse defines the response body content that
+// will be sent in JSON format after successfully processing the handler logic.
+type TopicManagerDocumentationHandlerResponse struct {
+	Message string `json:"message"`
+}
 
 // TopicManagerDocumentationProvider defines the contract that must be fulfilled
 // to send a topic manager documentation request to the overlay engine for further processing.
@@ -27,20 +32,14 @@ type TopicManagerDocumentationHandler struct {
 // Handle orchestrates the processing flow of a topic manager documentation request.
 // It prepares and sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
-func (t *TopicManagerDocumentationHandler) Handle(c *fiber.Ctx) error {
+func (t *TopicManagerDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	// TODO: Add custom validation logic.
 	_, err := t.provider.GetDocumentationForTopicManager("")
 	if err != nil {
-		if inner := c.Status(fiber.StatusInternalServerError).JSON(dto.HandlerResponseNonOK); inner != nil {
-			return fmt.Errorf("failed to send JSON response: %w", inner)
-		}
-		return nil
+		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
 	}
 
-	if err := c.Status(fiber.StatusOK).JSON(dto.HandlerResponseOK); err != nil {
-		return fmt.Errorf("failed to send JSON response: %w", nil)
-	}
-	return nil
+	jsonutil.SendHTTPResponse(w, http.StatusOK, TopicManagerDocumentationHandlerResponse{Message: "OK"})
 }
 
 // NewTopicManagerDocumentationHandler returns an instance of a TopicManagerDocumentationHandler, utilizing

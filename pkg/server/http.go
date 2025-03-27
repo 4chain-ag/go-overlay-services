@@ -71,12 +71,12 @@ func New(opts ...HTTPOption) *HTTP {
 	v1 := api.Group("/v1")
 
 	// Non-Admin:
-	v1.Post("/submit", overlayAPI.Commands.SubmitTransactionHandler.Handle)
-	v1.Get("/topic-managers", overlayAPI.Queries.TopicManagerDocumentationHandler.Handle)
+	v1.Post("/submit", adaptor.HTTPHandlerFunc(overlayAPI.Commands.SubmitTransactionHandler.Handle))
+	v1.Get("/topic-managers", adaptor.HTTPHandlerFunc(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
 
 	// Admin:
 	admin := v1.Group("/admin")
-	admin.Post("/advertisements-sync", overlayAPI.Commands.SyncAdvertismentsHandler.Handle)
+	admin.Post("/advertisements-sync", adaptor.HTTPHandlerFunc(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))
 
 	return &http
 }
