@@ -66,8 +66,14 @@ func New(opts ...HTTPOption) *HTTP {
 	v1 := api.Group("/v1")
 
 	// Non-Admin:
+<<<<<<< HEAD
 	v1.Post("/submit", adaptor.HTTPHandlerFunc(overlayAPI.Commands.SubmitTransactionHandler.Handle))
 	v1.Get("/topic-managers", adaptor.HTTPHandlerFunc(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
+=======
+	v1.Post("/submit", overlayAPI.Commands.SubmitTransactionHandler.Handle)
+	v1.Get("/topic-managers", overlayAPI.Queries.TopicManagerDocumentationHandler.Handle)
+	v1.Post("/request-foreign-gasp-node", overlayAPI.Commands.RequestForeignGASPNodeHandler.Handle)
+>>>>>>> c47b602 (adding gasp node command)
 
 	// Admin:
 	admin := v1.Group("/admin")

@@ -8,8 +8,9 @@ import (
 
 // Commands aggregate all the supported commands by the overlay API.
 type Commands struct {
-	SubmitTransactionHandler *commands.SubmitTransactionHandler
-	SyncAdvertismentsHandler *commands.SyncAdvertisementsHandler
+	SubmitTransactionHandler      *commands.SubmitTransactionHandler
+	SyncAdvertismentsHandler      *commands.SyncAdvertisementsHandler
+	RequestForeignGASPNodeHandler *commands.RequestForeignGASPNodeHandler
 }
 
 // Queries aggregate all the supported queries by the overlay API.
@@ -31,8 +32,9 @@ func New(provider engine.OverlayEngineProvider) *Application {
 	}
 	return &Application{
 		Commands: &Commands{
-			SubmitTransactionHandler: commands.NewSubmitTransactionCommandHandler(provider),
-			SyncAdvertismentsHandler: commands.NewSyncAdvertisementsHandler(provider),
+			SubmitTransactionHandler:      commands.NewSubmitTransactionCommandHandler(provider),
+			SyncAdvertismentsHandler:      commands.NewSyncAdvertisementsHandler(provider),
+			RequestForeignGASPNodeHandler: commands.NewRequestForeignGASPNodeHandler(provider),
 		},
 		Queries: &Queries{
 			TopicManagerDocumentationHandler: queries.NewTopicManagerDocumentationHandler(provider),
