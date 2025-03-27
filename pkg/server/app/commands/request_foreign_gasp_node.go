@@ -31,6 +31,7 @@ func (h *RequestForeignGASPNodeHandler) Handle(c *fiber.Ctx) error {
 		if err := c.Status(fiber.StatusBadRequest).JSON(nil); err != nil {
 			return fmt.Errorf("failed to send response: %w", err)
 		}
+		return nil
 	}
 
 	node, err := h.provider.ProvideForeignGASPNode(payload.GraphID, payload.TxID, payload.OutputIndex)
@@ -38,10 +39,11 @@ func (h *RequestForeignGASPNodeHandler) Handle(c *fiber.Ctx) error {
 		if err := c.Status(fiber.StatusInternalServerError).JSON(nil); err != nil {
 			return fmt.Errorf("failed to send response: %w", err)
 		}
+		return nil
 	}
 
-	if err := c.Status(fiber.StatusOK).JSON(node); err != nil {
-		return fmt.Errorf("failed to send response: %w", err)
+	if wrapErr := c.Status(fiber.StatusOK).JSON(node); wrapErr != nil {
+		return fmt.Errorf("failed to write 200 JSON response: %w", wrapErr)
 	}
 	return nil
 }
