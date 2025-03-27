@@ -20,6 +20,7 @@ CREATE TABLE outputs(
     updated_at TEXT NOT NULL DEFAULT current_timestamp,
     PRIMARY KEY(txid, vout, topic)
 );
+
 CREATE INDEX idx_outputs_txid_vout ON outputs(txid, vout);
 CREATE INDEX idx_outputs_topic_height_idx ON outputs(topic, height, idx);
 
