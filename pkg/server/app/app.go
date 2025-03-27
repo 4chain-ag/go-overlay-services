@@ -10,6 +10,7 @@ import (
 type Commands struct {
 	SubmitTransactionHandler *commands.SubmitTransactionHandler
 	SyncAdvertismentsHandler *commands.SyncAdvertisementsHandler
+	StartGASPSyncHandler     *commands.StartGASPSyncHandler
 }
 
 // Queries aggregate all the supported queries by the overlay API.
@@ -33,6 +34,7 @@ func New(provider engine.OverlayEngineProvider) *Application {
 		Commands: &Commands{
 			SubmitTransactionHandler: commands.NewSubmitTransactionCommandHandler(provider),
 			SyncAdvertismentsHandler: commands.NewSyncAdvertisementsHandler(provider),
+			StartGASPSyncHandler:     commands.NewStartGASPSyncHandler(provider),
 		},
 		Queries: &Queries{
 			TopicManagerDocumentationHandler: queries.NewTopicManagerDocumentationHandler(provider),
