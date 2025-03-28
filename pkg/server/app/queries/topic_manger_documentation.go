@@ -9,7 +9,7 @@ import (
 // TopicManagerDocumentationHandlerResponse defines the response body content that
 // will be sent in JSON format after successfully processing the handler logic.
 type TopicManagerDocumentationHandlerResponse struct {
-	Message string `json:"message"`
+	Documentation string `json:"documentation"`
 }
 
 // TopicManagerDocumentationProvider defines the contract that must be fulfilled
@@ -30,16 +30,24 @@ type TopicManagerDocumentationHandler struct {
 }
 
 // Handle orchestrates the processing flow of a topic manager documentation request.
-// It prepares and sends a JSON response after invoking the engine and returns an HTTP response
-// with the appropriate status code based on the engine's response.
+// It extracts the "provider" query parameter, invokes the engine provider,
+// and returns a Markdown-formatted documentation string as JSON with the appropriate status code.
 func (t *TopicManagerDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	// TODO: Add custom validation logic.
-	_, err := t.provider.GetDocumentationForTopicManager("")
-	if err != nil {
-		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+	providerParam := r.URL.Query().Get("provider")
+	if providerParam == "" {
+		jsonutil.SendHTTPErrorResponse(w, http.StatusBadRequest, "provider query parameter is required")
+		return
 	}
 
-	jsonutil.SendHTTPResponse(w, http.StatusOK, TopicManagerDocumentationHandlerResponse{Message: "OK"})
+	documentation, err := t.provider.GetDocumentationForTopicManager(providerParam)
+	if err != nil {
+		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+		return
+	}
+
+	jsonutil.SendHTTPResponse(w, http.StatusOK, TopicManagerDocumentationHandlerResponse{
+		Documentation: documentation,
+	})
 }
 
 // NewTopicManagerDocumentationHandler returns an instance of a TopicManagerDocumentationHandler, utilizing

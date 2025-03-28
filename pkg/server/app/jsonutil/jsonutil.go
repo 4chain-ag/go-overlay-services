@@ -19,6 +19,16 @@ func SendHTTPResponse(w http.ResponseWriter, code int, responseBody any) {
 	}
 }
 
+// SendHTTPErrorResponse replies to the request with the specified HTTP status code and a standardized
+// error message in JSON format. It uses the error format {"error": "message"}.
+// In case of an internal encoding failure, it replies to the request with a StatusInternalServerError
+// message and HTTP status code in plain text format.
+func SendHTTPErrorResponse(w http.ResponseWriter, code int, errorMessage string) {
+	SendHTTPResponse(w, code, map[string]string{
+		"error": errorMessage,
+	})
+}
+
 // SendHTTPInternalServerErrorTextResponse replies to the request with a StatusInternalServerError
 // message and HTTP status code. It does not terminate the request; the caller must ensure no further
 // writes are made to w. The error message is returned in plain text format.
