@@ -81,7 +81,7 @@ func New(opts ...HTTPOption) *HTTP {
 	v1.Get("/topic-managers", adaptor.HTTPHandlerFunc(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
 
 	// Admin:
-	admin := v1.Group("/admin", AdminAuthMiddlewareFiber(http.cfg.AdminToken))
+	admin := v1.Group("/admin", AdminAuth(http.cfg.AdminBearerToken))
 	admin.Post("/advertisements-sync", overlayAPI.Commands.SyncAdvertismentsHandler.Handle)
 	//admin.Post("start-gasp-sync", overlayAPI.Commands.StartGaspSyncHandler.Handle)
 
@@ -96,29 +96,21 @@ func (h *HTTP) ListenAndServe() error {
 	return nil
 }
 
-// WithAdminAuthMiddleware adds a custom middleware to the HTTP server that checks the Authorization header for a valid Bearer token.
-func WithAdminAuthMiddleware(adminToken string) HTTPOption {
-	return func(h *HTTP) {
-		h.middlewares = append(h.middlewares, AdminAuthMiddlewareFiber(adminToken))
-	}
-}
-
-// AdminAuthMiddlewareFiber is a custom middleware that checks the Authorization header for a valid Bearer token.
-func AdminAuthMiddlewareFiber(adminToken string) fiber.Handler {
+func AdminAuth(expectedToken string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		authHeader := c.Get("Authorization")
-		if !strings.HasPrefix(authHeader, "Bearer ") {
+		auth := c.Get("Authorization")
+		if !strings.HasPrefix(auth, "Bearer ") {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"status":  "error",
-				"message": "Unauthorized: Missing Bearer token",
+				"message": "Missing Bearer token",
 			})
 		}
 
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token != adminToken {
+		token := strings.TrimPrefix(auth, "Bearer ")
+		if token != expectedToken {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"status":  "error",
-				"message": "Forbidden: Invalid Bearer token",
+				"message": "Invalid Bearer token",
 			})
 		}
 
