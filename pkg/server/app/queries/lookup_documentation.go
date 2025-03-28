@@ -58,10 +58,10 @@ func (l *LookupDocumentationHandler) Handle(w http.ResponseWriter, r *http.Reque
 }
 
 // NewLookupDocumentationHandler returns an instance of a LookupDocumentationHandler, utilizing
-// an implementation of LookupDocumentationProvider. If the provided argument is nil, it returns nil.
+// an implementation of LookupDocumentationProvider. If the provided argument is nil, it panics.
 func NewLookupDocumentationHandler(provider LookupDocumentationProvider) *LookupDocumentationHandler {
 	if provider == nil {
-		return nil
+		panic("provider cannot be nil")
 	}
 	return &LookupDocumentationHandler{
 		provider: provider,

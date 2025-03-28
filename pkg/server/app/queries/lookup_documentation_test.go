@@ -90,9 +90,8 @@ func TestNewLookupDocumentationHandler_WithNilProvider(t *testing.T) {
 	// Given:
 	var provider queries.LookupDocumentationProvider = nil
 
-	// When:
-	handler := queries.NewLookupDocumentationHandler(provider)
-
-	// Then:
-	assert.Nil(t, handler, "Expected nil when provider is nil")
+	// When & Then:
+	assert.Panics(t, func() {
+		queries.NewLookupDocumentationHandler(provider)
+	}, "Expected panic when provider is nil")
 }
