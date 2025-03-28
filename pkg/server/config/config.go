@@ -1,5 +1,7 @@
 package config
 
+import "github.com/google/uuid"
+
 // Config defines the configuration for the application.
 type Config struct {
 	AppName          string
@@ -54,7 +56,7 @@ func NewConfig(opts ...Option) *Config {
 		Port:             3000,
 		Addr:             "localhost",
 		ServerHeader:     "Overlay API",
-		AdminBearerToken: "admin-token-default",
+		AdminBearerToken: uuid.NewString(),
 	}
 	for _, opt := range opts {
 		opt(cfg)

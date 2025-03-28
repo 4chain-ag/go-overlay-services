@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,18 +16,15 @@ func TestLoad_ShouldApplyAllDefaults_WhenNoConfigFileExists(t *testing.T) {
 
 	// When
 	actual, err := loader.Load()
-
-	expected := &config.Config{
-		AppName:          "Overlay API v0.0.0",
-		Port:             3000,
-		Addr:             "localhost",
-		ServerHeader:     "Overlay API",
-		AdminBearerToken: "admin-token-default",
-	}
+	expected := config.DefaultConfig()
+	expected.AdminBearerToken = actual.AdminBearerToken
 
 	// Then
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
+
+	_, err = uuid.Parse(actual.AdminBearerToken)
+	require.NoError(t, err, "admin token should be a valid UUID")
 }
 
 func TestLoad_ShouldOverrideDefaults_WhenConfigFileProvidesValues(t *testing.T) {

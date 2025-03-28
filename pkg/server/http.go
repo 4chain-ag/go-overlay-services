@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
@@ -70,8 +71,9 @@ func New(opts ...HTTPOption) *HTTP {
 	v1.Get("/topic-managers", adaptor.HTTPHandlerFunc(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
 
 	// Admin:
-	admin := v1.Group("/admin")
+	admin := v1.Group("/admin", AdminAuth(http.cfg.AdminBearerToken))
 	admin.Post("/advertisements-sync", adaptor.HTTPHandlerFunc(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))
+	//admin.Post("start-gasp-sync", adaptor.HTTPHandlerFunc(overlayAPI.Commands.StartGaspSyncHandler.Handle))
 
 	return &http
 }
@@ -82,4 +84,27 @@ func (h *HTTP) ListenAndServe() error {
 		return fmt.Errorf("http server: fiber app listen failed: %w", err)
 	}
 	return nil
+}
+
+// AdminAuth is a middleware that checks the Authorization header for a valid Bearer token.
+func AdminAuth(expectedToken string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		auth := c.Get("Authorization")
+		if !strings.HasPrefix(auth, "Bearer ") {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Missing Bearer token",
+			})
+		}
+
+		token := strings.TrimPrefix(auth, "Bearer ")
+		if token != expectedToken {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Invalid Bearer token",
+			})
+		}
+
+		return c.Next()
+	}
 }
