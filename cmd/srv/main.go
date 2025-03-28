@@ -29,7 +29,7 @@ func main() {
 
 	opts := []server.HTTPOption{
 		server.WithConfig(cfg),
-		server.WithDefaultCORS(),
+		server.WithCORS(),
 		server.WithMiddleware(loggingMiddleware),
 	}
 
