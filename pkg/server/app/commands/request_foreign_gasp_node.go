@@ -1,10 +1,11 @@
 package commands
 
 import (
-	"fmt"
+	"encoding/json"
+	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp"
-	"github.com/gofiber/fiber/v2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 )
 
 // RequestForeignGASPNodeProvider defines the contract that must be fulfilled to send a requestForeignGASPNode to the overlay engine.
@@ -24,28 +25,26 @@ type requestPayload struct {
 	OutputIndex uint32 `json:"outputIndex"`
 }
 
-// Handle handles the request, validates input, calls the engine, and returns the GASP node.
-func (h *RequestForeignGASPNodeHandler) Handle(c *fiber.Ctx) error {
+// Handle processes the HTTP request and writes the appropriate response.
+func (h *RequestForeignGASPNodeHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	var payload requestPayload
-	if err := c.BodyParser(&payload); err != nil {
-		if err := c.Status(fiber.StatusBadRequest).JSON(nil); err != nil {
-			return fmt.Errorf("failed to send response: %w", err)
-		}
-		return nil
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	node, err := h.provider.ProvideForeignGASPNode(payload.GraphID, payload.TxID, payload.OutputIndex)
 	if err != nil {
-		if err := c.Status(fiber.StatusInternalServerError).JSON(nil); err != nil {
-			return fmt.Errorf("failed to send response: %w", err)
-		}
-		return nil
+		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+		return
 	}
 
-	if wrapErr := c.Status(fiber.StatusOK).JSON(node); wrapErr != nil {
-		return fmt.Errorf("failed to write 200 JSON response: %w", wrapErr)
-	}
-	return nil
+	jsonutil.SendHTTPResponse(w, http.StatusOK, node)
 }
 
 // NewRequestForeignGASPNodeHandler creates a new handler instance.

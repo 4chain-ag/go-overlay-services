@@ -1,90 +1,83 @@
 package commands_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
-	"strings"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp"
 	"github.com/4chain-ag/go-overlay-services/pkg/server"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/commands"
-	"github.com/gofiber/fiber/v2"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRequestForeignGASPNodeHandler_ValidInput_ReturnsGASPNode(t *testing.T) {
-	// Given
-	app := fiber.New()
+	// Given:
 	handler := commands.NewRequestForeignGASPNodeHandler(server.NewNoopEngineProvider())
-	app.Post("/", handler.Handle)
-
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
 	payload := `{"graphID":"graph123", "txid":"tx789", "outputIndex":1}`
 
-	// When
-	req := httptestRequest("POST", "/", payload)
-	resp, err := app.Test(req, -1)
+	// When:
+	resp, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(payload))
 
-	// Then
+	// Then:
 	require.NoError(t, err)
-	require.Equal(t, fiber.StatusOK, resp.StatusCode)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var node gasp.GASPNode
-	err = json.NewDecoder(resp.Body).Decode(&node)
+	var actual gasp.GASPNode
+	expected := gasp.GASPNode{}
+	err = json.NewDecoder(resp.Body).Decode(&actual)
 	require.NoError(t, err)
-	require.Equal(t, "", node.GraphID)
-	require.Equal(t, "", node.RawTx)
-	require.Equal(t, uint32(0), node.OutputIndex)
+	assert.EqualValues(t, expected, actual)
 }
 
 func TestRequestForeignGASPNodeHandler_InvalidJSON_Returns400(t *testing.T) {
-	// Given
-	app := fiber.New()
+	// Given:
 	handler := commands.NewRequestForeignGASPNodeHandler(server.NewNoopEngineProvider())
-	app.Post("/", handler.Handle)
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
 
-	// When
-	req := httptestRequest("POST", "/", `INVALID_JSON`)
-	resp, err := app.Test(req, -1)
+	// When:
+	resp, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(`INVALID_JSON`))
 
-	// Then
+	// Then:
 	require.NoError(t, err)
-	require.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestRequestForeignGASPNodeHandler_MissingFields_StillReturnsOK(t *testing.T) {
-	// Given
-	app := fiber.New()
+	// Given:
 	handler := commands.NewRequestForeignGASPNodeHandler(server.NewNoopEngineProvider())
-	app.Post("/", handler.Handle)
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
 
-	// When
-	req := httptestRequest("POST", "/", `{}`)
-	resp, err := app.Test(req, -1)
+	// When:
+	resp, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(`{}`))
 
-	// Then
+	// Then:
 	require.NoError(t, err)
-	require.Equal(t, fiber.StatusOK, resp.StatusCode)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestRequestForeignGASPNodeHandler_InvalidHTTPMethod_Returns405(t *testing.T) {
-	// Given
-	app := fiber.New()
+	// Given:
 	handler := commands.NewRequestForeignGASPNodeHandler(server.NewNoopEngineProvider())
-	app.Post("/", handler.Handle)
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
 
-	// When
-	req := httptestRequest("GET", "/", ``)
-	resp, err := app.Test(req, -1)
+	// When:
+	req, _ := http.NewRequest("GET", ts.URL, nil)
+	resp, err := http.DefaultClient.Do(req)
 
-	// Then
+	// Then:
 	require.NoError(t, err)
-	require.Equal(t, fiber.StatusMethodNotAllowed, resp.StatusCode) // 405
-}
-
-// helper
-func httptestRequest(method, url, body string) *http.Request {
-	req, _ := http.NewRequest(method, url, strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	return req
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 }
