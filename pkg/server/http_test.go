@@ -6,59 +6,47 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server"
-	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
 )
 
-// TestAdminRoutesProtection verifies that the admin routes are protected by the AdminAuthMiddlewareFiber.
-func TestAdminRoutesProtection(t *testing.T) {
+func Test_AuthorizationBearerTokenMiddleware(t *testing.T) {
 	// Given
 	adminToken := "valid_admin_token"
-	app := fiber.New()
-
-	adminGroup := app.Group("/admin", server.AdminAuth(adminToken))
-	adminGroup.Post("/advertisements-sync", func(c *fiber.Ctx) error {
-		return c.SendStatus(fiber.StatusOK)
-	})
+	ts := httptest.NewServer(server.AuthorizationBearerTokenMiddleware(adminToken))
+	defer ts.Close()
 
 	tests := []struct {
 		name           string
-		method         string
-		url            string
 		token          string
 		expectedStatus int
 	}{
 		{
-			name:           "Access admin route without token",
-			method:         http.MethodPost,
-			url:            "/admin/advertisements-sync",
+			name:           "Route access without a token",
 			token:          "",
-			expectedStatus: fiber.StatusUnauthorized,
+			expectedStatus: http.StatusUnauthorized,
 		},
 		{
-			name:           "Access admin route with invalid token",
-			method:         http.MethodPost,
-			url:            "/admin/advertisements-sync",
+			name:           "Route access with an invalid token",
 			token:          "invalid_token",
-			expectedStatus: fiber.StatusForbidden,
+			expectedStatus: http.StatusForbidden,
 		},
 		{
-			name:           "Access admin route with valid token",
-			method:         http.MethodPost,
-			url:            "/admin/advertisements-sync",
+			name:           "Route access with a valid token",
 			token:          "valid_admin_token",
-			expectedStatus: fiber.StatusOK,
+			expectedStatus: http.StatusOK,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// When
-			req := httptest.NewRequest(tt.method, tt.url, nil)
+			req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+			require.NoError(t, err)
+
 			if tt.token != "" {
 				req.Header.Set("Authorization", "Bearer "+tt.token)
 			}
-			resp, err := app.Test(req)
+			resp, err := ts.Client().Do(req)
 
 			// Then
 			require.NoError(t, err)

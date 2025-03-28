@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
@@ -71,7 +72,7 @@ func New(opts ...HTTPOption) *HTTP {
 	v1.Get("/topic-managers", adaptor.HTTPHandlerFunc(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
 
 	// Admin:
-	admin := v1.Group("/admin", AdminAuth(http.cfg.AdminBearerToken))
+	admin := v1.Group("/admin", adaptor.HTTPHandlerFunc(AuthorizationBearerTokenMiddleware(http.cfg.AdminBearerToken)))
 	admin.Post("/advertisements-sync", adaptor.HTTPHandlerFunc(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))
 	//admin.Post("start-gasp-sync", adaptor.HTTPHandlerFunc(overlayAPI.Commands.StartGaspSyncHandler.Handle))
 
@@ -86,25 +87,40 @@ func (h *HTTP) ListenAndServe() error {
 	return nil
 }
 
-// AdminAuth is a middleware that checks the Authorization header for a valid Bearer token.
-func AdminAuth(expectedToken string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		auth := c.Get("Authorization")
-		if !strings.HasPrefix(auth, "Bearer ") {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"status":  "error",
-				"message": "Missing Bearer token",
+// AuthorizationBearerTokenMiddleware protects the HTTP server from unauthorized access.
+// The middleware checks whether the incoming HTTP request headers contain an Authorization key
+// with a Bearer token matching the expected value. If authorization fails,
+// the HTTP server responds with StatusUnauthorized or StatusForbidden.
+func AuthorizationBearerTokenMiddleware(expectedToken string) http.HandlerFunc {
+	type AuthorizationFailureResponse struct {
+		Status  string `json:"error"`
+		Message string `json:"message"`
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth == "" {
+			jsonutil.SendHTTPResponse(w, http.StatusUnauthorized, AuthorizationFailureResponse{
+				Status:  http.StatusText(http.StatusUnauthorized),
+				Message: "Missing Authorization header in the request",
 			})
+			return
+		}
+
+		if !strings.HasPrefix(auth, "Bearer ") {
+			jsonutil.SendHTTPResponse(w, http.StatusUnauthorized, AuthorizationFailureResponse{
+				Status:  http.StatusText(http.StatusUnauthorized),
+				Message: "Missing Authorization header Bearer token value",
+			})
+			return
 		}
 
 		token := strings.TrimPrefix(auth, "Bearer ")
 		if token != expectedToken {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"status":  "error",
-				"message": "Invalid Bearer token",
+			jsonutil.SendHTTPResponse(w, http.StatusForbidden, AuthorizationFailureResponse{
+				Status:  http.StatusText(http.StatusForbidden),
+				Message: "Invalid Bearer token value",
 			})
 		}
-
-		return c.Next()
-	}
+	})
 }
