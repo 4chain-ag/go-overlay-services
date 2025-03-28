@@ -72,7 +72,7 @@ func New(opts ...HTTPOption) *HTTP {
 	// Admin:
 	admin := v1.Group("/admin")
 	admin.Post("/advertisements-sync", adaptor.HTTPHandlerFunc(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))
-	admin.Post("/start-gasp-sync", overlayAPI.Commands.StartGASPSyncHandler.Handle)
+	admin.Post("/start-gasp-sync", adaptor.HTTPHandlerFunc(overlayAPI.Commands.StartGASPSyncHandler.Handle))
 
 	return &http
 }

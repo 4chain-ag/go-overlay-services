@@ -3,11 +3,11 @@ package commands_test
 import (
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/commands"
-	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,33 +19,37 @@ func (m *mockErrProvider) StartGASPSync() error {
 }
 
 func TestStartGASPSyncHandler_Success(t *testing.T) {
-	// Given
-	app := fiber.New()
+	// Given:
 	handler := commands.NewStartGASPSyncHandler(server.NewNoopEngineProvider())
-	app.Post("/", handler.Handle)
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
 
-	// When
-	req, _ := http.NewRequest("POST", "/", nil)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
-
-	// Then
+	// When:
+	req, err := http.NewRequest("POST", ts.URL, nil)
 	require.NoError(t, err)
-	require.Equal(t, fiber.StatusOK, resp.StatusCode)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+
+	// Then:
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestStartGASPSyncHandler_Failure(t *testing.T) {
-	// Given
-	app := fiber.New()
+	// Given:
 	handler := commands.NewStartGASPSyncHandler(&mockErrProvider{})
-	app.Post("/", handler.Handle)
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
 
-	// When
-	req, _ := http.NewRequest("POST", "/", nil)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
-
-	// Then
+	// When:
+	req, err := http.NewRequest("POST", ts.URL, nil)
 	require.NoError(t, err)
-	require.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+
+	// Then:
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 }

@@ -1,10 +1,9 @@
 package commands
 
 import (
-	"fmt"
+	"net/http"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server/app/dto"
-	"github.com/gofiber/fiber/v2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 )
 
 // StartGASPSyncProvider defines the contract for triggering GASP sync.
@@ -17,25 +16,30 @@ type StartGASPSyncHandler struct {
 	provider StartGASPSyncProvider
 }
 
+// HandlerResponse is the standard response body format.
+type HandlerResponse struct {
+	Message string `json:"message"`
+}
+
 // Handle initiates the sync and returns appropriate status.
-func (h *StartGASPSyncHandler) Handle(c *fiber.Ctx) error {
-	if err := h.provider.StartGASPSync(); err != nil {
-		if wrapErr := c.Status(fiber.StatusInternalServerError).JSON(dto.HandlerResponseNonOK); wrapErr != nil {
-			return fmt.Errorf("failed to write 500 JSON response: %w", wrapErr)
-		}
-		return nil
+func (h *StartGASPSyncHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 
-	if wrapErr := c.Status(fiber.StatusOK).JSON(dto.HandlerResponseOK); wrapErr != nil {
-		return fmt.Errorf("failed to write 200 JSON response: %w", wrapErr)
+	if err := h.provider.StartGASPSync(); err != nil {
+		jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, HandlerResponse{Message: "FAILED"})
+		return
 	}
-	return nil
+
+	jsonutil.SendHTTPResponse(w, http.StatusOK, HandlerResponse{Message: "OK"})
 }
 
 // NewStartGASPSyncHandler constructs the handler.
 func NewStartGASPSyncHandler(provider StartGASPSyncProvider) *StartGASPSyncHandler {
 	if provider == nil {
-		panic("start GASP sync provider is nil")
+		return nil
 	}
 	return &StartGASPSyncHandler{provider: provider}
 }
