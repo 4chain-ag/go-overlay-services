@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine/repositories/dto"
@@ -10,21 +9,20 @@ import (
 )
 
 func main() {
-	db := sql.NewOutputsPostgresRepository()
-	defer func(cause error) {
-		if cause != nil {
-			log.Fatal(cause)
+	db := sql.NewTransactionsPostgresRepository()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Fatal(err)
 		}
-	}(db.Close())
+	}()
 
-	dto, err := db.FindOutput(context.Background(), dto.FindOutput{
-		TxID:        "123456",
-		OutputIndex: 10,
-		Topic:       "example_topic",
-		Spent:       false,
+	out, err := db.FindOutputsForTransaction(context.Background(), dto.FindTransactionOutput{
+		TxID:        "1234",
+		IncludeBEEF: false,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(dto)
+
+	println(out)
 }

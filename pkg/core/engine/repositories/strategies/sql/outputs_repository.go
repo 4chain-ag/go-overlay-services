@@ -36,7 +36,7 @@ func (o *OutputsRepository) InsertOutput(ctx context.Context, command dto.Insert
 		Clauses(conflicts).
 		Error
 	if err != nil {
-		return fmt.Errorf("output entity insertion command failed: %w", err)
+		return fmt.Errorf("insert op failed: %w", err)
 	}
 	return nil
 }
@@ -52,7 +52,7 @@ func (o *OutputsRepository) FindOutput(ctx context.Context, query dto.FindOutput
 		First(&res).
 		Error
 	if err != nil {
-		return nil, fmt.Errorf("output entity query failed: %w", err)
+		return nil, fmt.Errorf("query op failed: %w", err)
 	}
 
 	return &dto.Output{
