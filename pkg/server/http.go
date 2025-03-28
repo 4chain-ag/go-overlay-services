@@ -8,6 +8,7 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/idempotency"
 )
 
@@ -15,34 +16,44 @@ import (
 // These options allow for flexible setup of middlewares and configurations.
 type HTTPOption func(*HTTP)
 
-// WithMiddleware adds custom middleware to the HTTP server.
-// The execution order depends on the sequence in which the middlewares are passed
+// WithMiddleware adds net/http-style middleware to the HTTP server.
 func WithMiddleware(f func(http.Handler) http.Handler) HTTPOption {
 	return func(h *HTTP) {
 		h.middlewares = append(h.middlewares, adaptor.HTTPMiddleware(f))
 	}
 }
 
-// WithConfig sets the HTTP server configuration based on the given definition.
+// WithFiberMiddleware adds a Fiber-style middleware to the HTTP server.
+func WithFiberMiddleware(m fiber.Handler) HTTPOption {
+	return func(h *HTTP) {
+		h.middlewares = append(h.middlewares, m)
+	}
+}
+
+// WithCORS allows configuring CORS using a custom or default Fiber config.
+func WithCORS(config ...cors.Config) HTTPOption {
+	c := cors.ConfigDefault
+	if len(config) > 0 {
+		c = config[0]
+	}
+	return WithFiberMiddleware(cors.New(c))
+}
+
+// WithConfig sets the HTTP server configuration.
 func WithConfig(cfg *config.Config) HTTPOption {
 	return func(h *HTTP) {
 		h.cfg = cfg
 	}
 }
 
-// SocketAddr returns the socket address string based on the configured address and port combination.
-func (h *HTTP) SocketAddr() string { return fmt.Sprintf("%s:%d", h.cfg.Addr, h.cfg.Port) }
-
-// HTTP manages connections to the overlay server instance. It accepts and responds to client sockets,
-// using idempotency to improve fault tolerance and mitigate duplicated requests.
-// It applies all configured options along with the list of middlewares."
+// HTTP manages the Fiber server and its configuration.
 type HTTP struct {
 	middlewares []fiber.Handler
 	app         *fiber.App
 	cfg         *config.Config
 }
 
-// New returns an instance of the HTTP server and applies all specified functional options before starting it.
+// New returns a new HTTP server with the provided options.
 func New(opts ...HTTPOption) *HTTP {
 	overlayAPI := app.New(NewNoopEngineProvider())
 	http := HTTP{
@@ -76,10 +87,20 @@ func New(opts ...HTTPOption) *HTTP {
 	return &http
 }
 
-// ListenAndServe handles HTTP requests from the configured socket address."
+// SocketAddr builds the address string for binding.
+func (h *HTTP) SocketAddr() string {
+	return fmt.Sprintf("%s:%d", h.cfg.Addr, h.cfg.Port)
+}
+
+// ListenAndServe starts the Fiber app using the configured socket address.
 func (h *HTTP) ListenAndServe() error {
 	if err := h.app.Listen(h.SocketAddr()); err != nil {
 		return fmt.Errorf("http server: fiber app listen failed: %w", err)
 	}
 	return nil
+}
+
+// App exposes the underlying Fiber app.
+func (h *HTTP) App() *fiber.App {
+	return h.app
 }
