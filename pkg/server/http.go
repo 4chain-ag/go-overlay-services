@@ -31,16 +31,6 @@ func WithConfig(cfg *config.Config) HTTPOption {
 	}
 }
 
-<<<<<<< HEAD
-=======
-// Config describes the configuration of the HTTP server instance.
-type Config struct {
-	Addr       string
-	Port       int
-	AdminToken string
-}
-
->>>>>>> b3bdc97 (adding tokenn to admin endpoint)
 // SocketAddr returns the socket address string based on the configured address and port combination.
 func (h *HTTP) SocketAddr() string { return fmt.Sprintf("%s:%d", h.cfg.Addr, h.cfg.Port) }
 
@@ -82,8 +72,8 @@ func New(opts ...HTTPOption) *HTTP {
 
 	// Admin:
 	admin := v1.Group("/admin", AdminAuth(http.cfg.AdminBearerToken))
-	admin.Post("/advertisements-sync", overlayAPI.Commands.SyncAdvertismentsHandler.Handle)
-	//admin.Post("start-gasp-sync", overlayAPI.Commands.StartGaspSyncHandler.Handle)
+	admin.Post("/advertisements-sync", adaptor.HTTPHandlerFunc(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))
+	//admin.Post("start-gasp-sync", adaptor.HTTPHandlerFunc(overlayAPI.Commands.StartGaspSyncHandler.Handle))
 
 	return &http
 }
@@ -96,6 +86,7 @@ func (h *HTTP) ListenAndServe() error {
 	return nil
 }
 
+// AdminAuth is a middleware that checks the Authorization header for a valid Bearer token.
 func AdminAuth(expectedToken string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		auth := c.Get("Authorization")

@@ -14,8 +14,6 @@ type SyncAdvertisementsHandlerResponse struct {
 
 // SyncAdvertisementsProvider defines the contract that must be fulfilled
 // to send synchronize advertisements request to the overlay engine for further processing.
-// Note: The contract definition is still in development and will be updated after
-// migrating the engine code.
 type SyncAdvertisementsProvider interface {
 	SyncAdvertisements() error
 }
@@ -33,16 +31,18 @@ func (s *SyncAdvertisementsHandler) Handle(w http.ResponseWriter, r *http.Reques
 	err := s.provider.SyncAdvertisements()
 	if err != nil {
 		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+		return
 	}
 
 	jsonutil.SendHTTPResponse(w, http.StatusOK, SyncAdvertisementsHandlerResponse{Message: "OK"})
 }
 
-// NewSyncAdvertisementsHandler returns an instance of a SyncAdvertismentsHandler, utilizing
-// an implementation of SyncAdvertisementsProvider. If the provided argument is nil, it triggers a panic.
-func NewSyncAdvertisementsHandler(provider SyncAdvertisementsProvider) *SyncAdvertisementsHandler {
+// NewSyncAdvertisementsCommandHandler returns an instance of a SyncAdvertisementsHandler,
+// utilizing an implementation of SyncAdvertisementsProvider.
+// If the provided argument is nil, it triggers a panic.
+func NewSyncAdvertisementsCommandHandler(provider SyncAdvertisementsProvider) *SyncAdvertisementsHandler {
 	if provider == nil {
-		panic("sync advertisements provider is nil")
+		return nil
 	}
 	return &SyncAdvertisementsHandler{
 		provider: provider,

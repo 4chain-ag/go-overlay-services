@@ -16,7 +16,7 @@ func TestAdminRoutesProtection(t *testing.T) {
 	adminToken := "valid_admin_token"
 	app := fiber.New()
 
-	adminGroup := app.Group("/admin", server.AdminAuthMiddlewareFiber(adminToken))
+	adminGroup := app.Group("/admin", server.AdminAuth(adminToken))
 	adminGroup.Post("/advertisements-sync", func(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusOK)
 	})
@@ -51,9 +51,9 @@ func TestAdminRoutesProtection(t *testing.T) {
 		},
 	}
 
-	// When
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// When
 			req := httptest.NewRequest(tt.method, tt.url, nil)
 			if tt.token != "" {
 				req.Header.Set("Authorization", "Bearer "+tt.token)

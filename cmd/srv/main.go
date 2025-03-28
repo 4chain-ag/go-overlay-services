@@ -27,10 +27,13 @@ func main() {
 		slog.Fatalf("failed to load config: %v", err)
 	}
 
+	if cfg.AdminBearerToken != "" {
+		slog.Infof("Admin token loaded (length: %d)", len(cfg.AdminBearerToken))
+	}
+
 	opts := []server.HTTPOption{
 		server.WithConfig(cfg),
 		server.WithMiddleware(loggingMiddleware),
-		server.WithAdminAuthMiddleware(adminToken),
 	}
 
 	httpAPI := server.New(opts...)

@@ -33,7 +33,7 @@ func New(provider engine.OverlayEngineProvider) *Application {
 	return &Application{
 		Commands: &Commands{
 			SubmitTransactionHandler: commands.NewSubmitTransactionCommandHandler(provider),
-			SyncAdvertismentsHandler: commands.NewSyncAdvertisementsHandler(provider),
+			SyncAdvertismentsHandler: commands.NewSyncAdvertisementsCommandHandler(provider),
 		},
 		Queries: &Queries{
 			TopicManagerDocumentationHandler: queries.NewTopicManagerDocumentationHandler(provider),
