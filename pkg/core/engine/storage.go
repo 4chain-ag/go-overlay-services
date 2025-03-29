@@ -23,7 +23,7 @@ type Storage interface {
 	FindOutputsForTransaction(ctx context.Context, txid *chainhash.Hash, includeBEEF bool) ([]*Output, error)
 
 	// Finds current UTXOs that have been admitted into a given topic
-	FindUTXOsForTopic(ctx context.Context, topic string, since float64, includeBEEF bool) ([]*Output, error)
+	FindUTXOsForTopic(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*Output, error)
 
 	// Deletes an output from storage
 	DeleteOutput(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
@@ -43,7 +43,7 @@ type Storage interface {
 	UpdateTransactionBEEF(ctx context.Context, txid *chainhash.Hash, beef []byte) error
 
 	// Updates the block height on an output
-	UpdateOutputBlockHeight(ctx context.Context, outpoint *overlay.Outpoint, topic string, blockHeight uint32, blockIndex uint64) error
+	UpdateOutputBlockHeight(ctx context.Context, outpoint *overlay.Outpoint, topic string, blockHeight uint32, blockIndex uint64, ancillaryBeef []byte) error
 
 	// Inserts record of the applied transaction
 	InsertAppliedTransaction(ctx context.Context, tx *overlay.AppliedTransaction) error

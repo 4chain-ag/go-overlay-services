@@ -15,11 +15,13 @@ type Advertisement struct {
 }
 
 type AdvertisementData struct {
+	Protocol           overlay.Protocol
+	TopicOrServiceName string
 }
 
 type Advertiser interface {
-	CreateAdvertisements(adsData []AdvertisementData) (overlay.TaggedBEEF, error)
-	FindAllAdvertisements(protocol overlay.Protocol) ([]AdvertisementData, error)
-	RevokeAdvertisements(advertisements []Advertisement) (overlay.TaggedBEEF, error)
-	ParseAdvertisement(outputScript *script.Script) (Advertisement, error)
+	CreateAdvertisements(adsData []*AdvertisementData) (overlay.TaggedBEEF, error)
+	FindAllAdvertisements(protocol overlay.Protocol) ([]*Advertisement, error)
+	RevokeAdvertisements(advertisements []*Advertisement) (overlay.TaggedBEEF, error)
+	ParseAdvertisement(outputScript *script.Script) (*Advertisement, error)
 }

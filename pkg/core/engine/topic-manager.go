@@ -1,14 +1,14 @@
 package engine
 
 import (
-	"github.com/bsv-blockchain/go-sdk/chainhash"
+	"context"
+
 	"github.com/bsv-blockchain/go-sdk/overlay"
-	"github.com/bsv-blockchain/go-sdk/transaction"
 )
 
 type TopicManager interface {
-	IdentifyAdmissableOutputs(beef *transaction.Beef, txid *chainhash.Hash, previousCoins []uint32) (overlay.AdmittanceInstructions, error)
-	IdentifyNeededInputs(beef *transaction.Beef, txid *chainhash.Hash) ([]*overlay.Outpoint, error)
+	IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error)
+	IdentifyNeededInputs(ctx context.Context, beef []byte) ([]*overlay.Outpoint, error)
 	GetDocumentation() string
 	GetMetaData() *overlay.MetaData
 }

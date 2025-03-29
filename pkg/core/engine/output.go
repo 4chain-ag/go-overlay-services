@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"encoding/json"
-
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/script"
@@ -19,21 +17,6 @@ type Output struct {
 	BlockHeight     uint32
 	BlockIdx        uint64
 	Beef            []byte
-	Dependencies    []*chainhash.Hash
-}
-
-func (o *Output) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]interface{}{
-		"txid":             o.Outpoint.Txid.String(),
-		"outputIndex":      o.Outpoint.OutputIndex,
-		"height":           o.BlockHeight,
-		"idx":              o.BlockIdx,
-		"satoshis":         o.Satoshis,
-		"script":           o.Script.String(),
-		"spent":            o.Spent,
-		"outputs_consumed": o.OutputsConsumed,
-		"consumed_by":      o.ConsumedBy,
-		"topic":            o.Topic,
-		"beef":             o.Beef,
-	})
+	AncillaryTxids  []*chainhash.Hash
+	AncillaryBeef   []byte
 }

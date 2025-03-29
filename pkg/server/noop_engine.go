@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
-	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp"
+	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 )
@@ -19,7 +19,7 @@ func (*NoopEngineProvider) Submit(ctx context.Context, taggedBEEF overlay.Tagged
 }
 
 // SyncAdvertisements is a no-op call that always returns a nil error.
-func (*NoopEngineProvider) SyncAdvertisements() error { return nil }
+func (*NoopEngineProvider) SyncAdvertisements(ctx context.Context) error { return nil }
 
 // GetTopicManagerDocumentation is a no-op call that always returns a nil error.
 func (*NoopEngineProvider) GetTopicManagerDocumentation(ctx context.Context) error { return nil }
@@ -35,16 +35,16 @@ func (*NoopEngineProvider) GetUTXOHistory(ctx context.Context, output *engine.Ou
 }
 
 // StartGASPSync is a no-op call that always returns a nil error.
-func (*NoopEngineProvider) StartGASPSync() error { return nil }
+func (*NoopEngineProvider) StartGASPSync(ctx context.Context) error { return nil }
 
 // ProvideForeignSyncResponse is a no-op call that always returns an empty initial GASP response with nil error.
-func (*NoopEngineProvider) ProvideForeignSyncResponse(initialRequest *gasp.InitialRequest, topic string) (*gasp.InitialResponse, error) {
-	return &gasp.InitialResponse{}, nil
+func (*NoopEngineProvider) ProvideForeignSyncResponse(ctx context.Context, initialRequest *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
+	return &core.GASPInitialResponse{}, nil
 }
 
 // ProvideForeignGASPNode is a no-op call that always returns an empty GASP node with nil error.
-func (*NoopEngineProvider) ProvideForeignGASPNode(graphId string, txid string, outputIndex uint32) (*gasp.GASPNode, error) {
-	return &gasp.GASPNode{}, nil
+func (*NoopEngineProvider) ProvideForeignGASPNode(ctx context.Context, graphId string, outpoint *overlay.Outpoint) (*core.GASPNode, error) {
+	return &core.GASPNode{}, nil
 }
 
 // ListTopicManagers is a no-op call that always returns an empty topic managers map with nil error.
