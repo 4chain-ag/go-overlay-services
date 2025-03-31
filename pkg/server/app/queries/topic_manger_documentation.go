@@ -9,7 +9,7 @@ import (
 // TopicManagerDocumentationHandlerResponse defines the response body content that
 // will be sent in JSON format after successfully processing the handler logic.
 type TopicManagerDocumentationHandlerResponse struct {
-	Message string `json:"message"`
+	Documentation string `json:"documentation"`
 }
 
 // TopicManagerDocumentationProvider defines the contract that must be fulfilled
@@ -17,11 +17,11 @@ type TopicManagerDocumentationHandlerResponse struct {
 // Note: The contract definition is still in development and will be updated after
 // migrating the engine code.
 type TopicManagerDocumentationProvider interface {
-	GetDocumentationForTopicManager(provider string) (string, error)
+	GetDocumentationForTopicManager(topicManager string) (string, error)
 }
 
-// TopicManagerDocumentationHandler orchestrates the processing flow of a topic documentation
-// request, including the request body validation, converting the request body
+// TopicManagerDocumentationHandler orchestrates the processing flow of a topic manager documentation
+// request, including the request parameter validation, converting the request
 // into an overlay-engine-compatible format, and applying any other necessary
 // logic before invoking the engine. It returns the requested topic manager
 // documentation in the text/markdown format.
@@ -30,20 +30,28 @@ type TopicManagerDocumentationHandler struct {
 }
 
 // Handle orchestrates the processing flow of a topic manager documentation request.
-// It prepares and sends a JSON response after invoking the engine and returns an HTTP response
-// with the appropriate status code based on the engine's response.
+// It extracts the topicManager query parameter, invokes the engine provider,
+// and returns a Markdown-formatted documentation string as JSON with the appropriate status code.
 func (t *TopicManagerDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	// TODO: Add custom validation logic.
-	_, err := t.provider.GetDocumentationForTopicManager("")
-	if err != nil {
-		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+	topicManager := r.URL.Query().Get("topicManager")
+	if topicManager == "" {
+		http.Error(w, "topicManager query parameter is required", http.StatusBadRequest)
+		return
 	}
 
-	jsonutil.SendHTTPResponse(w, http.StatusOK, TopicManagerDocumentationHandlerResponse{Message: "OK"})
+	documentation, err := t.provider.GetDocumentationForTopicManager(topicManager)
+	if err != nil {
+		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+		return
+	}
+
+	jsonutil.SendHTTPResponse(w, http.StatusOK, TopicManagerDocumentationHandlerResponse{
+		Documentation: documentation,
+	})
 }
 
 // NewTopicManagerDocumentationHandler returns an instance of a TopicManagerDocumentationHandler, utilizing
-// an implementation of TopicManagerDocumentationProvider. If the provided argument is nil, it triggers a panic.
+// an implementation of TopicManagerDocumentationProvider. If the provided argument is nil, it panics.
 func NewTopicManagerDocumentationHandler(provider TopicManagerDocumentationProvider) *TopicManagerDocumentationHandler {
 	if provider == nil {
 		panic("topic manager documentation provider is nil")
