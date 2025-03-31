@@ -21,7 +21,7 @@ func (*TopicManagerDocumentationProviderAlwaysFailure) GetDocumentationForTopicM
 }
 
 // TopicManagerDocumentationProviderAlwaysSuccess extends NoopEngineProvider to return custom documentation
-type TopicManagerDocumentationProviderAlwaysSuccess struct {}
+type TopicManagerDocumentationProviderAlwaysSuccess struct{}
 
 func (*TopicManagerDocumentationProviderAlwaysSuccess) GetDocumentationForTopicManager(topicManager string) (string, error) {
 	return "# Test Documentation\nThis is a test markdown document.", nil
@@ -41,7 +41,6 @@ func TestTopicManagerDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.
 	defer res.Body.Close()
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	
 
 	var actual queries.TopicManagerDocumentationHandlerResponse
 	expected := "# Test Documentation\nThis is a test markdown document."
