@@ -15,14 +15,14 @@ import (
 )
 
 // ErrorEngineProvider is an implementation that always returns an error
-type LookupDocumentationProviderAlwaysFailure  struct{}
+type LookupDocumentationProviderAlwaysFailure struct{}
 
 func (*LookupDocumentationProviderAlwaysFailure) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
 	return "", errors.New("documentation not found")
 }
 
 // CustomSuccessEngineProvider extends NoopEngineProvider to return custom documentation
-type LookupDocumentationProviderAlwaysSuccess  struct {
+type LookupDocumentationProviderAlwaysSuccess struct {
 	*server.NoopEngineProvider
 }
 
