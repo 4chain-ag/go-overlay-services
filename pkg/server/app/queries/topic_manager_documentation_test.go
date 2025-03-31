@@ -1,14 +1,13 @@
 package queries_test
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/queries"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,9 +21,7 @@ func (*TopicManagerDocumentationProviderAlwaysFailure) GetDocumentationForTopicM
 }
 
 // TopicManagerDocumentationProviderAlwaysSuccess extends NoopEngineProvider to return custom documentation
-type TopicManagerDocumentationProviderAlwaysSuccess struct {
-	*server.NoopEngineProvider
-}
+type TopicManagerDocumentationProviderAlwaysSuccess struct {}
 
 func (*TopicManagerDocumentationProviderAlwaysSuccess) GetDocumentationForTopicManager(topicManager string) (string, error) {
 	return "# Test Documentation\nThis is a test markdown document.", nil
@@ -32,7 +29,7 @@ func (*TopicManagerDocumentationProviderAlwaysSuccess) GetDocumentationForTopicM
 
 func TestTopicManagerDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 	// Given:
-	handler := queries.NewTopicManagerDocumentationHandler(&TopicManagerDocumentationProviderAlwaysSuccess{server.NewNoopEngineProvider().(*server.NoopEngineProvider)})
+	handler := queries.NewTopicManagerDocumentationHandler(&TopicManagerDocumentationProviderAlwaysSuccess{})
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -41,14 +38,16 @@ func TestTopicManagerDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.
 
 	// Then:
 	require.NoError(t, err)
+	defer res.Body.Close()
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	defer res.Body.Close()
+	
 
-	var response queries.TopicManagerDocumentationHandlerResponse
-	err = json.NewDecoder(res.Body).Decode(&response)
-	require.NoError(t, err)
-	assert.Equal(t, "# Test Documentation\nThis is a test markdown document.", response.Documentation)
+	var actual queries.TopicManagerDocumentationHandlerResponse
+	expected := "# Test Documentation\nThis is a test markdown document."
+
+	require.NoError(t, jsonutil.DecodeResponseBody(res, &actual))
+	assert.Equal(t, expected, actual.Documentation)
 }
 
 func TestTopicManagerDocumentationHandler_Handle_ProviderError(t *testing.T) {
@@ -62,13 +61,14 @@ func TestTopicManagerDocumentationHandler_Handle_ProviderError(t *testing.T) {
 
 	// Then:
 	require.NoError(t, err)
-	require.Equal(t, http.StatusInternalServerError, res.StatusCode)
 	defer res.Body.Close()
+	require.Equal(t, http.StatusInternalServerError, res.StatusCode)
 }
 
 func TestTopicManagerDocumentationHandler_Handle_EmptyTopicManagerParameter(t *testing.T) {
 	// Given:
-	handler := queries.NewTopicManagerDocumentationHandler(server.NewNoopEngineProvider())
+	// Create a handler with a custom provider that implements only the required interface
+	handler := queries.NewTopicManagerDocumentationHandler(&TopicManagerDocumentationProviderAlwaysSuccess{})
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -77,9 +77,9 @@ func TestTopicManagerDocumentationHandler_Handle_EmptyTopicManagerParameter(t *t
 
 	// Then:
 	require.NoError(t, err)
+	defer res.Body.Close()
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	require.Equal(t, "text/plain; charset=utf-8", res.Header.Get("Content-Type"))
-	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)

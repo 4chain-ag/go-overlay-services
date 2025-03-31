@@ -54,7 +54,7 @@ func (t *TopicManagerDocumentationHandler) Handle(w http.ResponseWriter, r *http
 // an implementation of TopicManagerDocumentationProvider. If the provided argument is nil, it panics.
 func NewTopicManagerDocumentationHandler(provider TopicManagerDocumentationProvider) *TopicManagerDocumentationHandler {
 	if provider == nil {
-		panic("provider cannot be nil")
+		panic("topic manager documentation provider is nil")
 	}
 	return &TopicManagerDocumentationHandler{
 		provider: provider,
