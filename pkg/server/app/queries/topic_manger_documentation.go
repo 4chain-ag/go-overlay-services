@@ -17,11 +17,11 @@ type TopicManagerDocumentationHandlerResponse struct {
 // Note: The contract definition is still in development and will be updated after
 // migrating the engine code.
 type TopicManagerDocumentationProvider interface {
-	GetDocumentationForTopicManager(provider string) (string, error)
+	GetDocumentationForTopicManager(topicManager string) (string, error)
 }
 
-// TopicManagerDocumentationHandler orchestrates the processing flow of a topic documentation
-// request, including the request body validation, converting the request body
+// TopicManagerDocumentationHandler orchestrates the processing flow of a topic manager documentation
+// request, including the request parameter validation, converting the request
 // into an overlay-engine-compatible format, and applying any other necessary
 // logic before invoking the engine. It returns the requested topic manager
 // documentation in the text/markdown format.
@@ -30,16 +30,16 @@ type TopicManagerDocumentationHandler struct {
 }
 
 // Handle orchestrates the processing flow of a topic manager documentation request.
-// It extracts the "provider" query parameter, invokes the engine provider,
+// It extracts the topicManager query parameter, invokes the engine provider,
 // and returns a Markdown-formatted documentation string as JSON with the appropriate status code.
 func (t *TopicManagerDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	providerParam := r.URL.Query().Get("provider")
-	if providerParam == "" {
-		jsonutil.SendHTTPErrorResponse(w, http.StatusBadRequest, "provider query parameter is required")
+	topicManager := r.URL.Query().Get("topicManager")
+	if topicManager == "" {
+		http.Error(w, "topicManager query parameter is required", http.StatusBadRequest)
 		return
 	}
 
-	documentation, err := t.provider.GetDocumentationForTopicManager(providerParam)
+	documentation, err := t.provider.GetDocumentationForTopicManager(topicManager)
 	if err != nil {
 		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
 		return
@@ -51,10 +51,10 @@ func (t *TopicManagerDocumentationHandler) Handle(w http.ResponseWriter, r *http
 }
 
 // NewTopicManagerDocumentationHandler returns an instance of a TopicManagerDocumentationHandler, utilizing
-// an implementation of TopicManagerDocumentationProvider. If the provided argument is nil, it triggers a panic.
+// an implementation of TopicManagerDocumentationProvider. If the provided argument is nil, it panics.
 func NewTopicManagerDocumentationHandler(provider TopicManagerDocumentationProvider) *TopicManagerDocumentationHandler {
 	if provider == nil {
-		panic("topic manager documentation provider is nil")
+		panic("provider cannot be nil")
 	}
 	return &TopicManagerDocumentationHandler{
 		provider: provider,

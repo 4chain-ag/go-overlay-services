@@ -3,6 +3,7 @@ package queries_test
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,34 +14,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ErrorTopicManagerProvider extends NoopEngineProvider to simulate an error when retrieving documentation.
-type ErrorTopicManagerProvider struct {
-	*server.NoopEngineProvider
-}
+// TopicManagerDocumentationProviderAlwaysFailure is an implementation that always returns an error
+type TopicManagerDocumentationProviderAlwaysFailure struct{}
 
-func (*ErrorTopicManagerProvider) GetDocumentationForTopicManager(provider string) (string, error) {
+func (*TopicManagerDocumentationProviderAlwaysFailure) GetDocumentationForTopicManager(topicManager string) (string, error) {
 	return "", errors.New("documentation not found")
 }
 
-// CustomSuccessTopicManagerProvider extends NoopEngineProvider to return custom documentation.
-type CustomSuccessTopicManagerProvider struct {
+// TopicManagerDocumentationProviderAlwaysSuccess extends NoopEngineProvider to return custom documentation
+type TopicManagerDocumentationProviderAlwaysSuccess struct {
 	*server.NoopEngineProvider
 }
 
-func (*CustomSuccessTopicManagerProvider) GetDocumentationForTopicManager(provider string) (string, error) {
+func (*TopicManagerDocumentationProviderAlwaysSuccess) GetDocumentationForTopicManager(topicManager string) (string, error) {
 	return "# Test Documentation\nThis is a test markdown document.", nil
 }
 
 func TestTopicManagerDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 	// Given:
-	handler := queries.NewTopicManagerDocumentationHandler(&CustomSuccessTopicManagerProvider{
-		server.NewNoopEngineProvider().(*server.NoopEngineProvider),
-	})
+	handler := queries.NewTopicManagerDocumentationHandler(&TopicManagerDocumentationProviderAlwaysSuccess{server.NewNoopEngineProvider().(*server.NoopEngineProvider)})
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
 	// When:
-	res, err := ts.Client().Get(ts.URL + "?provider=example")
+	res, err := ts.Client().Get(ts.URL + "?topicManager=example")
 
 	// Then:
 	require.NoError(t, err)
@@ -56,14 +53,12 @@ func TestTopicManagerDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.
 
 func TestTopicManagerDocumentationHandler_Handle_ProviderError(t *testing.T) {
 	// Given:
-	handler := queries.NewTopicManagerDocumentationHandler(&ErrorTopicManagerProvider{
-		server.NewNoopEngineProvider().(*server.NoopEngineProvider),
-	})
+	handler := queries.NewTopicManagerDocumentationHandler(&TopicManagerDocumentationProviderAlwaysFailure{})
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
 	// When:
-	res, err := ts.Client().Get(ts.URL + "?provider=example")
+	res, err := ts.Client().Get(ts.URL + "?topicManager=example")
 
 	// Then:
 	require.NoError(t, err)
@@ -71,11 +66,9 @@ func TestTopicManagerDocumentationHandler_Handle_ProviderError(t *testing.T) {
 	defer res.Body.Close()
 }
 
-func TestTopicManagerDocumentationHandler_Handle_EmptyProviderParameter(t *testing.T) {
+func TestTopicManagerDocumentationHandler_Handle_EmptyTopicManagerParameter(t *testing.T) {
 	// Given:
-	handler := queries.NewTopicManagerDocumentationHandler(&CustomSuccessTopicManagerProvider{
-		server.NewNoopEngineProvider().(*server.NoopEngineProvider),
-	})
+	handler := queries.NewTopicManagerDocumentationHandler(server.NewNoopEngineProvider())
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -85,13 +78,12 @@ func TestTopicManagerDocumentationHandler_Handle_EmptyProviderParameter(t *testi
 	// Then:
 	require.NoError(t, err)
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
-	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	require.Equal(t, "text/plain; charset=utf-8", res.Header.Get("Content-Type"))
 	defer res.Body.Close()
 
-	var errorResponse map[string]string
-	err = json.NewDecoder(res.Body).Decode(&errorResponse)
+	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
-	assert.Equal(t, "provider query parameter is required", errorResponse["error"])
+	assert.Equal(t, "topicManager query parameter is required\n", string(body))
 }
 
 func TestNewTopicManagerDocumentationHandler_WithNilProvider(t *testing.T) {
