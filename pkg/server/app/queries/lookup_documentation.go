@@ -12,11 +12,6 @@ type LookupDocumentationHandlerResponse struct {
 	Documentation string `json:"documentation"`
 }
 
-// ErrorResponse defines a simple error response structure
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
 // LookupDocumentationProvider defines the contract that must be fulfilled
 // to send a lookup service documentation request to the overlay engine for further processing.
 // Note: The contract definition is still in development and will be updated after
