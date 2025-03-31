@@ -81,7 +81,6 @@ func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testin
 	require.Equal(t, "text/plain; charset=utf-8", res.Header.Get("Content-Type"))
 	defer res.Body.Close()
 
-	// Read the plain text response body instead of trying to parse JSON
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 	assert.Equal(t, "lookupService query parameter is required\n", string(body))
