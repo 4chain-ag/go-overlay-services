@@ -3,6 +3,7 @@ package queries_test
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,24 +15,24 @@ import (
 )
 
 // ErrorEngineProvider is an implementation that always returns an error
-type ErrorEngineProvider struct{}
+type LookupDocumentationProviderAlwaysFailure  struct{}
 
-func (*ErrorEngineProvider) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
+func (*LookupDocumentationProviderAlwaysFailure) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
 	return "", errors.New("documentation not found")
 }
 
 // CustomSuccessEngineProvider extends NoopEngineProvider to return custom documentation
-type CustomSuccessEngineProvider struct {
+type LookupDocumentationProviderAlwaysSuccess  struct {
 	*server.NoopEngineProvider
 }
 
-func (*CustomSuccessEngineProvider) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
+func (*LookupDocumentationProviderAlwaysSuccess) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
 	return "# Test Documentation\nThis is a test markdown document.", nil
 }
 
 func TestLookupDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 	// Given:
-	handler := queries.NewLookupDocumentationHandler(&CustomSuccessEngineProvider{server.NewNoopEngineProvider().(*server.NoopEngineProvider)})
+	handler := queries.NewLookupDocumentationHandler(&LookupDocumentationProviderAlwaysSuccess{server.NewNoopEngineProvider().(*server.NoopEngineProvider)})
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -52,7 +53,7 @@ func TestLookupDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 
 func TestLookupDocumentationHandler_Handle_ProviderError(t *testing.T) {
 	// Given:
-	handler := queries.NewLookupDocumentationHandler(&ErrorEngineProvider{})
+	handler := queries.NewLookupDocumentationHandler(&LookupDocumentationProviderAlwaysFailure{})
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -77,13 +78,13 @@ func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testin
 	// Then:
 	require.NoError(t, err)
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
-	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	require.Equal(t, "text/plain; charset=utf-8", res.Header.Get("Content-Type"))
 	defer res.Body.Close()
 
-	var errorResponse map[string]string
-	err = json.NewDecoder(res.Body).Decode(&errorResponse)
+	// Read the plain text response body instead of trying to parse JSON
+	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
-	assert.Equal(t, "lookupService query parameter is required", errorResponse["error"])
+	assert.Equal(t, "lookupService query parameter is required\n", string(body))
 }
 
 func TestNewLookupDocumentationHandler_WithNilProvider(t *testing.T) {

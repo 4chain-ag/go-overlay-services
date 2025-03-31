@@ -40,9 +40,7 @@ type LookupDocumentationHandler struct {
 func (l *LookupDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	lookupService := r.URL.Query().Get("lookupService")
 	if lookupService == "" {
-		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, ErrorResponse{
-			Error: "lookupService query parameter is required",
-		})
+		http.Error(w, "lookupService query parameter is required", http.StatusBadRequest)
 		return
 	}
 
