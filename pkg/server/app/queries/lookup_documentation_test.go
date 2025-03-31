@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	
+
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/queries"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +21,7 @@ func (*LookupDocumentationProviderAlwaysFailure) GetDocumentationForLookupServic
 }
 
 // LookupDocumentationProviderAlwaysSuccess is an implementation that always returns an success
-type LookupDocumentationProviderAlwaysSuccess struct {}
+type LookupDocumentationProviderAlwaysSuccess struct{}
 
 func (*LookupDocumentationProviderAlwaysSuccess) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
 	return "# Test Documentation\nThis is a test markdown document.", nil
