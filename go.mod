@@ -2,13 +2,15 @@ module github.com/4chain-ag/go-overlay-services
 
 go 1.24.0
 
+toolchain go1.24.1
+
 require (
 	github.com/bsv-blockchain/go-sdk v1.1.22
 	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/google/uuid v1.6.0
 	github.com/gookit/slog v0.5.8
-	github.com/spf13/viper v1.20.0
+	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v2 v2.4.0
 )
