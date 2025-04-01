@@ -8,11 +8,11 @@ import (
 
 // LookupMetadata represents the metadata for a lookup service provider.
 type LookupMetadata struct {
-	Name string `json:"name"`
-	ShortDescription string `json:"shortDescription"`
-	IconURL *string `json:"iconURL,omitempty"`
-	Version *string `json:"version,omitempty"`
-	InformationURL *string `json:"informationURL,omitempty"`
+	Name             string  `json:"name"`
+	ShortDescription string  `json:"shortDescription"`
+	IconURL          *string `json:"iconURL,omitempty"`
+	Version          *string `json:"version,omitempty"`
+	InformationURL   *string `json:"informationURL,omitempty"`
 }
 
 // LookupListHandlerResponse defines the response body content that
@@ -22,9 +22,9 @@ type LookupListHandlerResponse map[string]LookupMetadata
 // MetaDataLookup represents the metadata information for lookup service providers coming from the engine.
 type MetaDataLookup struct {
 	ShortDescription string
-	IconURL string
-	Version string
-	InformationURL string
+	IconURL          string
+	Version          string
+	InformationURL   string
 }
 
 // LookupListProvider defines the contract that must be fulfilled
@@ -46,7 +46,7 @@ func (l *LookupListHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	for name, metadata := range engineLookupProviders {
 		lookupMetadata := LookupMetadata{
-			Name: name,
+			Name:             name,
 			ShortDescription: "No description available",
 		}
 

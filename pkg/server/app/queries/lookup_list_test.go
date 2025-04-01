@@ -25,15 +25,15 @@ func (*LookupListProviderAlwaysSuccess) ListLookupServiceProviders() map[string]
 	return map[string]*queries.MetaDataLookup{
 		"provider1": {
 			ShortDescription: "Description 1",
-			IconURL: "https://example.com/icon.png",
-			Version: "1.0.0",
-			InformationURL: "https://example.com/info",
+			IconURL:          "https://example.com/icon.png",
+			Version:          "1.0.0",
+			InformationURL:   "https://example.com/info",
 		},
 		"provider2": {
 			ShortDescription: "Description 2",
-			IconURL: "",
-			Version: "",
-			InformationURL: "",
+			IconURL:          "",
+			Version:          "",
+			InformationURL:   "",
 		},
 	}
 }
@@ -80,11 +80,11 @@ func TestLookupListHandler_Handle_WithProviders(t *testing.T) {
 	require.Contains(t, result, "provider1")
 	assert.Equal(t, "provider1", result["provider1"].Name)
 	assert.Equal(t, "Description 1", result["provider1"].ShortDescription)
-	
+
 	iconURL := "https://example.com/icon.png"
 	version := "1.0.0"
 	infoURL := "https://example.com/info"
-	
+
 	assert.Equal(t, &iconURL, result["provider1"].IconURL)
 	assert.Equal(t, &version, result["provider1"].Version)
 	assert.Equal(t, &infoURL, result["provider1"].InformationURL)
