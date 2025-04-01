@@ -75,20 +75,20 @@ func TestTopicManagerListHandler_Handle_WithManagers(t *testing.T) {
 
 	var result map[string]queries.TopicManagerMetadata
 	require.NoError(t, json.NewDecoder(res.Body).Decode(&result))
-	
+
 	// Check manager1 data
 	require.Contains(t, result, "manager1")
 	assert.Equal(t, "manager1", result["manager1"].Name)
 	assert.Equal(t, "Description 1", result["manager1"].ShortDescription)
-	
+
 	iconURL := "https://example.com/icon.png"
 	version := "1.0.0"
 	infoURL := "https://example.com/info"
-	
+
 	assert.Equal(t, &iconURL, result["manager1"].IconURL)
 	assert.Equal(t, &version, result["manager1"].Version)
 	assert.Equal(t, &infoURL, result["manager1"].InformationURL)
-	
+
 	// Check manager2 data
 	require.Contains(t, result, "manager2")
 	assert.Equal(t, "manager2", result["manager2"].Name)
