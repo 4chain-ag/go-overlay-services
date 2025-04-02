@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -61,7 +60,6 @@ type Engine struct {
 	LogPrefix               string
 	ErrorOnBroadcastFailure bool
 	BroadcastFacilitator    topic.Facilitator
-	Verbose                 bool
 	PanicOnError            bool
 	// Logger				  Logger //TODO: Implement Logger Interface
 }
@@ -118,7 +116,6 @@ var ErrMissingInput = errors.New("missing-input")
 var ErrInputSpent = errors.New("input-spent")
 
 func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode SumbitMode, onSteakReady OnSteakReady) (overlay.Steak, error) {
-	start := time.Now()
 	for _, topic := range taggedBEEF.Topics {
 		if _, ok := e.Managers[topic]; !ok {
 			return nil, ErrUnknownTopic
@@ -148,10 +145,6 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 			log.Panicln(ErrInvalidTransaction)
 		}
 		return nil, ErrInvalidTransaction
-	}
-	if e.Verbose {
-		fmt.Println("Validated in", time.Since(start))
-		start = time.Now()
 	}
 	steak := make(overlay.Steak, len(taggedBEEF.Topics))
 	topicInputs := make(map[string]map[uint32]*Output, len(tx.Inputs))
@@ -195,10 +188,6 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 				}
 				return nil, err
 			} else {
-				if e.Verbose {
-					fmt.Println("Identified in", time.Since(start))
-					start = time.Now()
-				}
 				if len(admit.AncillaryTxids) > 0 {
 					ancillaryBeef := transaction.Beef{
 						Version:      transaction.BEEF_V2,
@@ -248,10 +237,6 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 				}
 			}
 		}
-	}
-	if e.Verbose {
-		fmt.Println("Marked spent in", time.Since(start))
-		start = time.Now()
 	}
 	if mode != SubmitModeHistorical && e.Broadcaster != nil {
 		if _, failure := e.Broadcaster.Broadcast(tx); failure != nil {
@@ -335,10 +320,6 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 				}
 			}
 		}
-		if e.Verbose {
-			fmt.Println("Outputs added in", time.Since(start))
-			start = time.Now()
-		}
 		for _, output := range outputsConsumed {
 			output.ConsumedBy = append(output.ConsumedBy, newOutpoints...)
 
@@ -349,10 +330,6 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 				return nil, err
 			}
 		}
-		if e.Verbose {
-			fmt.Println("Consumes updated in ", time.Since(start))
-			start = time.Now()
-		}
 		if err := e.Storage.InsertAppliedTransaction(ctx, &overlay.AppliedTransaction{
 			Txid:  txid,
 			Topic: topic,
@@ -361,9 +338,6 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 				log.Panicln(err)
 			}
 			return nil, err
-		}
-		if e.Verbose {
-			fmt.Println("Applied in", time.Since(start))
 		}
 	}
 	if e.Advertiser == nil || mode == SubmitModeHistorical {
