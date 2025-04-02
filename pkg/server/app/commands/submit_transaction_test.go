@@ -47,7 +47,7 @@ func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
 	requestBody := []byte("test transaction body")
 	topics := []string{"topic1", "topic2"}
 	topicsJSON, _ := json.Marshal(topics)
-	
+
 	req, _ := http.NewRequest("POST", ts.URL, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-topics", string(topicsJSON))
@@ -142,7 +142,7 @@ func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
 	requestBody := []byte("test transaction body")
 	topics := []string{"topic1", "topic2"}
 	topicsJSON, _ := json.Marshal(topics)
-	
+
 	req, _ := http.NewRequest("POST", ts.URL, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-topics", string(topicsJSON))

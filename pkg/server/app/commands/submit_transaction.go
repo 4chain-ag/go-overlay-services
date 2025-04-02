@@ -18,7 +18,7 @@ const (
 	errMsgInvalidTopicsFormat = "Invalid x-topics header format"
 	errMsgFailedToReadBody    = "Failed to read request body"
 	errMsgMethodNotAllowed    = "Method not allowed"
-	
+
 	// Header keys
 	headerTopics = "x-topics"
 )
@@ -89,7 +89,7 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	onSteakReady := func(steak *overlay.Steak) {
 		responseSync.Lock()
 		defer responseSync.Unlock()
-		
+
 		if !responseSent {
 			responseSent = true
 			jsonutil.SendHTTPResponse(w, http.StatusOK, SubmitTransactionHandlerResponse{Steak: *steak})
@@ -101,7 +101,7 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		responseSync.Lock()
 		defer responseSync.Unlock()
-		
+
 		if !responseSent {
 			responseSent = true
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -112,7 +112,7 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	// 8. If the callback hasn't been triggered yet, send the response immediately
 	responseSync.Lock()
 	defer responseSync.Unlock()
-	
+
 	if !responseSent {
 		responseSent = true
 		jsonutil.SendHTTPResponse(w, http.StatusOK, SubmitTransactionHandlerResponse{Steak: steak})
