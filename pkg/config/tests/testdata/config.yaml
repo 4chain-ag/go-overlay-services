@@ -3,3 +3,6 @@ port: 9999
 app_name: CustomApp
 server_header: CustomHeader
 admin_bearer_token: secret-token
+mongo:
+  uri: mongodb://192.168.0.1:27017
+  database: mydb

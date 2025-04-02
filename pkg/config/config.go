@@ -13,6 +13,10 @@ type Config struct {
 	Addr             string `mapstructure:"addr"`
 	ServerHeader     string `mapstructure:"server_header"`
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
+	Mongo			struct {
+		URI      string `mapstructure:"uri"`
+		Database string `mapstructure:"database"`
+	} `mapstructure:"mongo"`
 }
 
 // Defaults returns the default configuration values.
@@ -23,6 +27,13 @@ func Defaults() Config {
 		Addr:             "localhost",
 		ServerHeader:     "Overlay API",
 		AdminBearerToken: uuid.NewString(),
+		Mongo: struct {
+			URI      string `mapstructure:"uri"`
+			Database string `mapstructure:"database"`
+		}{
+			URI:      "mongodb://localhost:27017",
+			Database: "overlay",
+		},
 	}
 }
 

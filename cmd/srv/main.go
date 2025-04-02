@@ -4,10 +4,10 @@ import (
 	"flag"
 	"net/http"
 
+	"github.com/gookit/slog"
+
 	"github.com/4chain-ag/go-overlay-services/pkg/config"
 	"github.com/4chain-ag/go-overlay-services/pkg/server"
-	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
-	"github.com/gookit/slog"
 )
 
 func main() {

@@ -3,9 +3,10 @@ package config_test
 import (
 	"testing"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/config"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+
+	"github.com/4chain-ag/go-overlay-services/pkg/config"
 )
 
 func TestLoad_ShouldApplyAllDefaults_WhenNoConfigFileExists(t *testing.T) {
@@ -39,6 +40,13 @@ func TestLoad_ShouldOverrideDefaults_WhenConfigFileProvidesValues(t *testing.T) 
 		Addr:             "127.0.0.1",
 		ServerHeader:     "CustomHeader",
 		AdminBearerToken: "secret-token",
+		Mongo: struct {
+			URI      string `mapstructure:"uri"`
+			Database string `mapstructure:"database"`
+		}{
+			URI:      "mongodb://192.168.0.1:27017",
+			Database: "mydb",
+		},
 	}
 
 	// Then
