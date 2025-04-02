@@ -12,10 +12,9 @@ require (
 	github.com/gookit/slog v0.5.8
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
+	go.mongodb.org/mongo-driver v1.17.3
 	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561
 	gopkg.in/yaml.v3 v3.0.1
-	go.mongodb.org/mongo-driver v1.17.3
-	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (

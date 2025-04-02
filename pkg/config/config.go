@@ -13,7 +13,7 @@ type Config struct {
 	Addr             string `mapstructure:"addr"`
 	ServerHeader     string `mapstructure:"server_header"`
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
-	Mongo			struct {
+	Mongo            struct {
 		URI      string `mapstructure:"uri"`
 		Database string `mapstructure:"database"`
 	} `mapstructure:"mongo"`
