@@ -239,13 +239,11 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 				return nil, err
 			} else {
 				for _, l := range e.LookupServices {
-					for _, inpoint := range inpoints {
-						if err := l.OutputSpent(ctx, inpoint, topic); err != nil {
-							if e.PanicOnError {
-								log.Panicln(err)
-							}
-							return nil, err
+					if err := l.OutputSpent(ctx, outpoint, topic); err != nil {
+						if e.PanicOnError {
+							log.Panicln(err)
 						}
+						return nil, err
 					}
 				}
 			}
@@ -373,12 +371,20 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 	}
 
 	releventTopics := make([]string, 0, len(taggedBEEF.Topics))
-	for topic, steak := range steak {
-		if steak.OutputsToAdmit == nil && steak.CoinsToRetain == nil {
+	for top, admit := range steak {
+		if admit.OutputsToAdmit == nil && admit.CoinsToRetain == nil {
 			continue
 		}
-		if _, ok := dupeTopics[topic]; !ok {
-			releventTopics = append(releventTopics, topic)
+		releventTopics = append(releventTopics, top)
+		if sync, ok := e.SyncConfiguration[top]; ok && sync.Type == SyncConfigurationPeers {
+			for _, peer := range sync.Peers {
+				if _, err := (&topic.HTTPSOverlayBroadcastFacilitator{Client: http.DefaultClient}).Send(peer, &overlay.TaggedBEEF{
+					Beef:   taggedBEEF.Beef,
+					Topics: []string{top},
+				}); err != nil {
+					log.Printf("Error submitting taggedBEEF to peer %s: %v", peer, err)
+				}
+			}
 		}
 	}
 	if len(releventTopics) == 0 {
