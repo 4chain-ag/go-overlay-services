@@ -2,11 +2,25 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
+	"sync"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 	"github.com/bsv-blockchain/go-sdk/overlay"
+)
+
+const (
+	// Error messages
+	errMsgMissingTopicsHeader = "Missing x-topics header"
+	errMsgInvalidTopicsFormat = "Invalid x-topics header format"
+	errMsgFailedToReadBody    = "Failed to read request body"
+	errMsgMethodNotAllowed    = "Method not allowed"
+	
+	// Header keys
+	headerTopics = "x-topics"
 )
 
 // SubmitTransactionHandlerResponse defines the response body content that
@@ -17,8 +31,6 @@ type SubmitTransactionHandlerResponse struct {
 
 // SubmitTransactionProvider defines the contract that must be fulfilled
 // to send a transaction request to the overlay engine for further processing.
-// Note: The contract definition is still in development and will be updated after
-// migrating the engine code.
 type SubmitTransactionProvider interface {
 	Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error)
 }
@@ -35,14 +47,76 @@ type SubmitTransactionHandler struct {
 // sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
 func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	// TODO: Add custom validation logic.
-	steak, err := s.provider.Submit(r.Context(), overlay.TaggedBEEF{}, engine.SubmitModeCurrent, func(steak *overlay.Steak) {})
-	if err != nil {
-		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+	// NOTE: comment place holders will be removed before code is merged
+	// 1. Validate HTTP method
+	if r.Method != http.MethodPost {
+		http.Error(w, errMsgMethodNotAllowed, http.StatusMethodNotAllowed)
 		return
 	}
 
-	jsonutil.SendHTTPResponse(w, http.StatusCreated, SubmitTransactionHandlerResponse{Steak: steak})
+	// 2. Extract and validate the x-topics header
+	topicsHeader := r.Header.Get(headerTopics)
+	if topicsHeader == "" {
+		http.Error(w, errMsgMissingTopicsHeader, http.StatusBadRequest)
+		return
+	}
+
+	// 3. Parse the topics header as JSON
+	var topics []string
+	if err := json.Unmarshal([]byte(topicsHeader), &topics); err != nil {
+		http.Error(w, errMsgInvalidTopicsFormat, http.StatusBadRequest)
+		return
+	}
+
+	// 4. Read the request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, errMsgFailedToReadBody, http.StatusBadRequest)
+		return
+	}
+
+	// 5. Create the TaggedBEEF object
+	taggedBEEF := overlay.TaggedBEEF{
+		Beef:   body,
+		Topics: topics,
+	}
+
+	// 6. Set up synchronization for handling async callbacks
+	responseSent := false
+	var responseSync sync.Mutex
+
+	// Define the callback function - will be called when STEAK is ready
+	onSteakReady := func(steak *overlay.Steak) {
+		responseSync.Lock()
+		defer responseSync.Unlock()
+		
+		if !responseSent {
+			responseSent = true
+			jsonutil.SendHTTPResponse(w, http.StatusOK, SubmitTransactionHandlerResponse{Steak: *steak})
+		}
+	}
+
+	// 7. Submit the transaction
+	steak, err := s.provider.Submit(r.Context(), taggedBEEF, engine.SubmitModeCurrent, onSteakReady)
+	if err != nil {
+		responseSync.Lock()
+		defer responseSync.Unlock()
+		
+		if !responseSent {
+			responseSent = true
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		return
+	}
+
+	// 8. If the callback hasn't been triggered yet, send the response immediately
+	responseSync.Lock()
+	defer responseSync.Unlock()
+	
+	if !responseSent {
+		responseSent = true
+		jsonutil.SendHTTPResponse(w, http.StatusOK, SubmitTransactionHandlerResponse{Steak: steak})
+	}
 }
 
 // NewSubmitTransactionCommandHandler returns an instance of a SubmitTransactionHandler, utilizing
