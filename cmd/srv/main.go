@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"net/http"
 
@@ -42,9 +43,11 @@ func main() {
 		slog.Fatalf("Failed to create HTTP server: %v", err)
 	}
 
-	if err := httpAPI.ListenAndServe(); err != nil {
-		slog.Fatalf("HTTP server failed: %v", err)
-	}
+	// Graceful shutdown handling
+	ctx := context.Background()
+	idleConnsClosed := httpAPI.StartWithGracefulShutdown(ctx)
+	<-idleConnsClosed
+	slog.Info("Server shutdown completed.")
 }
 
 // loggingMiddleware is a custom definition of the logging middleware format accepted by the HTTP API.
