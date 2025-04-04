@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
@@ -41,11 +42,11 @@ func (s *SyncAdvertisementsHandler) Handle(w http.ResponseWriter, r *http.Reques
 // NewSyncAdvertisementsCommandHandler returns an instance of a SyncAdvertisementsHandler,
 // utilizing an implementation of SyncAdvertisementsProvider.
 // If the provided argument is nil, it triggers a panic.
-func NewSyncAdvertisementsCommandHandler(provider SyncAdvertisementsProvider) *SyncAdvertisementsHandler {
+func NewSyncAdvertisementsCommandHandler(provider SyncAdvertisementsProvider) (*SyncAdvertisementsHandler, error) {
 	if provider == nil {
-		panic("sync advertisements provider is nil")
+		return nil, fmt.Errorf("sync advertisements provider is nil")
 	}
 	return &SyncAdvertisementsHandler{
 		provider: provider,
-	}
+	}, nil
 }

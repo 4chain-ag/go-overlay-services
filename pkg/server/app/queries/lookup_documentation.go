@@ -1,6 +1,7 @@
 package queries
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
@@ -52,11 +53,9 @@ func (l *LookupDocumentationHandler) Handle(w http.ResponseWriter, r *http.Reque
 
 // NewLookupDocumentationHandler returns an instance of a LookupDocumentationHandler, utilizing
 // an implementation of LookupDocumentationProvider. If the provided argument is nil, it panics.
-func NewLookupDocumentationHandler(provider LookupDocumentationProvider) *LookupDocumentationHandler {
+func NewLookupDocumentationHandler(provider LookupDocumentationProvider) (*LookupDocumentationHandler, error) {
 	if provider == nil {
-		panic("lookup documentation provider cannot be nil")
+		return nil, fmt.Errorf("lookup documentation provider cannot be nil")
 	}
-	return &LookupDocumentationHandler{
-		provider: provider,
-	}
+	return &LookupDocumentationHandler{provider: provider}, nil
 }

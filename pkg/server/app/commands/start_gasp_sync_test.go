@@ -26,7 +26,8 @@ func (alwaysFailsSync) StartGASPSync(ctx context.Context) error {
 
 func TestStartGASPSyncHandler_Success(t *testing.T) {
 	// Given:
-	handler := commands.NewStartGASPSyncHandler(&alwaysSucceedsSync{})
+	handler, err := commands.NewStartGASPSyncHandler(&alwaysSucceedsSync{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -42,7 +43,8 @@ func TestStartGASPSyncHandler_Success(t *testing.T) {
 
 func TestStartGASPSyncHandler_Failure(t *testing.T) {
 	// Given:
-	handler := commands.NewStartGASPSyncHandler(&alwaysFailsSync{})
+	handler, err := commands.NewStartGASPSyncHandler(&alwaysFailsSync{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 

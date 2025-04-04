@@ -1,0 +1,11 @@
+addr: localhost
+admin_bearer_token: f21fc2dc-2a58-48a6-9058-633805134f7e
+app_name: Overlay API v0.0.0
+mongo:
+    auth_db: admin
+    database: overlay
+    password: ""
+    uri: mongodb://localhost:27017
+    username: ""
+port: 3000
+server_header: Overlay API

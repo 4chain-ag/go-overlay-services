@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
@@ -38,9 +39,9 @@ func (h *StartGASPSyncHandler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewStartGASPSyncHandler constructs the handler.
-func NewStartGASPSyncHandler(provider StartGASPSyncProvider) *StartGASPSyncHandler {
+func NewStartGASPSyncHandler(provider StartGASPSyncProvider) (*StartGASPSyncHandler, error) {
 	if provider == nil {
-		panic("nil StartGASPSyncProvider")
+		return nil, fmt.Errorf("StartGASPSyncProvider is nil")
 	}
-	return &StartGASPSyncHandler{provider: provider}
+	return &StartGASPSyncHandler{provider: provider}, nil
 }

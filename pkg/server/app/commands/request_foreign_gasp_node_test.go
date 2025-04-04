@@ -24,7 +24,8 @@ func (s *stubEngine) ProvideForeignGASPNode(ctx context.Context, graphID, outpoi
 
 func TestRequestForeignGASPNodeHandler_ValidInput_ReturnsGASPNode(t *testing.T) {
 	// Given:
-	handler := commands.NewRequestForeignGASPNodeHandler(&stubEngine{})
+	handler, err := commands.NewRequestForeignGASPNodeHandler(&stubEngine{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -50,7 +51,8 @@ func TestRequestForeignGASPNodeHandler_ValidInput_ReturnsGASPNode(t *testing.T) 
 
 func TestRequestForeignGASPNodeHandler_InvalidJSON_Returns400(t *testing.T) {
 	// Given:
-	handler := commands.NewRequestForeignGASPNodeHandler(&stubEngine{})
+	handler, err := commands.NewRequestForeignGASPNodeHandler(&stubEngine{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -65,7 +67,8 @@ func TestRequestForeignGASPNodeHandler_InvalidJSON_Returns400(t *testing.T) {
 
 func TestRequestForeignGASPNodeHandler_MissingFields_StillReturnsOK(t *testing.T) {
 	// Given:
-	handler := commands.NewRequestForeignGASPNodeHandler(&stubEngine{})
+	handler, err := commands.NewRequestForeignGASPNodeHandler(&stubEngine{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -80,7 +83,8 @@ func TestRequestForeignGASPNodeHandler_MissingFields_StillReturnsOK(t *testing.T
 
 func TestRequestForeignGASPNodeHandler_InvalidHTTPMethod_Returns405(t *testing.T) {
 	// Given:
-	handler := commands.NewRequestForeignGASPNodeHandler(&stubEngine{})
+	handler, err := commands.NewRequestForeignGASPNodeHandler(&stubEngine{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 

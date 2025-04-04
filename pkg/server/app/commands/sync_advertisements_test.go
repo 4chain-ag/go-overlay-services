@@ -15,7 +15,8 @@ import (
 // should be structured and tested based on the HTTP standard package.
 func TestSyncAdvertisementsHandler_Handle(t *testing.T) {
 	// given:
-	app := commands.NewSyncAdvertisementsCommandHandler(syncAdvertisementsProviderAlwaysOK{})
+	app, err := commands.NewSyncAdvertisementsCommandHandler(syncAdvertisementsProviderAlwaysOK{})
+	assert.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(app.Handle))
 	defer ts.Close()
 

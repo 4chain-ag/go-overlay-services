@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
@@ -65,9 +66,9 @@ func (h *RequestForeignGASPNodeHandler) Handle(w http.ResponseWriter, r *http.Re
 }
 
 // NewRequestForeignGASPNodeHandler creates a new handler instance.
-func NewRequestForeignGASPNodeHandler(provider RequestForeignGASPNodeProvider) *RequestForeignGASPNodeHandler {
+func NewRequestForeignGASPNodeHandler(provider RequestForeignGASPNodeProvider) (*RequestForeignGASPNodeHandler, error) {
 	if provider == nil {
-		panic("request foreign gasp node provider")
+		return nil, fmt.Errorf("request foreign gasp node provider is nil")
 	}
-	return &RequestForeignGASPNodeHandler{provider: provider}
+	return &RequestForeignGASPNodeHandler{provider: provider}, nil
 }

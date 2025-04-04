@@ -1,6 +1,7 @@
 package queries
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
@@ -52,11 +53,9 @@ func (t *TopicManagerDocumentationHandler) Handle(w http.ResponseWriter, r *http
 
 // NewTopicManagerDocumentationHandler returns an instance of a TopicManagerDocumentationHandler, utilizing
 // an implementation of TopicManagerDocumentationProvider. If the provided argument is nil, it panics.
-func NewTopicManagerDocumentationHandler(provider TopicManagerDocumentationProvider) *TopicManagerDocumentationHandler {
+func NewTopicManagerDocumentationHandler(provider TopicManagerDocumentationProvider) (*TopicManagerDocumentationHandler, error) {
 	if provider == nil {
-		panic("topic manager documentation provider is nil")
+		return nil, fmt.Errorf("topic manager documentation provider cannot be nil")
 	}
-	return &TopicManagerDocumentationHandler{
-		provider: provider,
-	}
+	return &TopicManagerDocumentationHandler{provider: provider}, nil
 }
