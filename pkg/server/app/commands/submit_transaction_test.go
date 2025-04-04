@@ -254,18 +254,27 @@ func TestNewSubmitTransactionCommandHandler_WithNilProvider(t *testing.T) {
 
 func TestSubmitTransactionHandler_SetResponseTimeout(t *testing.T) {
 	// Given:
-	handler, err := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysSuccess{})
+	handler, err := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderNeverCallback{})
 	require.NoError(t, err)
 
-	// Default timeout should be 5 seconds
-
-	// When:
-	customTimeout := 10 * time.Second
+	customTimeout := 100 * time.Millisecond
 	handler.SetResponseTimeout(customTimeout)
 
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
+
+	requestBody := []byte("test transaction body")
+	topics := "topic1,topic2"
+
+	req, _ := http.NewRequest("POST", ts.URL, bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(commands.XTopicsHeader, topics)
+
+	// When:
+	res, err := ts.Client().Do(req)
+
 	// Then:
-	// We can't directly assert the timeout value as it's private
-	// but we can indirectly verify through a mocked provider that would
-	// delay longer than default timeout but less than our custom timeout
-	// For simplicity, we'll just test that the method exists and doesn't panic
+	require.NoError(t, err)
+	defer res.Body.Close()
+	require.Equal(t, http.StatusRequestTimeout, res.StatusCode)
 }
