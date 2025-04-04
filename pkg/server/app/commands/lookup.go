@@ -78,4 +78,4 @@ func NewLookupHandler(provider LookupQuestionProvider) (*LookupHandler, error) {
 	return &LookupHandler{
 		provider: provider,
 	}, nil
-} 
+}
