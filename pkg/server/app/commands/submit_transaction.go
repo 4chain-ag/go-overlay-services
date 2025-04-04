@@ -23,16 +23,16 @@ const RequestBodyLimit1GB = 1000 * 1024 * 1024
 var (
 	// ErrMissingXTopicsHeader is returned when the required x-topics header is missing.
 	ErrMissingXTopicsHeader = errors.New("missing x-topics header")
-	
+
 	// ErrInvalidXTopicsHeaderFormat is returned when the x-topics header has an invalid format.
 	ErrInvalidXTopicsHeaderFormat = errors.New("invalid x-topics header format")
-	
+
 	// ErrInvalidHTTPMethod is returned when an unsupported HTTP method is used.
 	ErrInvalidHTTPMethod = errors.New("invalid HTTP method")
-	
+
 	// ErrRequestBodyRead is returned when there's an error reading the request body.
 	ErrRequestBodyRead = errors.New("failed to read request body")
-	
+
 	// ErrRequestBodyTooLarge is returned when the request body exceeds the size limit.
 	ErrRequestBodyTooLarge = errors.New("request body too large")
 )
@@ -119,7 +119,7 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	_, err = s.provider.Submit(r.Context(), *taggedBEEF, engine.SubmitModeCurrent, func(steak *overlay.Steak) {
 		steakChan <- steak
 	})
-	
+
 	if err != nil {
 		jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, err.Error())
 		return

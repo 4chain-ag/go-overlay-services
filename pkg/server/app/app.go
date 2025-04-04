@@ -38,7 +38,7 @@ func New(provider engine.OverlayEngineProvider) *Application {
 	if err != nil {
 		panic(fmt.Sprintf("failed to create submit transaction handler: %v", err))
 	}
-	
+
 	return &Application{
 		Commands: &Commands{
 			SubmitTransactionHandler:      submitHandler,

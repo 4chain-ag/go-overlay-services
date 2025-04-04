@@ -50,9 +50,9 @@ func (SubmitTransactionProviderNeverCallback) Submit(ctx context.Context, tagged
 func createTestHandlerWithLimit(provider commands.SubmitTransactionProvider, limit int64) http.HandlerFunc {
 	handler, err := commands.NewSubmitTransactionCommandHandler(provider)
 	if err != nil {
-		panic(err) 
+		panic(err)
 	}
-	
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.ContentLength > limit {
 			http.Error(w, commands.ErrRequestBodyTooLarge.Error(), http.StatusBadRequest)
@@ -191,7 +191,7 @@ func TestSubmitTransactionHandler_Handle_RequestTooLarge(t *testing.T) {
 	testHandler := createTestHandlerWithLimit(&SubmitTransactionProviderAlwaysSuccess{}, 10)
 	ts := httptest.NewServer(testHandler)
 	defer ts.Close()
-	
+
 	requestBody := bytes.NewBufferString("this is more than 10 bytes of data")
 	topics := []string{"topic1"}
 	topicsJSON, _ := json.Marshal(topics)
@@ -218,7 +218,7 @@ func TestSubmitTransactionHandler_Handle_Timeout(t *testing.T) {
 	// Given:
 	handler, err := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderNeverCallback{})
 	require.NoError(t, err)
-	
+
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -245,7 +245,7 @@ func TestNewSubmitTransactionCommandHandler_WithNilProvider(t *testing.T) {
 
 	// When:
 	handler, err := commands.NewSubmitTransactionCommandHandler(provider)
-	
+
 	// Then:
 	assert.Nil(t, handler)
 	assert.Error(t, err)
