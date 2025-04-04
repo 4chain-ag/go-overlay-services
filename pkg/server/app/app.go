@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/commands"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/queries"
@@ -31,9 +33,15 @@ func New(provider engine.OverlayEngineProvider) *Application {
 	if provider == nil {
 		panic("overlay engine provider is nil")
 	}
+
+	submitHandler, err := commands.NewSubmitTransactionCommandHandler(provider)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create submit transaction handler: %v", err))
+	}
+	
 	return &Application{
 		Commands: &Commands{
-			SubmitTransactionHandler:      commands.NewSubmitTransactionCommandHandler(provider),
+			SubmitTransactionHandler:      submitHandler,
 			SyncAdvertismentsHandler:      commands.NewSyncAdvertisementsCommandHandler(provider),
 			StartGASPSyncHandler:          commands.NewStartGASPSyncHandler(provider),
 			RequestForeignGASPNodeHandler: commands.NewRequestForeignGASPNodeHandler(provider),

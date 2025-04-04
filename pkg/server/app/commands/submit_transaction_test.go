@@ -38,9 +38,35 @@ func (SubmitTransactionProviderAlwaysFailure) Submit(ctx context.Context, tagged
 	return overlay.Steak{}, errors.New("Submit transaction test error")
 }
 
+// SubmitTransactionProviderNeverCallback is an implementation that never calls the callback
+type SubmitTransactionProviderNeverCallback struct{}
+
+func (SubmitTransactionProviderNeverCallback) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {
+	// Never call the callback which then should trigger the timeout
+	return overlay.Steak{}, nil
+}
+
+// For testing purposes only - allows creating a handler with a custom body limit using middleware type approach
+func createTestHandlerWithLimit(provider commands.SubmitTransactionProvider, limit int64) http.HandlerFunc {
+	handler, err := commands.NewSubmitTransactionCommandHandler(provider)
+	if err != nil {
+		panic(err) 
+	}
+	
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.ContentLength > limit {
+			http.Error(w, commands.ErrRequestBodyTooLarge.Error(), http.StatusBadRequest)
+			return
+		}
+		r.Body = io.NopCloser(io.LimitReader(r.Body, limit))
+		handler.Handle(w, r)
+	}
+}
+
 func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
 	// Given:
-	handler := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysSuccess{})
+	handler, err := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysSuccess{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -50,7 +76,7 @@ func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
 
 	req, _ := http.NewRequest("POST", ts.URL, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-topics", string(topicsJSON))
+	req.Header.Set(commands.XTopicsHeader, string(topicsJSON))
 
 	// When:
 	res, err := ts.Client().Do(req)
@@ -69,7 +95,8 @@ func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
 
 func TestSubmitTransactionHandler_Handle_InvalidMethod(t *testing.T) {
 	// Given:
-	handler := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysSuccess{})
+	handler, err := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysSuccess{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -85,12 +112,13 @@ func TestSubmitTransactionHandler_Handle_InvalidMethod(t *testing.T) {
 
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
-	assert.Equal(t, "Method not allowed\n", string(body))
+	assert.Equal(t, commands.ErrInvalidHTTPMethod.Error()+"\n", string(body))
 }
 
 func TestSubmitTransactionHandler_Handle_MissingTopicsHeader(t *testing.T) {
 	// Given:
-	handler := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysSuccess{})
+	handler, err := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysSuccess{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -107,18 +135,19 @@ func TestSubmitTransactionHandler_Handle_MissingTopicsHeader(t *testing.T) {
 
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
-	assert.Equal(t, "Missing x-topics header\n", string(body))
+	assert.Equal(t, commands.ErrMissingXTopicsHeader.Error()+"\n", string(body))
 }
 
 func TestSubmitTransactionHandler_Handle_InvalidTopicsFormat(t *testing.T) {
 	// Given:
-	handler := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysSuccess{})
+	handler, err := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysSuccess{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
 	req, _ := http.NewRequest("POST", ts.URL, strings.NewReader("test body"))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-topics", "not-valid-json")
+	req.Header.Set(commands.XTopicsHeader, "not-valid-json")
 
 	// When:
 	res, err := ts.Client().Do(req)
@@ -130,12 +159,13 @@ func TestSubmitTransactionHandler_Handle_InvalidTopicsFormat(t *testing.T) {
 
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
-	assert.Equal(t, "Invalid x-topics header format\n", string(body))
+	assert.Equal(t, commands.ErrInvalidXTopicsHeaderFormat.Error()+"\n", string(body))
 }
 
 func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
 	// Given:
-	handler := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysFailure{})
+	handler, err := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysFailure{})
+	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
@@ -145,7 +175,31 @@ func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
 
 	req, _ := http.NewRequest("POST", ts.URL, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-topics", string(topicsJSON))
+	req.Header.Set(commands.XTopicsHeader, string(topicsJSON))
+
+	// When:
+	res, err := ts.Client().Do(req)
+
+	// Then:
+	require.NoError(t, err)
+	defer res.Body.Close()
+	require.Equal(t, http.StatusInternalServerError, res.StatusCode)
+}
+
+func TestSubmitTransactionHandler_Handle_RequestTooLarge(t *testing.T) {
+	// Given a handler with a small request body limit (10 bytes)
+	testHandler := createTestHandlerWithLimit(&SubmitTransactionProviderAlwaysSuccess{}, 10)
+	ts := httptest.NewServer(testHandler)
+	defer ts.Close()
+	
+	requestBody := bytes.NewBufferString("this is more than 10 bytes of data")
+	topics := []string{"topic1"}
+	topicsJSON, _ := json.Marshal(topics)
+
+	req, _ := http.NewRequest("POST", ts.URL, requestBody)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(commands.XTopicsHeader, string(topicsJSON))
+	req.ContentLength = int64(requestBody.Len())
 
 	// When:
 	res, err := ts.Client().Do(req)
@@ -157,15 +211,43 @@ func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
 
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
-	assert.Equal(t, "Submit transaction test error\n", string(body))
+	assert.Equal(t, commands.ErrRequestBodyTooLarge.Error()+"\n", string(body))
+}
+
+func TestSubmitTransactionHandler_Handle_Timeout(t *testing.T) {
+	// Given:
+	handler, err := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderNeverCallback{})
+	require.NoError(t, err)
+	
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
+
+	requestBody := []byte("test transaction body")
+	topics := []string{"topic1", "topic2"}
+	topicsJSON, _ := json.Marshal(topics)
+
+	req, _ := http.NewRequest("POST", ts.URL, bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(commands.XTopicsHeader, string(topicsJSON))
+
+	// When:
+	res, err := ts.Client().Do(req)
+
+	// Then:
+	require.NoError(t, err)
+	defer res.Body.Close()
+	require.Equal(t, http.StatusRequestTimeout, res.StatusCode)
 }
 
 func TestNewSubmitTransactionCommandHandler_WithNilProvider(t *testing.T) {
 	// Given:
 	var provider commands.SubmitTransactionProvider = nil
 
-	// When & Then:
-	assert.Panics(t, func() {
-		commands.NewSubmitTransactionCommandHandler(provider)
-	}, "Expected panic when provider is nil")
+	// When:
+	handler, err := commands.NewSubmitTransactionCommandHandler(provider)
+	
+	// Then:
+	assert.Nil(t, handler)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "submit transaction provider is nil")
 }

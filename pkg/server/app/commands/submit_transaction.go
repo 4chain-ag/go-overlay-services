@@ -3,24 +3,38 @@ package commands
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
-	"sync"
+	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 )
 
-const (
-	// Error messages
-	errMsgMissingTopicsHeader = "Missing x-topics header"
-	errMsgInvalidTopicsFormat = "Invalid x-topics header format"
-	errMsgFailedToReadBody    = "Failed to read request body"
-	errMsgMethodNotAllowed    = "Method not allowed"
+// XTopicsHeader defines the HTTP header key used for specifying transaction topics.
+const XTopicsHeader = "x-topics"
 
-	// Header keys
-	headerTopics = "x-topics"
+// RequestBodyLimit1GB defines the maximum allowed size for request bodies (1GB).
+const RequestBodyLimit1GB = 1000 * 1024 * 1024
+
+var (
+	// ErrMissingXTopicsHeader is returned when the required x-topics header is missing.
+	ErrMissingXTopicsHeader = errors.New("missing x-topics header")
+	
+	// ErrInvalidXTopicsHeaderFormat is returned when the x-topics header has an invalid format.
+	ErrInvalidXTopicsHeaderFormat = errors.New("invalid x-topics header format")
+	
+	// ErrInvalidHTTPMethod is returned when an unsupported HTTP method is used.
+	ErrInvalidHTTPMethod = errors.New("invalid HTTP method")
+	
+	// ErrRequestBodyRead is returned when there's an error reading the request body.
+	ErrRequestBodyRead = errors.New("failed to read request body")
+	
+	// ErrRequestBodyTooLarge is returned when the request body exceeds the size limit.
+	ErrRequestBodyTooLarge = errors.New("request body too large")
 )
 
 // SubmitTransactionHandlerResponse defines the response body content that
@@ -40,92 +54,93 @@ type SubmitTransactionProvider interface {
 // into an overlay-engine-compatible format, and applying any other necessary
 // logic before invoking the engine.
 type SubmitTransactionHandler struct {
-	provider SubmitTransactionProvider
+	provider         SubmitTransactionProvider
+	requestBodyLimit int64
+}
+
+// CreateTaggedBEEFFromRequest extracts the topics from the header and reads the body
+// to create a TaggedBEEF object, with size limits applied.
+func (s *SubmitTransactionHandler) CreateTaggedBEEFFromRequest(r *http.Request) (*overlay.TaggedBEEF, error) {
+	header := r.Header.Get(XTopicsHeader)
+	if header == "" {
+		return nil, ErrMissingXTopicsHeader
+	}
+
+	var topics []string
+	if err := json.Unmarshal([]byte(header), &topics); err != nil {
+		return nil, ErrInvalidXTopicsHeaderFormat
+	}
+
+	reader := io.LimitReader(r.Body, s.requestBodyLimit)
+	buff := make([]byte, 64*1024) // typically it's a best balance between performance and memory usage (loop and size).
+	bytesRead := 0
+	for {
+		n, err := reader.Read(buff)
+		bytesRead += n
+
+		if bytesRead > int(s.requestBodyLimit) {
+			return nil, ErrRequestBodyTooLarge
+		}
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return nil, ErrRequestBodyRead
+		}
+	}
+
+	return &overlay.TaggedBEEF{Beef: buff, Topics: topics}, nil
 }
 
 // Handle orchestrates the processing flow of a transaction. It prepares and
 // sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
 func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	// NOTE: comment place holders will be removed before code is merged
-	// 1. Validate HTTP method
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			fmt.Printf("Failed to close request body: %v\n", err)
+		}
+	}()
+
 	if r.Method != http.MethodPost {
-		http.Error(w, errMsgMethodNotAllowed, http.StatusMethodNotAllowed)
+		http.Error(w, ErrInvalidHTTPMethod.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 
-	// 2. Extract and validate the x-topics header
-	topicsHeader := r.Header.Get(headerTopics)
-	if topicsHeader == "" {
-		http.Error(w, errMsgMissingTopicsHeader, http.StatusBadRequest)
-		return
-	}
-
-	// 3. Parse the topics header as JSON
-	var topics []string
-	if err := json.Unmarshal([]byte(topicsHeader), &topics); err != nil {
-		http.Error(w, errMsgInvalidTopicsFormat, http.StatusBadRequest)
-		return
-	}
-
-	// 4. Read the request body
-	body, err := io.ReadAll(r.Body)
+	taggedBEEF, err := s.CreateTaggedBEEFFromRequest(r)
 	if err != nil {
-		http.Error(w, errMsgFailedToReadBody, http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// 5. Create the TaggedBEEF object
-	taggedBEEF := overlay.TaggedBEEF{
-		Beef:   body,
-		Topics: topics,
-	}
-
-	// 6. Set up synchronization for handling async callbacks
-	responseSent := false
-	var responseSync sync.Mutex
-
-	// Define the callback function - will be called when STEAK is ready
-	onSteakReady := func(steak *overlay.Steak) {
-		responseSync.Lock()
-		defer responseSync.Unlock()
-
-		if !responseSent {
-			responseSent = true
-			jsonutil.SendHTTPResponse(w, http.StatusOK, SubmitTransactionHandlerResponse{Steak: *steak})
-		}
-	}
-
-	// 7. Submit the transaction
-	steak, err := s.provider.Submit(r.Context(), taggedBEEF, engine.SubmitModeCurrent, onSteakReady)
+	steakChan := make(chan *overlay.Steak, 1)
+	_, err = s.provider.Submit(r.Context(), *taggedBEEF, engine.SubmitModeCurrent, func(steak *overlay.Steak) {
+		steakChan <- steak
+	})
+	
 	if err != nil {
-		responseSync.Lock()
-		defer responseSync.Unlock()
-
-		if !responseSent {
-			responseSent = true
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
+		jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// 8. If the callback hasn't been triggered yet, send the response immediately
-	responseSync.Lock()
-	defer responseSync.Unlock()
-
-	if !responseSent {
-		responseSent = true
-		jsonutil.SendHTTPResponse(w, http.StatusOK, SubmitTransactionHandlerResponse{Steak: steak})
+	select {
+	case steak := <-steakChan:
+		jsonutil.SendHTTPResponse(w, http.StatusOK, SubmitTransactionHandlerResponse{Steak: *steak})
+	case <-time.After(5 * time.Second): // Timeout to prevent hanging requests
+		http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
 	}
 }
 
 // NewSubmitTransactionCommandHandler returns an instance of a SubmitTransactionHandler, utilizing
-// an implementation of SubmitTransactionProvider. If the provided argument is nil, it triggers a panic.
-func NewSubmitTransactionCommandHandler(provider SubmitTransactionProvider) *SubmitTransactionHandler {
+// an implementation of SubmitTransactionProvider. If the provided argument is nil, it returns an error.
+func NewSubmitTransactionCommandHandler(provider SubmitTransactionProvider) (*SubmitTransactionHandler, error) {
 	if provider == nil {
-		panic("submit transaction provider is nil")
+		return nil, fmt.Errorf("submit transaction provider is nil")
 	}
 	return &SubmitTransactionHandler{
-		provider: provider,
-	}
+		provider:         provider,
+		requestBodyLimit: RequestBodyLimit1GB,
+	}, nil
 }
