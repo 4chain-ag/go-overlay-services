@@ -1,12 +1,13 @@
 package commands
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
@@ -56,6 +57,7 @@ type SubmitTransactionProvider interface {
 type SubmitTransactionHandler struct {
 	provider         SubmitTransactionProvider
 	requestBodyLimit int64
+	responseTimeout  time.Duration
 }
 
 // CreateTaggedBEEFFromRequest extracts the topics from the header and reads the body
@@ -66,32 +68,54 @@ func (s *SubmitTransactionHandler) CreateTaggedBEEFFromRequest(r *http.Request) 
 		return nil, ErrMissingXTopicsHeader
 	}
 
-	var topics []string
-	if err := json.Unmarshal([]byte(header), &topics); err != nil {
+	// Parse topics from comma-separated list
+	topics := strings.Split(header, ",")
+	
+	// Basic validation - ensure we have at least one non-empty topic
+	hasValidTopic := false
+	for i, topic := range topics {
+		topics[i] = strings.TrimSpace(topic) // Trim whitespace
+		if topics[i] != "" {
+			hasValidTopic = true
+		}
+	}
+	
+	if !hasValidTopic {
 		return nil, ErrInvalidXTopicsHeaderFormat
 	}
 
 	reader := io.LimitReader(r.Body, s.requestBodyLimit)
-	buff := make([]byte, 64*1024) // typically it's a best balance between performance and memory usage (loop and size).
-	bytesRead := 0
+	defer func(){
+	    _ =  r.Body.Close()
+	}()
+	
+	buff := make([]byte, 64*1024)
+	var beefBuffer bytes.Buffer
+	totalBytesRead := 0
+	
 	for {
 		n, err := reader.Read(buff)
-		bytesRead += n
-
-		if bytesRead > int(s.requestBodyLimit) {
-			return nil, ErrRequestBodyTooLarge
+		if n > 0 {
+			totalBytesRead += n
+			if int64(totalBytesRead) > s.requestBodyLimit {
+				return nil, ErrRequestBodyTooLarge
+			}
+			
+			if _, writeErr := beefBuffer.Write(buff[:n]); writeErr != nil {
+				return nil, ErrRequestBodyRead
+			}
 		}
-
+		
 		if err == io.EOF {
 			break
 		}
-
+		
 		if err != nil {
 			return nil, ErrRequestBodyRead
 		}
 	}
-
-	return &overlay.TaggedBEEF{Beef: buff, Topics: topics}, nil
+	
+	return &overlay.TaggedBEEF{Beef: beefBuffer.Bytes(), Topics: topics}, nil
 }
 
 // Handle orchestrates the processing flow of a transaction. It prepares and
@@ -99,9 +123,7 @@ func (s *SubmitTransactionHandler) CreateTaggedBEEFFromRequest(r *http.Request) 
 // with the appropriate status code based on the engine's response.
 func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	defer func() {
-		if err := r.Body.Close(); err != nil {
-			fmt.Printf("Failed to close request body: %v\n", err)
-		}
+		_ = r.Body.Close()
 	}()
 
 	if r.Method != http.MethodPost {
@@ -128,7 +150,7 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	select {
 	case steak := <-steakChan:
 		jsonutil.SendHTTPResponse(w, http.StatusOK, SubmitTransactionHandlerResponse{Steak: *steak})
-	case <-time.After(5 * time.Second): // Timeout to prevent hanging requests
+	case <-time.After(s.responseTimeout): 
 		http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
 	}
 }
@@ -142,5 +164,11 @@ func NewSubmitTransactionCommandHandler(provider SubmitTransactionProvider) (*Su
 	return &SubmitTransactionHandler{
 		provider:         provider,
 		requestBodyLimit: RequestBodyLimit1GB,
+		responseTimeout:  5 * time.Second,
 	}, nil
+}
+
+// SetResponseTimeout allows customizing the timeout for waiting for steak responses.
+func (s *SubmitTransactionHandler) SetResponseTimeout(timeout time.Duration) {
+	s.responseTimeout = timeout
 }
