@@ -70,7 +70,7 @@ func (s *SubmitTransactionHandler) CreateTaggedBEEFFromRequest(r *http.Request) 
 
 	// Parse topics from comma-separated list
 	topics := strings.Split(header, ",")
-	
+
 	// Basic validation - ensure we have at least one non-empty topic
 	hasValidTopic := false
 	for i, topic := range topics {
@@ -79,20 +79,20 @@ func (s *SubmitTransactionHandler) CreateTaggedBEEFFromRequest(r *http.Request) 
 			hasValidTopic = true
 		}
 	}
-	
+
 	if !hasValidTopic {
 		return nil, ErrInvalidXTopicsHeaderFormat
 	}
 
 	reader := io.LimitReader(r.Body, s.requestBodyLimit)
-	defer func(){
-	    _ =  r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
 	}()
-	
+
 	buff := make([]byte, 64*1024)
 	var beefBuffer bytes.Buffer
 	totalBytesRead := 0
-	
+
 	for {
 		n, err := reader.Read(buff)
 		if n > 0 {
@@ -100,21 +100,21 @@ func (s *SubmitTransactionHandler) CreateTaggedBEEFFromRequest(r *http.Request) 
 			if int64(totalBytesRead) > s.requestBodyLimit {
 				return nil, ErrRequestBodyTooLarge
 			}
-			
+
 			if _, writeErr := beefBuffer.Write(buff[:n]); writeErr != nil {
 				return nil, ErrRequestBodyRead
 			}
 		}
-		
+
 		if err == io.EOF {
 			break
 		}
-		
+
 		if err != nil {
 			return nil, ErrRequestBodyRead
 		}
 	}
-	
+
 	return &overlay.TaggedBEEF{Beef: beefBuffer.Bytes(), Topics: topics}, nil
 }
 
@@ -150,7 +150,7 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	select {
 	case steak := <-steakChan:
 		jsonutil.SendHTTPResponse(w, http.StatusOK, SubmitTransactionHandlerResponse{Steak: *steak})
-	case <-time.After(s.responseTimeout): 
+	case <-time.After(s.responseTimeout):
 		http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
 	}
 }

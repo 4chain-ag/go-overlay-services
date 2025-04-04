@@ -71,7 +71,7 @@ func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
 	defer ts.Close()
 
 	requestBody := []byte("test transaction body")
-	
+
 	// Using comma-separated topics
 	topics := "topic1,topic2"
 
@@ -256,14 +256,14 @@ func TestSubmitTransactionHandler_SetResponseTimeout(t *testing.T) {
 	// Given:
 	handler, err := commands.NewSubmitTransactionCommandHandler(&SubmitTransactionProviderAlwaysSuccess{})
 	require.NoError(t, err)
-	
+
 	// Default timeout should be 5 seconds
-	
+
 	// When:
 	customTimeout := 10 * time.Second
 	handler.SetResponseTimeout(customTimeout)
-	
-	// Then: 
+
+	// Then:
 	// We can't directly assert the timeout value as it's private
 	// but we can indirectly verify through a mocked provider that would
 	// delay longer than default timeout but less than our custom timeout
