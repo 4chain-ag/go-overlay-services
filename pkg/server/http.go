@@ -99,6 +99,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	v1.Post("/submit", adaptor.HTTPHandlerFunc(overlayAPI.Commands.SubmitTransactionHandler.Handle))
 	v1.Get("/topic-managers", adaptor.HTTPHandlerFunc(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
 	v1.Post("/request-foreign-gasp-node", adaptor.HTTPHandlerFunc(overlayAPI.Commands.RequestForeignGASPNodeHandler.Handle))
+	v1.Post("/lookup", adaptor.HTTPHandlerFunc(overlayAPI.Commands.LookupHandler.Handle))
 
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
