@@ -14,6 +14,7 @@ type Commands struct {
 	SyncAdvertismentsHandler      *commands.SyncAdvertisementsHandler
 	StartGASPSyncHandler          *commands.StartGASPSyncHandler
 	RequestForeignGASPNodeHandler *commands.RequestForeignGASPNodeHandler
+	LookupHandler                 *commands.LookupHandler
 }
 
 // Queries aggregate all the supported queries by the overlay API.
@@ -74,11 +75,17 @@ func initCommands(provider engine.OverlayEngineProvider) (*Commands, error) {
 		return nil, fmt.Errorf("RequestForeignGASPNodeHandler: %w", err)
 	}
 
+	lookupHandler, err := commands.NewLookupHandler(provider)
+	if err != nil {
+		return nil, fmt.Errorf("LookupHandler: %w", err)
+	}
+
 	return &Commands{
 		SubmitTransactionHandler:      submitHandler,
 		SyncAdvertismentsHandler:      syncAdsHandler,
 		StartGASPSyncHandler:          startSyncHandler,
 		RequestForeignGASPNodeHandler: requestGASPHandler,
+		LookupHandler:                 lookupHandler,
 	}, nil
 }
 
