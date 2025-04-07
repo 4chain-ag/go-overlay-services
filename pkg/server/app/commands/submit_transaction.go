@@ -41,7 +41,7 @@ var (
 // SubmitTransactionHandlerResponse defines the response body content that
 // will be sent in JSON format after successfully processing the handler logic.
 type SubmitTransactionHandlerResponse struct {
-	overlay.Steak `json:"steak"`
+	Steak overlay.Steak `json:"steak"`
 }
 
 // SubmitTransactionProvider defines the contract that must be fulfilled
@@ -60,16 +60,14 @@ type SubmitTransactionHandler struct {
 	responseTimeout  time.Duration
 }
 
-// CreateTaggedBEEFFromRequest extracts the topics from the header and reads the body
-// to create a TaggedBEEF object, with size limits applied.
-func (s *SubmitTransactionHandler) CreateTaggedBEEFFromRequest(r *http.Request) (*overlay.TaggedBEEF, error) {
-	header := r.Header.Get(XTopicsHeader)
-	if header == "" {
+func (s *SubmitTransactionHandler) createTaggedBEEF(body io.ReadCloser, header http.Header) (*overlay.TaggedBEEF, error) {
+	actual := header.Get(XTopicsHeader)
+	if actual == "" {
 		return nil, ErrMissingXTopicsHeader
 	}
 
 	// Parse topics from comma-separated list
-	topics := strings.Split(header, ",")
+	topics := strings.Split(actual, ",")
 
 	// Basic validation - ensure we have at least one non-empty topic
 	hasValidTopic := false
@@ -84,24 +82,14 @@ func (s *SubmitTransactionHandler) CreateTaggedBEEFFromRequest(r *http.Request) 
 		return nil, ErrInvalidXTopicsHeaderFormat
 	}
 
-	reader := io.LimitReader(r.Body, s.requestBodyLimit)
-	defer func() {
-		_ = r.Body.Close()
-	}()
-
+	reader := io.LimitReader(body, s.requestBodyLimit)
 	buff := make([]byte, 64*1024)
-	var beefBuffer bytes.Buffer
-	totalBytesRead := 0
+	var dst bytes.Buffer
 
 	for {
 		n, err := reader.Read(buff)
 		if n > 0 {
-			totalBytesRead += n
-			if int64(totalBytesRead) > s.requestBodyLimit {
-				return nil, ErrRequestBodyTooLarge
-			}
-
-			if _, writeErr := beefBuffer.Write(buff[:n]); writeErr != nil {
+			if _, inner := dst.Write(buff[:n]); inner != nil {
 				return nil, ErrRequestBodyRead
 			}
 		}
@@ -109,29 +97,26 @@ func (s *SubmitTransactionHandler) CreateTaggedBEEFFromRequest(r *http.Request) 
 		if err == io.EOF {
 			break
 		}
-
 		if err != nil {
 			return nil, ErrRequestBodyRead
 		}
 	}
 
-	return &overlay.TaggedBEEF{Beef: beefBuffer.Bytes(), Topics: topics}, nil
+	return &overlay.TaggedBEEF{Beef: dst.Bytes(), Topics: topics}, nil
 }
 
 // Handle orchestrates the processing flow of a transaction. It prepares and
 // sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
 func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		_ = r.Body.Close()
-	}()
+	defer r.Body.Close()
 
 	if r.Method != http.MethodPost {
 		http.Error(w, ErrInvalidHTTPMethod.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 
-	taggedBEEF, err := s.CreateTaggedBEEFFromRequest(r)
+	taggedBEEF, err := s.createTaggedBEEF(r.Body, r.Header)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -155,20 +140,34 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	}
 }
 
+type SubmitTransactionHandlerOption func(h *SubmitTransactionHandler)
+
+func WithResponseTime(d time.Duration) SubmitTransactionHandlerOption {
+	return func(h *SubmitTransactionHandler) {
+		h.responseTimeout = d
+	}
+}
+
+func WithRequestBodyLimit(limit int64) SubmitTransactionHandlerOption {
+	return func(h *SubmitTransactionHandler) {
+		h.requestBodyLimit = limit
+	}
+}
+
 // NewSubmitTransactionCommandHandler returns an instance of a SubmitTransactionHandler, utilizing
 // an implementation of SubmitTransactionProvider. If the provided argument is nil, it returns an error.
-func NewSubmitTransactionCommandHandler(provider SubmitTransactionProvider) (*SubmitTransactionHandler, error) {
+func NewSubmitTransactionCommandHandler(provider SubmitTransactionProvider, opts ...SubmitTransactionHandlerOption) (*SubmitTransactionHandler, error) {
 	if provider == nil {
 		return nil, fmt.Errorf("submit transaction provider is nil")
 	}
-	return &SubmitTransactionHandler{
+
+	h := SubmitTransactionHandler{
 		provider:         provider,
 		requestBodyLimit: RequestBodyLimit1GB,
-		responseTimeout:  5 * time.Second,
-	}, nil
-}
-
-// SetResponseTimeout allows customizing the timeout for waiting for steak responses.
-func (s *SubmitTransactionHandler) SetResponseTimeout(timeout time.Duration) {
-	s.responseTimeout = timeout
+		responseTimeout:  10 * time.Second,
+	}
+	for _, o := range opts {
+		o(&h)
+	}
+	return &h, nil
 }
