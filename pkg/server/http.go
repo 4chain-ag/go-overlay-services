@@ -5,14 +5,16 @@ import (
 	"net/http"
 	"strings"
 
-	config "github.com/4chain-ag/go-overlay-services/pkg/appconfig"
-	"github.com/4chain-ag/go-overlay-services/pkg/server/app"
-	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
-	"github.com/4chain-ag/go-overlay-services/pkg/server/mongo"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/idempotency"
+
+	config "github.com/4chain-ag/go-overlay-services/pkg/appconfig"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/middleware"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/mongo"
 )
 
 // HTTPOption defines a functional option for configuring an HTTP server.
@@ -47,6 +49,18 @@ func WithMongo() HTTPOption {
 			return fmt.Errorf("MongoDB connect failed: %w", err)
 		}
 		h.mongo = client
+		return nil
+	}
+}
+
+// WithErrorHandler adds the error handler middleware to the HTTP server.
+// This middleware is responsible for handling errors that occur during request processing.
+// It captures errors and sends appropriate HTTP responses to the client.
+// The error handler middleware is added to the list of middlewares for the HTTP server.
+// It is typically used to ensure that errors are handled consistently across all routes.
+func WithErrorHandler() HTTPOption {
+	return func(h *HTTP) error {
+		h.middleware = append(h.middleware, adaptor.HTTPMiddleware(middleware.ErrorHandlerMiddleware))
 		return nil
 	}
 }
