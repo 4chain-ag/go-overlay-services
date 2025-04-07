@@ -4,16 +4,17 @@ import (
 	"flag"
 	"net/http"
 
-	config "github.com/4chain-ag/go-overlay-services/pkg/appconfig"
 	"github.com/4chain-ag/go-overlay-services/pkg/server"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/config/loaders"
 	"github.com/gookit/slog"
 )
 
 func main() {
-	configPath := flag.String("C", config.DefaultConfigFilePath, "Path to the configuration file")
+	configPath := flag.String("c", loaders.DefaultConfigFilePath, "Path to the configuration file")
 	flag.Parse()
 
-	loader := config.NewLoader("OVERLAY")
+	loader := loaders.NewLoader(config.NewDefault, "OVERLAY")
 	if err := loader.SetConfigFilePath(*configPath); err != nil {
 		slog.Fatalf("Invalid config file path: %v", err)
 	}
@@ -27,14 +28,9 @@ func main() {
 		slog.Fatalf("failed to pretty print config: %v", err)
 	}
 
-	if err := cfg.Validate(); err != nil {
-		slog.Fatalf("Invalid configuration: %v", err)
-	}
-
 	opts := []server.HTTPOption{
-		server.WithConfig(&cfg),
 		server.WithMiddleware(loggingMiddleware),
-		server.WithMongo(),
+		server.WithConfig(&cfg.Server),
 	}
 
 	httpAPI, err := server.New(opts...)
