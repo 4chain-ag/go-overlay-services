@@ -5,9 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/4chain-ag/go-overlay-services/pkg/server/middleware"
+	"github.com/stretchr/testify/require"
 )
 
 func TestErrorHandlerMiddleware(t *testing.T) {

@@ -5,16 +5,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/idempotency"
-
 	config "github.com/4chain-ag/go-overlay-services/pkg/appconfig"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/middleware"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/mongo"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/idempotency"
 )
 
 // HTTPOption defines a functional option for configuring an HTTP server.
