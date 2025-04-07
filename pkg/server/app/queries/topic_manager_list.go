@@ -35,6 +35,14 @@ type TopicManagerListHandler struct {
 
 // Handle processes the topic manager list request and sends a JSON response.
 func (t *TopicManagerListHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		_ = r.Body.Close()
+	}()
+	if r.Method != http.MethodGet {
+		jsonutil.SendHTTPFailureResponse(w, http.StatusMethodNotAllowed, jsonutil.ReasonBadRequest, "only GET method is allowed")
+		return
+	}
+
 	engineTopicManagers := t.provider.ListTopicManagers()
 	result := make(TopicManagerListHandlerResponse, len(engineTopicManagers))
 

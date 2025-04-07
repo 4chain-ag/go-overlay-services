@@ -18,20 +18,24 @@ type StartGASPSyncHandler struct {
 	provider StartGASPSyncProvider
 }
 
-// ResponseStartGASPNodeHandler is the standard response body format.
+// ResponseStartGASPNodeHandler is the standard success response body format.
 type ResponseStartGASPNodeHandler struct {
 	Message string `json:"message"`
 }
 
 // Handle initiates the sync and returns appropriate status.
 func (h *StartGASPSyncHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		jsonutil.SendHTTPFailureResponse(w, http.StatusMethodNotAllowed, jsonutil.ReasonBadRequest, "method not allowed, only POST is supported")
 		return
 	}
 
 	if err := h.provider.StartGASPSync(r.Context()); err != nil {
-		jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, ResponseStartGASPNodeHandler{Message: "FAILED"})
+		jsonutil.SendHTTPFailureResponse(w, http.StatusInternalServerError, jsonutil.ReasonInternalError, "failed to start GASP sync")
 		return
 	}
 

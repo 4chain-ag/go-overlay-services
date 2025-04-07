@@ -58,5 +58,7 @@ func TestStartGASPSyncHandler_Failure(t *testing.T) {
 
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
-	require.Contains(t, string(body), "FAILED")
+
+	require.Contains(t, string(body), "Internal Server Error")
+	require.Contains(t, string(body), "failed to start GASP sync")
 }

@@ -30,35 +30,41 @@ type RequestForeignGASPNodeHandlerPayload struct {
 
 // Handle processes the HTTP request and writes the appropriate response.
 func (h *RequestForeignGASPNodeHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		jsonutil.SendHTTPFailureResponse(w, http.StatusMethodNotAllowed, jsonutil.ReasonBadRequest, "method not allowed, only POST is supported")
 		return
 	}
 
 	var payload RequestForeignGASPNodeHandlerPayload
 	if err := jsonutil.DecodeRequestBody(r, &payload); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		jsonutil.SendHTTPFailureResponse(w, http.StatusBadRequest, jsonutil.ReasonInvalidRequest, "invalid JSON payload")
 		return
 	}
 
 	outpoint := &overlay.Outpoint{
 		OutputIndex: payload.OutputIndex,
 	}
+
 	txid, err := chainhash.NewHashFromHex(payload.TxID)
 	if err != nil {
-		http.Error(w, "invalid txid", http.StatusBadRequest)
-		return
-	} else {
-		outpoint.Txid = *txid
-	}
-	graphId, err := overlay.NewOutpointFromString(payload.GraphID)
-	if err != nil {
-		http.Error(w, "invalid graphID", http.StatusBadRequest)
+		jsonutil.SendHTTPFailureResponse(w, http.StatusBadRequest, jsonutil.ReasonInvalidRequest, "invalid txid format")
 		return
 	}
-	node, err := h.provider.ProvideForeignGASPNode(r.Context(), graphId, outpoint)
+	outpoint.Txid = *txid
+
+	graphID, err := overlay.NewOutpointFromString(payload.GraphID)
 	if err != nil {
-		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+		jsonutil.SendHTTPFailureResponse(w, http.StatusBadRequest, jsonutil.ReasonInvalidRequest, "invalid graphID format")
+		return
+	}
+
+	node, err := h.provider.ProvideForeignGASPNode(r.Context(), graphID, outpoint)
+	if err != nil {
+		jsonutil.SendHTTPFailureResponse(w, http.StatusInternalServerError, jsonutil.ReasonInternalError, "could not fetch foreign GASP node")
 		return
 	}
 

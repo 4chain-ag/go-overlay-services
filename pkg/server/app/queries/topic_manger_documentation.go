@@ -34,15 +34,20 @@ type TopicManagerDocumentationHandler struct {
 // It extracts the topicManager query parameter, invokes the engine provider,
 // and returns a Markdown-formatted documentation string as JSON with the appropriate status code.
 func (t *TopicManagerDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		jsonutil.SendHTTPFailureResponse(w, http.StatusMethodNotAllowed, jsonutil.ReasonBadRequest, "only GET method is allowed")
+		return
+	}
+
 	topicManager := r.URL.Query().Get("topicManager")
 	if topicManager == "" {
-		http.Error(w, "topicManager query parameter is required", http.StatusBadRequest)
+		jsonutil.SendHTTPFailureResponse(w, http.StatusBadRequest, jsonutil.ReasonInvalidRequest, "topicManager query parameter is required")
 		return
 	}
 
 	documentation, err := t.provider.GetDocumentationForTopicManager(topicManager)
 	if err != nil {
-		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+		jsonutil.SendHTTPFailureResponse(w, http.StatusInternalServerError, jsonutil.ReasonInternalError, "failed to fetch topic manager documentation")
 		return
 	}
 

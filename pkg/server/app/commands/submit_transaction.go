@@ -36,10 +36,18 @@ type SubmitTransactionHandler struct {
 // sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
 func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		_ = r.Body.Close()
+	}()
 	// TODO: Add custom validation logic.
 	steak, err := s.provider.Submit(r.Context(), overlay.TaggedBEEF{}, engine.SubmitModeCurrent, func(steak *overlay.Steak) {})
 	if err != nil {
-		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+		jsonutil.SendHTTPFailureResponse(
+			w,
+			http.StatusInternalServerError,
+			jsonutil.ReasonInternalError,
+			"failed to submit transaction to overlay engine",
+		)
 		return
 	}
 

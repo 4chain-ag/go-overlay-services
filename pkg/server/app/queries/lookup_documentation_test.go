@@ -1,8 +1,8 @@
 package queries_test
 
 import (
+	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -79,11 +79,13 @@ func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testin
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
-	require.Equal(t, "text/plain; charset=utf-8", res.Header.Get("Content-Type"))
+	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	require.Equal(t, "lookupService query parameter is required\n", string(body))
+	var failureResp jsonutil.ResponseFailure
+	require.NoError(t, json.NewDecoder(res.Body).Decode(&failureResp))
+
+	require.Equal(t, jsonutil.ReasonBadRequest, failureResp.Reason)
+	require.Equal(t, "lookupService query parameter is required", failureResp.Hint)
 }
 
 func TestNewLookupDocumentationHandler_WithNilProvider(t *testing.T) {

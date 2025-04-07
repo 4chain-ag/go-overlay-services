@@ -34,15 +34,28 @@ type LookupDocumentationHandler struct {
 // It extracts the lookupService query parameter, invokes the engine provider,
 // and returns the a Markdown-formatted documentation string as JSON with the appropriate status code.
 func (l *LookupDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		_ = r.Body.Close()
+	}()
 	lookupService := r.URL.Query().Get("lookupService")
 	if lookupService == "" {
-		http.Error(w, "lookupService query parameter is required", http.StatusBadRequest)
+		jsonutil.SendHTTPFailureResponse(
+			w,
+			http.StatusBadRequest,
+			jsonutil.ReasonBadRequest,
+			"lookupService query parameter is required",
+		)
 		return
 	}
 
 	documentation, err := l.provider.GetDocumentationForLookupServiceProvider(lookupService)
 	if err != nil {
-		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+		jsonutil.SendHTTPFailureResponse(
+			w,
+			http.StatusInternalServerError,
+			jsonutil.ReasonInternalError,
+			"failed to fetch lookup service documentation",
+		)
 		return
 	}
 
