@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 )
 
@@ -10,7 +11,7 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-// ErrorHandlerMiddleware is a middleware that catches panics and standardizes error responses
+// ErrorHandlerMiddleware catches panics and standardizes errors into JSON.
 func ErrorHandlerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -18,9 +19,10 @@ func ErrorHandlerMiddleware(next http.Handler) http.Handler {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
 
-				json.NewEncoder(w).Encode(ErrorResponse{
-					Error: http.StatusText(http.StatusInternalServerError),
-				})
+				if err := json.NewEncoder(w).Encode(ErrorResponse{Error: "Internal Server Error"}); err != nil {
+					slog.Error("Failed to write error response", "error", err)
+					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				}
 			}
 		}()
 

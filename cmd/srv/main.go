@@ -33,9 +33,9 @@ func main() {
 
 	opts := []server.HTTPOption{
 		server.WithConfig(&cfg),
+		server.WithErrorHandler(),
 		server.WithMiddleware(loggingMiddleware),
 		server.WithMongo(),
-		server.WithErrorHandler(),
 	}
 
 	httpAPI, err := server.New(opts...)
