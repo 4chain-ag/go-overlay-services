@@ -1,8 +1,8 @@
 package queries_test
 
 import (
+	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -67,7 +67,6 @@ func TestTopicManagerDocumentationHandler_Handle_ProviderError(t *testing.T) {
 
 func TestTopicManagerDocumentationHandler_Handle_EmptyTopicManagerParameter(t *testing.T) {
 	// Given:
-	// Create a handler with a custom provider that implements only the required interface
 	handler, err := queries.NewTopicManagerDocumentationHandler(&TopicManagerDocumentationProviderAlwaysSuccess{})
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
@@ -79,12 +78,16 @@ func TestTopicManagerDocumentationHandler_Handle_EmptyTopicManagerParameter(t *t
 	// Then:
 	require.NoError(t, err)
 	defer res.Body.Close()
-	require.Equal(t, http.StatusBadRequest, res.StatusCode)
-	require.Equal(t, "text/plain; charset=utf-8", res.Header.Get("Content-Type"))
 
-	body, err := io.ReadAll(res.Body)
+	require.Equal(t, http.StatusBadRequest, res.StatusCode)
+	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
+
+	var failureResp jsonutil.ResponseFailure
+	err = json.NewDecoder(res.Body).Decode(&failureResp)
 	require.NoError(t, err)
-	require.Equal(t, "topicManager query parameter is required\n", string(body))
+
+	require.Equal(t, jsonutil.ReasonInvalidRequest, failureResp.Reason)
+	require.Equal(t, "topicManager query parameter is required", failureResp.Hint)
 }
 
 func TestNewTopicManagerDocumentationHandler_WithNilProvider(t *testing.T) {

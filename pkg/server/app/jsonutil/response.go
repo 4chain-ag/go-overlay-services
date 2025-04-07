@@ -2,6 +2,7 @@ package jsonutil
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 )
 
@@ -34,8 +35,10 @@ func SendHTTPFailureResponse(w http.ResponseWriter, statusCode int, reason, hint
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
-	_ = json.NewEncoder(w).Encode(ResponseFailure{
+	if err := json.NewEncoder(w).Encode(ResponseFailure{
 		Reason: reason,
 		Hint:   hint,
-	})
+	}); err != nil {
+		slog.Error("failed to encode JSON response", "error", err)
+	}
 }
