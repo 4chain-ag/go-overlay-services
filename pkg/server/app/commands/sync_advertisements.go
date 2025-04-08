@@ -32,7 +32,12 @@ type SyncAdvertisementsHandler struct {
 func (s *SyncAdvertisementsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	err := s.provider.SyncAdvertisements(r.Context())
 	if err != nil {
-		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
+		jsonutil.SendHTTPFailureResponse(
+			w,
+			http.StatusInternalServerError,
+			jsonutil.ReasonInternalError,
+			"failed to synchronize advertisements with overlay engine",
+		)
 		return
 	}
 

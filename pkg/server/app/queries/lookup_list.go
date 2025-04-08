@@ -35,6 +35,11 @@ type LookupListHandler struct {
 
 // Handle processes the lookup service provider list request and sends a JSON response.
 func (l *LookupListHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		jsonutil.SendHTTPFailureResponse(w, http.StatusMethodNotAllowed, jsonutil.ReasonBadRequest, "only GET method is allowed")
+		return
+	}
+
 	engineLookupProviders := l.provider.ListLookupServiceProviders()
 	result := make(LookupListHandlerResponse, len(engineLookupProviders))
 
