@@ -34,6 +34,7 @@ func main() {
 
 	opts := []server.HTTPOption{
 		server.WithConfig(&cfg),
+		server.WithErrorHandler(),
 		server.WithMiddleware(loggingMiddleware),
 		server.WithMongo(),
 	}
