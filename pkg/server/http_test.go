@@ -1,11 +1,17 @@
 package server_test
 
 import (
+	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,4 +64,102 @@ func Test_AuthorizationBearerTokenMiddleware(t *testing.T) {
 			require.Equal(t, tt.expectedStatus, resp.StatusCode)
 		})
 	}
+}
+
+func Test_HTTPServer_ShouldShutdownAfterSendingInterruptSig(t *testing.T) {
+	// given:
+	cfg := config.NewDefault()
+	opts := []server.HTTPOption{
+		server.WithConfig(&cfg.Server),
+	}
+	httpAPI, err := server.New(opts...)
+	require.NoError(t, err, "Failed to create HTTP API server")
+
+	// when:
+	done := httpAPI.StartWithGracefulShutdown(context.Background())
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		slog.Info("Sending os.Interrupt signal to the HTTP API", slog.Attr{
+			Key:   "process_id",
+			Value: slog.IntValue(os.Getpid()),
+		})
+
+		process, err := os.FindProcess(os.Getpid())
+		require.NoError(t, err, "Failed to find HTTP API process")
+
+		require.NoError(t, process.Signal(os.Interrupt), "Failed to send os.Interrupt signal to the HTTP API")
+	}()
+
+	wg.Wait()
+
+	// then:
+	_, ok := <-done
+	require.False(t, ok, "Server did not shut down as expected")
+}
+
+func Test_HTTPServer_ShouldShutdownAfterContextCancel(t *testing.T) {
+	// given:
+	cfg := config.NewDefault()
+	opts := []server.HTTPOption{
+		server.WithConfig(&cfg.Server),
+	}
+
+	httpAPI, err := server.New(opts...)
+	require.NoError(t, err)
+
+	// when:
+	trigger := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
+	done := httpAPI.StartWithGracefulShutdown(ctx)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		<-trigger
+		t.Log("Triggering context cancel")
+		cancel()
+	}()
+
+	close(trigger)
+	wg.Wait()
+	// then:
+	_, ok := <-done
+	require.False(t, ok, "Server did not shut down after context cancellation")
+}
+
+func Test_HTTPServer_ShouldShutdownAfterContextTimeout(t *testing.T) {
+	// Given:
+	cfg := config.NewDefault()
+	opts := []server.HTTPOption{
+		server.WithConfig(&cfg.Server),
+	}
+
+	httpAPI, err := server.New(opts...)
+	require.NoError(t, err)
+
+	// When:
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	done := httpAPI.StartWithGracefulShutdown(ctx)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		// Then:
+		_, ok := <-done
+		require.False(t, ok, "Server did not shut down after context timeout")
+	}()
+
+	wg.Wait()
 }
