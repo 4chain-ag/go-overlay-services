@@ -25,9 +25,6 @@ type ResponseStartGASPNodeHandler struct {
 
 // Handle initiates the sync and returns appropriate status.
 func (h *StartGASPSyncHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		_ = r.Body.Close()
-	}()
 
 	if r.Method != http.MethodPost {
 		jsonutil.SendHTTPFailureResponse(w, http.StatusMethodNotAllowed, jsonutil.ReasonBadRequest, "method not allowed, only POST is supported")

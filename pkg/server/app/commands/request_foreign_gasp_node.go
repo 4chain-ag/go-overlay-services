@@ -30,9 +30,6 @@ type RequestForeignGASPNodeHandlerPayload struct {
 
 // Handle processes the HTTP request and writes the appropriate response.
 func (h *RequestForeignGASPNodeHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		_ = r.Body.Close()
-	}()
 
 	if r.Method != http.MethodPost {
 		jsonutil.SendHTTPFailureResponse(w, http.StatusMethodNotAllowed, jsonutil.ReasonBadRequest, "method not allowed, only POST is supported")

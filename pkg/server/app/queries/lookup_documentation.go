@@ -34,9 +34,7 @@ type LookupDocumentationHandler struct {
 // It extracts the lookupService query parameter, invokes the engine provider,
 // and returns the a Markdown-formatted documentation string as JSON with the appropriate status code.
 func (l *LookupDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		_ = r.Body.Close()
-	}()
+
 	lookupService := r.URL.Query().Get("lookupService")
 	if lookupService == "" {
 		jsonutil.SendHTTPFailureResponse(
