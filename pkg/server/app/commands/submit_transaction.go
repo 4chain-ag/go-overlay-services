@@ -115,7 +115,9 @@ func (s *SubmitTransactionHandler) createTaggedBEEF(body io.ReadCloser, header h
 // sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
 func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
+	}()	
 
 	if r.Method != http.MethodPost {
 		http.Error(w, ErrInvalidHTTPMethod.Error(), http.StatusMethodNotAllowed)
@@ -150,14 +152,17 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// SubmitTransactionHandlerOption defines a function that can configure a SubmitTransactionHandler.
 type SubmitTransactionHandlerOption func(h *SubmitTransactionHandler)
 
+// WithResponseTime configures the timeout duration for a response from the transaction submission.
 func WithResponseTime(d time.Duration) SubmitTransactionHandlerOption {
 	return func(h *SubmitTransactionHandler) {
 		h.responseTimeout = d
 	}
 }
 
+// WithRequestBodyLimit configures the maximum allowed size for request bodies.
 func WithRequestBodyLimit(limit int64) SubmitTransactionHandlerOption {
 	return func(h *SubmitTransactionHandler) {
 		h.requestBodyLimit = limit

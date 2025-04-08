@@ -2,7 +2,6 @@ package commands_test
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -11,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/commands"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/commands/testutil"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +20,7 @@ import (
 
 func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
 	// Given:
-	mock := NewsubmitTransactionProviderAlwaysSuccess(overlay.Steak{
+	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
 			OutputsToAdmit: []uint32{1},
 		},
@@ -54,12 +53,12 @@ func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
 
 	var actual commands.SubmitTransactionHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &actual))
-	require.Equal(t, mock.expectedSteak, actual.Steak)
+	require.Equal(t, mock.ExpectedSteak, actual.Steak)
 }
 
 func TestSubmitTransactionHandler_Handle_InvalidMethod(t *testing.T) {
 	// Given:
-	mock := NewsubmitTransactionProviderAlwaysSuccess(overlay.Steak{
+	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
 			OutputsToAdmit: []uint32{1},
 		},
@@ -89,7 +88,7 @@ func TestSubmitTransactionHandler_Handle_InvalidMethod(t *testing.T) {
 
 func TestSubmitTransactionHandler_Handle_MissingTopicsHeader(t *testing.T) {
 	// Given:
-	mock := NewsubmitTransactionProviderAlwaysSuccess(overlay.Steak{
+	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
 			OutputsToAdmit: []uint32{1},
 		},
@@ -122,7 +121,7 @@ func TestSubmitTransactionHandler_Handle_MissingTopicsHeader(t *testing.T) {
 
 func TestSubmitTransactionHandler_Handle_InvalidTopicsFormat(t *testing.T) {
 	// Given:
-	mock := NewsubmitTransactionProviderAlwaysSuccess(overlay.Steak{
+	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
 			OutputsToAdmit: []uint32{1},
 		},
@@ -156,7 +155,7 @@ func TestSubmitTransactionHandler_Handle_InvalidTopicsFormat(t *testing.T) {
 
 func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
 	// Given:
-	mock := NewSubmitTransactionProviderAlwaysFailure(errors.New("internal"))
+	mock := testutil.NewSubmitTransactionProviderAlwaysFailure(errors.New("internal"))
 	handler, err := commands.NewSubmitTransactionCommandHandler(mock)
 	require.NoError(t, err)
 
@@ -184,7 +183,7 @@ func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
 	actualErr := errors.New(actual)
 
 	require.Equal(t, http.StatusInternalServerError, res.StatusCode)
-	require.Equal(t, mock.expectedErr, actualErr)
+	require.Equal(t, mock.ExpectedErr, actualErr)
 }
 
 func TestSubmitTransactionHandler_Handle_RequestTooLarge(t *testing.T) {
@@ -220,7 +219,7 @@ func TestSubmitTransactionHandler_Handle_RequestTooLarge(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given:
-			mock := NewsubmitTransactionProviderAlwaysSuccess(overlay.Steak{
+			mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 				"test": &overlay.AdmittanceInstructions{
 					OutputsToAdmit: []uint32{1},
 				},
@@ -265,7 +264,7 @@ func TestSubmitTransactionHandler_Handle_RequestTooLarge(t *testing.T) {
 func TestSubmitTransactionHandler_Handle_Timeout(t *testing.T) {
 	// Given:
 	handler, err := commands.NewSubmitTransactionCommandHandler(
-		&SubmitTransactionProviderNeverCallback{},
+		&testutil.SubmitTransactionProviderNeverCallback{},
 		commands.WithResponseTime(2*time.Second),
 	)
 	require.NoError(t, err)
@@ -299,33 +298,4 @@ func TestNewSubmitTransactionCommandHandler_WithNilProvider(t *testing.T) {
 	assert.Nil(t, handler)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "submit transaction provider is nil")
-}
-
-type SubmitTransactionProviderAlwaysSuccess struct{ expectedSteak overlay.Steak }
-
-func NewsubmitTransactionProviderAlwaysSuccess(steak overlay.Steak) *SubmitTransactionProviderAlwaysSuccess {
-	return &SubmitTransactionProviderAlwaysSuccess{expectedSteak: steak}
-}
-
-func (s SubmitTransactionProviderAlwaysSuccess) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {
-	// Call the onSteakReady callback to simulate async completion
-	onSteakReady(&s.expectedSteak)
-	return nil, nil
-}
-
-type SubmitTransactionProviderAlwaysFailure struct{ expectedErr error }
-
-func (s SubmitTransactionProviderAlwaysFailure) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {
-	return nil, s.expectedErr
-}
-
-func NewSubmitTransactionProviderAlwaysFailure(err error) *SubmitTransactionProviderAlwaysFailure {
-	return &SubmitTransactionProviderAlwaysFailure{expectedErr: err}
-}
-
-type SubmitTransactionProviderNeverCallback struct{}
-
-func (s SubmitTransactionProviderNeverCallback) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {
-	// Never call the callback which then should trigger the timeout
-	return overlay.Steak{}, nil
 }
