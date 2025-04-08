@@ -44,7 +44,7 @@ func TestLookupHandler_ValidInput_ReturnsAnswer(t *testing.T) {
 
 	payload := lookup.LookupQuestion{
 		Service: "test-service",
-		Query: json.RawMessage(`{"test":"query"}`),
+		Query:   json.RawMessage(`{"test":"query"}`),
 	}
 	jsonData, err := json.Marshal(payload)
 	require.NoError(t, err)
@@ -128,7 +128,7 @@ func TestLookupHandler_EngineError_Returns400(t *testing.T) {
 
 	payload := lookup.LookupQuestion{
 		Service: "test-service",
-		Query: json.RawMessage(`{"test":"query"}`),
+		Query:   json.RawMessage(`{"test":"query"}`),
 	}
 	jsonData, err := json.Marshal(payload)
 	require.NoError(t, err)
