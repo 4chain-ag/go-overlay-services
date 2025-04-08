@@ -117,7 +117,7 @@ func (s *SubmitTransactionHandler) createTaggedBEEF(body io.ReadCloser, header h
 func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		_ = r.Body.Close()
-	}()	
+	}()
 
 	if r.Method != http.MethodPost {
 		http.Error(w, ErrInvalidHTTPMethod.Error(), http.StatusMethodNotAllowed)
