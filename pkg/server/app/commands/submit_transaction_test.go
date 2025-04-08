@@ -188,39 +188,78 @@ func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
 }
 
 func TestSubmitTransactionHandler_Handle_RequestTooLarge(t *testing.T) {
-	// given:
-	mock := NewsubmitTransactionProviderAlwaysSuccess(overlay.Steak{
-		"test": &overlay.AdmittanceInstructions{
-			OutputsToAdmit: []uint32{1},
+	tests := []struct {
+		name string
+
+		requestBodyLimit       int64
+		requestBody            string
+		expectedHTTPStatusCode int
+		expectedErr            error
+	}{
+		{
+			name:                   "request with body size greater than server limit",
+			requestBodyLimit:       10,
+			requestBody:            "abcdefghijklmnoprst",
+			expectedHTTPStatusCode: http.StatusRequestEntityTooLarge,
+			expectedErr:            commands.ErrRequestBodyTooLarge,
 		},
-	})
+		{
+			name:                   "request with body size less than server limit",
+			requestBodyLimit:       10,
+			requestBody:            "abcdef",
+			expectedHTTPStatusCode: http.StatusOK,
+		},
+		{
+			name:                   "request with body size equal than server limit",
+			requestBodyLimit:       4,
+			requestBody:            "abcd",
+			expectedHTTPStatusCode: http.StatusOK,
+		},
+	}
 
-	handler, err := commands.NewSubmitTransactionCommandHandler(
-		mock,
-		commands.WithRequestBodyLimit(10),
-		commands.WithResponseTime(1*time.Second))
-	require.NoError(t, err)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// given:
+			mock := NewsubmitTransactionProviderAlwaysSuccess(overlay.Steak{
+				"test": &overlay.AdmittanceInstructions{
+					OutputsToAdmit: []uint32{1},
+				},
+			})
 
-	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
-	defer ts.Close()
+			opts := []commands.SubmitTransactionHandlerOption{
+				commands.WithRequestBodyLimit(tc.requestBodyLimit),
+				commands.WithResponseTime(1 * time.Second),
+			}
 
-	reqBody := bytes.NewBufferString("this is more than 10 bytes of data")
-	req, err := http.NewRequest(http.MethodPost, ts.URL, reqBody)
-	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(commands.XTopicsHeader, "topic1")
-	req.ContentLength = int64(reqBody.Len())
+			handler, err := commands.NewSubmitTransactionCommandHandler(mock, opts...)
+			require.NoError(t, err)
+			require.NotNil(t, handler)
 
-	// When:
-	res, err := ts.Client().Do(req)
+			ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+			defer ts.Close()
 
-	// Then:
-	require.NoError(t, err)
-	defer res.Body.Close()
+			req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewBufferString(tc.requestBody))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set(commands.XTopicsHeader, "topic1")
 
-	var actual commands.SubmitTransactionHandlerResponse
-	require.NoError(t, jsonutil.DecodeResponseBody(res, &actual))
-	require.Equal(t, mock.expectedSteak, actual.Steak)
+			// when:
+			res, err := ts.Client().Do(req)
+
+			// then:
+			require.NoError(t, err)
+			defer res.Body.Close()
+
+			require.Equal(t, tc.expectedHTTPStatusCode, res.StatusCode)
+
+			if res.StatusCode != http.StatusOK {
+				bb, err := io.ReadAll(res.Body)
+				require.NoError(t, err)
+				require.NotEmpty(t, bb)
+				require.Equal(t, tc.expectedErr, errors.New(string(bb[:len(bb)-1])))
+			}
+		})
+	}
 }
 
 func TestSubmitTransactionHandler_Handle_Timeout(t *testing.T) {

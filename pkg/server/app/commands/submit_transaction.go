@@ -82,22 +82,28 @@ func (s *SubmitTransactionHandler) createTaggedBEEF(body io.ReadCloser, header h
 		return nil, ErrInvalidXTopicsHeaderFormat
 	}
 
-	reader := io.LimitReader(body, s.requestBodyLimit)
+	reader := io.LimitReader(body, s.requestBodyLimit+1)
 	buff := make([]byte, 64*1024)
 	var dst bytes.Buffer
+	var bytesRead int64
 
 	for {
 		n, err := reader.Read(buff)
 		if n > 0 {
+			bytesRead += int64(n)
+			if bytesRead > s.requestBodyLimit {
+				return nil, ErrRequestBodyTooLarge
+			}
+
 			if _, inner := dst.Write(buff[:n]); inner != nil {
 				return nil, ErrRequestBodyRead
 			}
 		}
 
-		if err == io.EOF {
-			break
-		}
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return nil, ErrRequestBodyRead
 		}
 	}
@@ -117,6 +123,10 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	}
 
 	taggedBEEF, err := s.createTaggedBEEF(r.Body, r.Header)
+	if errors.Is(err, ErrRequestBodyTooLarge) {
+		http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
+		return
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
