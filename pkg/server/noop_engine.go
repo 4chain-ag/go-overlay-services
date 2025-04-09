@@ -15,6 +15,10 @@ type NoopEngineProvider struct{}
 
 // Submit is a no-op call that always returns an empty STEAK with nil error.
 func (*NoopEngineProvider) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {
+	onSteakReady(&overlay.Steak{
+		"test_key": &overlay.AdmittanceInstructions{
+			OutputsToAdmit: []uint32{1},
+		}})
 	return overlay.Steak{}, nil
 }
 
