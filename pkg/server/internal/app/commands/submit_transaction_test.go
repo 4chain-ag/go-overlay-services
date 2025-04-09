@@ -13,7 +13,6 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/commands"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/commands/testutil"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/jsonutil"
-
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
