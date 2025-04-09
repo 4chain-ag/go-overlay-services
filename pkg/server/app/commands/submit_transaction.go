@@ -115,9 +115,6 @@ func (s *SubmitTransactionHandler) createTaggedBEEF(body io.ReadCloser, header h
 // sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
 func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		_ = r.Body.Close()
-	}()
 
 	if r.Method != http.MethodPost {
 		http.Error(w, ErrInvalidHTTPMethod.Error(), http.StatusMethodNotAllowed)
