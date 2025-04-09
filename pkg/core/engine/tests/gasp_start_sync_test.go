@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/stretchr/testify/require"
-
-	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 )
 
 func TestEngine_StartGASPSync_Success(t *testing.T) {
@@ -42,5 +41,3 @@ func TestEngine_StartGASPSync_Success(t *testing.T) {
 	// then
 	require.NoError(t, err)
 }
-
-
