@@ -12,8 +12,7 @@ import (
 )
 
 func TestEngine_StartGASPSync_Success(t *testing.T) {
-	t.Parallel()
-
+	// given
 	e := engine.NewEngine(engine.Engine{
 		SyncConfiguration: map[string]engine.SyncConfiguration{
 			"test-topic": {Type: engine.SyncConfigurationSHIP},
