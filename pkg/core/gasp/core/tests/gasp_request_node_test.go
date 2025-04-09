@@ -5,12 +5,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/require"
-
-	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 )
-
 
 func TestGASP_RequestNode_ShouldReturnNode(t *testing.T) {
 	// given
