@@ -126,7 +126,7 @@ func TestLookupHandler_ErrorCases(t *testing.T) {
 
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
-			
+
 			if tc.validateResponse != nil {
 				tc.validateResponse(t, body)
 			}
