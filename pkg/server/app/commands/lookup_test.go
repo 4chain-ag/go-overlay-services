@@ -2,42 +2,23 @@ package commands_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/commands"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/app/commands/testutil"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// alwaysSucceedsLookup implements the LookupQuestionProvider interface for successful test cases
-type alwaysSucceedsLookup struct{}
-
-func (s *alwaysSucceedsLookup) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
-	return &lookup.LookupAnswer{
-		Type: lookup.AnswerTypeFreeform,
-		Result: map[string]interface{}{
-			"data": "test data",
-		},
-	}, nil
-}
-
-// alwaysFailsLookup implements the LookupQuestionProvider interface for failure test cases
-type alwaysFailsLookup struct{}
-
-func (s *alwaysFailsLookup) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
-	return nil, errors.New("lookup failed")
-}
-
 func TestLookupHandler_ValidInput_ReturnsAnswer(t *testing.T) {
 	// Given:
-	handler, err := commands.NewLookupHandler(&alwaysSucceedsLookup{})
+	handler, err := commands.NewLookupHandler(&testutil.AlwaysSucceedsLookup{})
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
@@ -70,74 +51,85 @@ func TestLookupHandler_ValidInput_ReturnsAnswer(t *testing.T) {
 	assert.Equal(t, "test data", resultMap["data"])
 }
 
-func TestLookupHandler_InvalidJSON_Returns400(t *testing.T) {
-	// Given:
-	handler, err := commands.NewLookupHandler(&alwaysSucceedsLookup{})
-	require.NoError(t, err)
-	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
-	defer ts.Close()
-
-	// When:
-	resp, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(`INVALID_JSON`))
-
-	// Then:
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-}
-
-func TestLookupHandler_MissingFields_Returns400(t *testing.T) {
-	// Given:
-	handler, err := commands.NewLookupHandler(&alwaysSucceedsLookup{})
-	require.NoError(t, err)
-	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
-	defer ts.Close()
-
-	// When:
-	resp, err := ts.Client().Post(ts.URL, "application/json", bytes.NewBufferString(`{}`))
-
-	// Then:
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-}
-
-func TestLookupHandler_InvalidHTTPMethod_Returns405(t *testing.T) {
-	// Given:
-	handler, err := commands.NewLookupHandler(&alwaysSucceedsLookup{})
-	require.NoError(t, err)
-	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
-	defer ts.Close()
-
-	// When:
-	req, _ := http.NewRequest(http.MethodGet, ts.URL, nil)
-	resp, err := ts.Client().Do(req)
-
-	// Then:
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
-}
-
-func TestLookupHandler_EngineError_Returns400(t *testing.T) {
-	// Given:
-	handler, err := commands.NewLookupHandler(&alwaysFailsLookup{})
-	require.NoError(t, err)
-	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
-	defer ts.Close()
-
-	payload := lookup.LookupQuestion{
-		Service: "test-service",
-		Query:   json.RawMessage(`{"test":"query"}`),
+func TestLookupHandler_ErrorCases(t *testing.T) {
+	tests := []struct {
+		name             string
+		mockProvider     commands.LookupQuestionProvider
+		requestMethod    string
+		requestBody      string
+		expectedStatus   int
+		validateResponse func(t *testing.T, body []byte)
+	}{
+		{
+			name:           "Invalid JSON",
+			mockProvider:   &testutil.AlwaysSucceedsLookup{},
+			requestMethod:  http.MethodPost,
+			requestBody:    `INVALID_JSON`,
+			expectedStatus: http.StatusBadRequest,
+			validateResponse: func(t *testing.T, body []byte) {
+				assert.Contains(t, string(body), "invalid")
+			},
+		},
+		{
+			name:           "Missing Fields",
+			mockProvider:   &testutil.AlwaysSucceedsLookup{},
+			requestMethod:  http.MethodPost,
+			requestBody:    `{}`,
+			expectedStatus: http.StatusBadRequest,
+			validateResponse: func(t *testing.T, body []byte) {
+				assert.Contains(t, string(body), "missing")
+			},
+		},
+		{
+			name:           "Invalid HTTP Method",
+			mockProvider:   &testutil.AlwaysSucceedsLookup{},
+			requestMethod:  http.MethodGet,
+			requestBody:    `{}`,
+			expectedStatus: http.StatusMethodNotAllowed,
+			validateResponse: func(t *testing.T, body []byte) {
+				assert.Contains(t, string(body), "method")
+			},
+		},
+		{
+			name:           "Engine Error",
+			mockProvider:   &testutil.AlwaysFailsLookup{},
+			requestMethod:  http.MethodPost,
+			requestBody:    `{"service":"test-service","query":{"test":"query"}}`,
+			expectedStatus: http.StatusBadRequest,
+			validateResponse: func(t *testing.T, body []byte) {
+				assert.Contains(t, string(body), "lookup failed")
+			},
+		},
 	}
-	jsonData, err := json.Marshal(payload)
-	require.NoError(t, err)
 
-	// When:
-	resp, err := http.Post(ts.URL, "application/json", bytes.NewBuffer(jsonData))
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Given:
+			handler, err := commands.NewLookupHandler(tc.mockProvider)
+			require.NoError(t, err)
+			ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+			defer ts.Close()
 
-	// Then:
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			// When:
+			var resp *http.Response
+			if tc.requestMethod == http.MethodPost {
+				resp, err = http.Post(ts.URL, "application/json", bytes.NewBufferString(tc.requestBody))
+			} else {
+				req, _ := http.NewRequest(tc.requestMethod, ts.URL, nil)
+				resp, err = ts.Client().Do(req)
+			}
+
+			// Then:
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			require.Equal(t, tc.expectedStatus, resp.StatusCode)
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			
+			if tc.validateResponse != nil {
+				tc.validateResponse(t, body)
+			}
+		})
+	}
 }
