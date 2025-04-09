@@ -5,11 +5,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/script"
 	"github.com/stretchr/testify/require"
-
-	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 )
 
 func TestEngine_Submit_Success(t *testing.T) {
@@ -158,7 +157,7 @@ func TestEngine_Submit_MissingTopic_ShouldReturnError(t *testing.T) {
 		Managers: map[string]engine.TopicManager{
 			// no managers, missing topic
 		},
-		Storage: fakeStorage{},
+		Storage:      fakeStorage{},
 		ChainTracker: fakeChainTracker{},
 	}
 	taggedBEEF := overlay.TaggedBEEF{
@@ -252,7 +251,7 @@ func TestEngine_Submit_OutputInsertFails_ShouldReturnError(t *testing.T) {
 			updateConsumedByFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error {
 				return nil
 			},
-		},		
+		},
 		ChainTracker: fakeChainTracker{},
 	}
 
