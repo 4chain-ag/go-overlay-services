@@ -80,7 +80,7 @@ func initCommands(provider engine.OverlayEngineProvider) (*Commands, error) {
 	if err != nil {
 		return nil, fmt.Errorf("RequestSyncResponseHandler: %w", err)
 	}
-	
+
 	lookupHandler, err := commands.NewLookupHandler(provider)
 	if err != nil {
 		return nil, fmt.Errorf("LookupHandler: %w", err)
