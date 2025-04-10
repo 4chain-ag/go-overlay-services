@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLookupQuestionHandler_Handle_Positive(t *testing.T) {
+func TestLookupQuestionHandler_Handle_ShouldReturnOKStatusAfterProcessingRequest(t *testing.T) {
 	// given:
 	stub := &testutil.LookupQuestionProviderAlwaysSucceeds{
 		ExpectedLookupAnswer: &lookup.LookupAnswer{
@@ -53,7 +53,7 @@ func TestLookupQuestionHandler_Handle_Positive(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
-func TestLookupQuestionHandler_Handle_Nagative(t *testing.T) {
+func TestLookupQuestionHandler_Handle_ShouldReturnErrorResponseForInvalidRequest(t *testing.T) {
 	tests := []struct {
 		name           string
 		body           io.Reader
