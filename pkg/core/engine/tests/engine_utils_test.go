@@ -6,14 +6,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/bsv-blockchain/go-sdk/script"
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/stretchr/testify/require"
-
-	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 )
 
 var errFakeStorage = errors.New("fakeStorage: method not implemented")
@@ -26,7 +25,7 @@ type fakeStorage struct {
 	insertAppliedTransactionFunc    func(ctx context.Context, tx *overlay.AppliedTransaction) error
 	updateConsumedByFunc            func(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error
 	deleteOutputFunc                func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
-	findUTXOsForTopicFunc 			func(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error)
+	findUTXOsForTopicFunc           func(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error)
 }
 
 func (f fakeStorage) FindOutput(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error) {
