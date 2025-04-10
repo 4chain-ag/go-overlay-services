@@ -1,0 +1,47 @@
+@hostname = localhost
+@port = 3000
+@version = v1
+@host = {{hostname}}:{{port}}
+@contentType = application/json
+
+###
+GET http://{{host}}/api/{{version}}/getDocumentationForLookupServiceProvider?lookupService=example HTTP/1.1
+
+###
+GET http://{{host}}/api/{{version}}/getDocumentationForTopicManager?topicManager=example HTTP/1.1
+
+###
+GET http://{{host}}/api/{{version}}/listLookupServiceProviders HTTP/1.1
+
+###
+POST http://{{host}}/api/{{version}}/submit HTTP/1.1
+x-topics: example1, example2 
+
+###
+POST http://{{host}}/api/{{version}}/requestForeignGASPNode HTTP/1.1
+content-type: {{contentType}}
+
+{
+    "graphID": "0000000000000000000000000000000000000000000000000000000000000000.1",
+    "txID": "0000000000000000000000000000000000000000000000000000000000000000",
+    "outputIndex": 0
+}
+
+###
+POST http://{{host}}/api/{{version}}/requestSyncResponse?topic=example HTTP/1.1
+content-type: {{contentType}}
+ 
+{
+    "version": 1,
+    "since": 1
+}
+
+
+###
+POST http://{{host}}/api/{{version}}/lookup HTTP/1.1
+content-type: {{contentType}}
+ 
+{
+    "service": "example",
+    "query": "query"
+}
