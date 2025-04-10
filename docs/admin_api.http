@@ -1,0 +1,14 @@
+@hostname = localhost
+@port = 3000
+@version = v1
+@host = {{hostname}}:{{port}}
+@contentType = application/json
+@token = e7d6676e-9aa5-4e45-ad76-16b61ca9f650
+
+###
+POST http://{{host}}/api/{{version}}/admin/syncAdvertisements HTTP/1.1
+Authorization: Bearer {{token}}
+
+###
+POST http://{{host}}/api/{{version}}/admin/startGASPSync HTTP/1.1
+Authorization: Bearer {{token}}
