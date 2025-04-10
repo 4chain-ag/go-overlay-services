@@ -6,15 +6,14 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/core/advertiser"
+	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/bsv-blockchain/go-sdk/script"
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/stretchr/testify/require"
-
-	"github.com/4chain-ag/go-overlay-services/pkg/core/advertiser"
-	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 )
 
 var errFakeStorage = errors.New("fakeStorage: method not implemented")
@@ -27,7 +26,7 @@ type fakeStorage struct {
 	insertAppliedTransactionFunc    func(ctx context.Context, tx *overlay.AppliedTransaction) error
 	updateConsumedByFunc            func(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error
 	deleteOutputFunc                func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
-	findUTXOsForTopicFunc 			func(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error)
+	findUTXOsForTopicFunc           func(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error)
 }
 
 func (f fakeStorage) FindOutput(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error) {
@@ -189,14 +188,14 @@ func (f fakeLookupService) GetMetaData() *overlay.MetaData {
 }
 
 type fakeAdvertiser struct {
-	findAllAdvertisements 	  func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error)
-	createAdvertisements  	  func(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error)
-	revokeAdvertisements  	  func(data []*advertiser.Advertisement) (overlay.TaggedBEEF, error)
-	parseAdvertisement    	  func(script *script.Script) (*advertiser.Advertisement, error)
+	findAllAdvertisements     func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error)
+	createAdvertisements      func(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error)
+	revokeAdvertisements      func(data []*advertiser.Advertisement) (overlay.TaggedBEEF, error)
+	parseAdvertisement        func(script *script.Script) (*advertiser.Advertisement, error)
 	findAllAdvertisementsFunc func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error)
-	createAdvertisementsFunc   func(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error)
-	revokeAdvertisementsFunc   func(data []*advertiser.Advertisement) (overlay.TaggedBEEF, error)
-	parseAdvertisementFunc     func(script *script.Script) (*advertiser.Advertisement, error)
+	createAdvertisementsFunc  func(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error)
+	revokeAdvertisementsFunc  func(data []*advertiser.Advertisement) (overlay.TaggedBEEF, error)
+	parseAdvertisementFunc    func(script *script.Script) (*advertiser.Advertisement, error)
 }
 
 func (f fakeAdvertiser) FindAllAdvertisements(protocol overlay.Protocol) ([]*advertiser.Advertisement, error) {

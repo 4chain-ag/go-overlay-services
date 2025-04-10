@@ -5,11 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/bsv-blockchain/go-sdk/overlay"
-	"github.com/stretchr/testify/require"
-
 	"github.com/4chain-ag/go-overlay-services/pkg/core/advertiser"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
+	"github.com/bsv-blockchain/go-sdk/overlay"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEngine_SyncAdvertisements_ShouldReturnNil_WhenAdvertiserIsNil(t *testing.T) {
@@ -40,7 +39,7 @@ func TestEngine_SyncAdvertisements_ShouldNotFail_WhenCreateAdvertisementsFails(t
 				return overlay.TaggedBEEF{}, errors.New("invalid-atomic-beef")
 			},
 		},
-		Managers: map[string]engine.TopicManager{"test-topic": fakeTopicManager{}},
+		Managers:   map[string]engine.TopicManager{"test-topic": fakeTopicManager{}},
 		HostingURL: "http://localhost",
 	}
 
@@ -67,9 +66,9 @@ func TestEngine_SyncAdvertisements_ShouldCompleteSuccessfully(t *testing.T) {
 				return overlay.TaggedBEEF{}, nil
 			},
 		},
-		Managers: map[string]engine.TopicManager{"test-topic": fakeTopicManager{}},
+		Managers:       map[string]engine.TopicManager{"test-topic": fakeTopicManager{}},
 		LookupServices: map[string]engine.LookupService{"test-service": fakeLookupService{}},
-		HostingURL: "http://localhost",
+		HostingURL:     "http://localhost",
 	}
 
 	// when
@@ -95,9 +94,9 @@ func TestEngine_SyncAdvertisements_ShouldLogAndContinue_WhenCreateOrRevokeFails(
 				return overlay.TaggedBEEF{}, errors.New("revoke failed")
 			},
 		},
-		Managers: map[string]engine.TopicManager{"test-topic": fakeTopicManager{}},
+		Managers:       map[string]engine.TopicManager{"test-topic": fakeTopicManager{}},
 		LookupServices: map[string]engine.LookupService{"test-service": fakeLookupService{}},
-		HostingURL: "http://localhost",
+		HostingURL:     "http://localhost",
 	}
 
 	// when
