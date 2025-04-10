@@ -153,6 +153,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	v1.Get("/topic-managers", SafeHandler(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
 	v1.Post("/request-foreign-gasp-node", SafeHandler(overlayAPI.Commands.RequestForeignGASPNodeHandler.Handle))
 	v1.Post("/request-sync-response", SafeHandler(overlayAPI.Commands.RequestSyncResponseHandler.Handle))
+	v1.Post("/lookup", SafeHandler(overlayAPI.Commands.LookupHandler.Handle))
 
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
