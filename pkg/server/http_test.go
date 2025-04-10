@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	config "github.com/4chain-ag/go-overlay-services/pkg/appconfig"
 	"github.com/4chain-ag/go-overlay-services/pkg/server"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,9 +68,9 @@ func Test_AuthorizationBearerTokenMiddleware(t *testing.T) {
 
 func Test_HTTPServer_ShouldShutdownAfterSendingInterruptSig(t *testing.T) {
 	// given:
-	cfg := config.Defaults()
+	cfg := config.NewDefault()
 	opts := []server.HTTPOption{
-		server.WithConfig(&cfg),
+		server.WithConfig(&cfg.Server),
 	}
 	httpAPI, err := server.New(opts...)
 	require.NoError(t, err, "Failed to create HTTP API server")
@@ -104,9 +104,9 @@ func Test_HTTPServer_ShouldShutdownAfterSendingInterruptSig(t *testing.T) {
 
 func Test_HTTPServer_ShouldShutdownAfterContextCancel(t *testing.T) {
 	// given:
-	cfg := config.Defaults()
+	cfg := config.NewDefault()
 	opts := []server.HTTPOption{
-		server.WithConfig(&cfg),
+		server.WithConfig(&cfg.Server),
 	}
 
 	httpAPI, err := server.New(opts...)
@@ -136,9 +136,9 @@ func Test_HTTPServer_ShouldShutdownAfterContextCancel(t *testing.T) {
 
 func Test_HTTPServer_ShouldShutdownAfterContextTimeout(t *testing.T) {
 	// Given:
-	cfg := config.Defaults()
+	cfg := config.NewDefault()
 	opts := []server.HTTPOption{
-		server.WithConfig(&cfg),
+		server.WithConfig(&cfg.Server),
 	}
 
 	httpAPI, err := server.New(opts...)
