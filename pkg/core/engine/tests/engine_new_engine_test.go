@@ -3,9 +3,8 @@ package engine_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEngine_NewEngine_ShouldInitializeFields_WhenNilProvided(t *testing.T) {
