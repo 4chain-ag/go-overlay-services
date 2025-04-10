@@ -12,23 +12,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// LookupDocumentationProviderAlwaysFailure is an implementation that always returns an error
 type LookupDocumentationProviderAlwaysFailure struct{}
 
 func (*LookupDocumentationProviderAlwaysFailure) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
 	return "", errors.New("documentation not found")
 }
 
-// LookupDocumentationProviderAlwaysSuccess is an implementation that always returns an success
 type LookupDocumentationProviderAlwaysSuccess struct{}
 
 func (*LookupDocumentationProviderAlwaysSuccess) GetDocumentationForLookupServiceProvider(lookupService string) (string, error) {
 	return "# Test Documentation\nThis is a test markdown document.", nil
 }
 
-func TestLookupDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
+func TestLookupServiceDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 	// Given:
-	handler, err := queries.NewLookupDocumentationHandler(&LookupDocumentationProviderAlwaysSuccess{})
+	handler, err := queries.NewLookupServiceDocumentationHandler(&LookupDocumentationProviderAlwaysSuccess{})
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
@@ -42,8 +40,8 @@ func TestLookupDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
-	var actual queries.LookupDocumentationHandlerResponse
-	expected := "# Test Documentation\nThis is a test markdown document."
+	var actual queries.LookupServiceDocumentationHandlerResponse
+	const expected = "# Test Documentation\nThis is a test markdown document."
 
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &actual))
 	require.Equal(t, expected, actual.Documentation)
@@ -51,7 +49,7 @@ func TestLookupDocumentationHandler_Handle_SuccessfulRetrieval(t *testing.T) {
 
 func TestLookupDocumentationHandler_Handle_ProviderError(t *testing.T) {
 	// Given:
-	handler, err := queries.NewLookupDocumentationHandler(&LookupDocumentationProviderAlwaysFailure{})
+	handler, err := queries.NewLookupServiceDocumentationHandler(&LookupDocumentationProviderAlwaysFailure{})
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
@@ -67,7 +65,7 @@ func TestLookupDocumentationHandler_Handle_ProviderError(t *testing.T) {
 
 func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testing.T) {
 	// Given:
-	handler, err := queries.NewLookupDocumentationHandler(&LookupDocumentationProviderAlwaysSuccess{})
+	handler, err := queries.NewLookupServiceDocumentationHandler(&LookupDocumentationProviderAlwaysSuccess{})
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
@@ -86,15 +84,12 @@ func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testin
 	require.Equal(t, "lookupService query parameter is required\n", string(body))
 }
 
-func TestNewLookupDocumentationHandler_WithNilProvider(t *testing.T) {
+func TestNewLookupServiceDocumentationHandler_WithNilProvider(t *testing.T) {
 	// Given:
-	var provider queries.LookupDocumentationProvider = nil
-
 	// When:
-	handler, err := queries.NewLookupDocumentationHandler(provider)
+	handler, err := queries.NewLookupServiceDocumentationHandler(nil)
 	require.Error(t, err)
 
 	// Then:
 	require.Nil(t, handler)
-
 }

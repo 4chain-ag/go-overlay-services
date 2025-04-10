@@ -7,33 +7,33 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/jsonutil"
 )
 
-// LookupDocumentationHandlerResponse defines the response body content that
+// LookupServiceDocumentationHandlerResponse defines the response body content that
 // will be sent in JSON format after successfully processing the handler logic.
-type LookupDocumentationHandlerResponse struct {
+type LookupServiceDocumentationHandlerResponse struct {
 	Documentation string `json:"documentation"`
 }
 
-// LookupDocumentationProvider defines the contract that must be fulfilled
+// LookupServiceDocumentationProvider defines the contract that must be fulfilled
 // to send a lookup service documentation request to the overlay engine for further processing.
 // Note: The contract definition is still in development and will be updated after
 // migrating the engine code.
-type LookupDocumentationProvider interface {
+type LookupServiceDocumentationProvider interface {
 	GetDocumentationForLookupServiceProvider(lookupService string) (string, error)
 }
 
-// LookupDocumentationHandler orchestrates the processing flow of a lookup documentation
+// LookupServiceDocumentationHandler orchestrates the processing flow of a lookup documentation
 // request, including the request parameter validation, converting the request
 // into an overlay-engine-compatible format, and applying any other necessary
 // logic before invoking the engine. It returns the requested lookup service
 // documentation in the text/markdown format.
-type LookupDocumentationHandler struct {
-	provider LookupDocumentationProvider
+type LookupServiceDocumentationHandler struct {
+	provider LookupServiceDocumentationProvider
 }
 
 // Handle orchestrates the processing flow of a lookup documentation request.
 // It extracts the lookupService query parameter, invokes the engine provider,
 // and returns the a Markdown-formatted documentation string as JSON with the appropriate status code.
-func (l *LookupDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
+func (l *LookupServiceDocumentationHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	lookupService := r.URL.Query().Get("lookupService")
 	if lookupService == "" {
 		http.Error(w, "lookupService query parameter is required", http.StatusBadRequest)
@@ -46,16 +46,16 @@ func (l *LookupDocumentationHandler) Handle(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	jsonutil.SendHTTPResponse(w, http.StatusOK, LookupDocumentationHandlerResponse{
+	jsonutil.SendHTTPResponse(w, http.StatusOK, LookupServiceDocumentationHandlerResponse{
 		Documentation: documentation,
 	})
 }
 
-// NewLookupDocumentationHandler returns an instance of a LookupDocumentationHandler, utilizing
-// an implementation of LookupDocumentationProvider. If the provided argument is nil, it panics.
-func NewLookupDocumentationHandler(provider LookupDocumentationProvider) (*LookupDocumentationHandler, error) {
+// NewLookupServiceDocumentationHandler creates a new LookupServiceDocumentationHandler
+// using the given LookupDocumentationProvider. It panics if the provider is nil.
+func NewLookupServiceDocumentationHandler(provider LookupServiceDocumentationProvider) (*LookupServiceDocumentationHandler, error) {
 	if provider == nil {
 		return nil, fmt.Errorf("lookup documentation provider cannot be nil")
 	}
-	return &LookupDocumentationHandler{provider: provider}, nil
+	return &LookupServiceDocumentationHandler{provider: provider}, nil
 }

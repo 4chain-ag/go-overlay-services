@@ -12,14 +12,12 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// LookupListProviderAlwaysEmpty is an implementation that always returns an empty list
 type LookupListProviderAlwaysEmpty struct{}
 
 func (*LookupListProviderAlwaysEmpty) ListLookupServiceProviders() map[string]*overlay.MetaData {
 	return map[string]*overlay.MetaData{}
 }
 
-// LookupListProviderAlwaysSuccess is an implementation that always returns a predefined set of lookup providers
 type LookupListProviderAlwaysSuccess struct{}
 
 func (*LookupListProviderAlwaysSuccess) ListLookupServiceProviders() map[string]*overlay.MetaData {
@@ -39,47 +37,47 @@ func (*LookupListProviderAlwaysSuccess) ListLookupServiceProviders() map[string]
 	}
 }
 
-func TestLookupListHandler_Handle_EmptyList(t *testing.T) {
-	// Given:
-	handler, err := queries.NewLookupListHandler(&LookupListProviderAlwaysEmpty{})
+func TestLookupServicesListHandler_Handle_EmptyList(t *testing.T) {
+	// given:
+	handler, err := queries.NewLookupServicesListHandler(&LookupListProviderAlwaysEmpty{})
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
-	// When:
+	// when:
 	res, err := ts.Client().Get(ts.URL)
 
-	// Then:
+	// then:
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
-	var actual queries.LookupListHandlerResponse
+	var actual queries.LookupServicesListHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &actual))
 	require.Empty(t, actual)
 }
 
-func TestLookupListHandler_Handle_WithProviders(t *testing.T) {
-	// Given:
-	handler, err := queries.NewLookupListHandler(&LookupListProviderAlwaysSuccess{})
+func TestLookupServicesListHandler_Handle_WithProviders(t *testing.T) {
+	// given:
+	handler, err := queries.NewLookupServicesListHandler(&LookupListProviderAlwaysSuccess{})
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
-	// When:
+	// when:
 	res, err := ts.Client().Get(ts.URL)
 
-	// Then:
+	// then:
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
-	var actual queries.LookupListHandlerResponse
+	var actual queries.LookupServicesListHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &actual))
 
-	expected := queries.LookupListHandlerResponse{
+	expected := queries.LookupServicesListHandlerResponse{
 		"provider1": queries.LookupMetadata{
 			Name:             "provider1",
 			ShortDescription: "Description 1",
@@ -99,14 +97,11 @@ func TestLookupListHandler_Handle_WithProviders(t *testing.T) {
 	require.EqualValues(t, expected, actual)
 }
 
-func TestNewLookupListHandler_WithNilProvider(t *testing.T) {
-	// Given:
-	var provider queries.LookupListProvider = nil
-
-	// When:
-	handler, err := queries.NewLookupListHandler(provider)
+func TestNewLookupServicesListHandler_WithNilProvider(t *testing.T) {
+	// when:
+	handler, err := queries.NewLookupServicesListHandler(nil)
 	require.Error(t, err)
 
-	// Then:
+	// then:
 	require.Nil(t, handler)
 }

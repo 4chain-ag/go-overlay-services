@@ -1,12 +1,18 @@
 package testutil
 
 import (
+	"bytes"
 	"context"
-	"fmt"
+	"encoding/json"
+	"errors"
+	"io"
+	"strings"
+	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
+	"github.com/stretchr/testify/require"
 )
 
 // SubmitTransactionProviderAlwaysSuccess mocks a transaction provider that always succeeds
@@ -46,23 +52,50 @@ func (s SubmitTransactionProviderNeverCallback) Submit(ctx context.Context, tagg
 	return overlay.Steak{}, nil
 }
 
-// AlwaysSucceedsLookup implements the LookupQuestionProvider interface for successful test cases
-type AlwaysSucceedsLookup struct{}
-
-// Lookup implements the LookupQuestionProvider interface
-func (s *AlwaysSucceedsLookup) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
-	return &lookup.LookupAnswer{
-		Type: lookup.AnswerTypeFreeform,
-		Result: map[string]interface{}{
-			"data": "test data",
-		},
-	}, nil
+// LookupQuestionProviderAlwaysSucceeds implements the LookupQuestionProvider interface for successful test cases
+type LookupQuestionProviderAlwaysSucceeds struct {
+	ExpectedLookupAnswer *lookup.LookupAnswer
 }
 
-// AlwaysFailsLookup implements the LookupQuestionProvider interface for failure test cases
-type AlwaysFailsLookup struct{}
+// Lookup implements the LookupQuestionProvider interface
+func (s *LookupQuestionProviderAlwaysSucceeds) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
+	return s.ExpectedLookupAnswer, nil
+}
+
+// LookupQuestionProviderAlwaysFails implements the LookupQuestionProvider interface for failure test cases
+type LookupQuestionProviderAlwaysFails struct {
+	ExpectedErr error
+}
 
 // Lookup implements the LookupQuestionProvider interface
-func (s *AlwaysFailsLookup) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
-	return nil, fmt.Errorf("lookup failed")
+func (l *LookupQuestionProviderAlwaysFails) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
+	return nil, l.ExpectedErr
+}
+
+// ParseToError reads the HTTP response body and returns an error created from its content.
+// The response body is expected to contain an error message that can be converted to an error object.
+// It ensures that the response body is properly read and closed, and it trims any trailing whitespace.
+func ParseToError(t *testing.T, r io.ReadCloser) error {
+	t.Helper()
+
+	defer func() {
+		require.NoError(t, r.Close(), "failed to close response body")
+	}()
+
+	body, err := io.ReadAll(r)
+	require.NoError(t, err, "failed to read response body")
+	require.NotNil(t, body, "response body is nil")
+
+	return errors.New(strings.TrimSpace(string(body)))
+}
+
+// RequestBody serializes the provided value into a JSON-encoded byte slice and returns it as an io.Reader.
+// This is typically used in tests to create a request body for HTTP requests.
+// The function ensures that marshaling succeeds; otherwise, it stops the test execution with an error.
+func RequestBody(t *testing.T, v any) io.Reader {
+	t.Helper()
+	bb, err := json.Marshal(v)
+	require.NoError(t, err, "failed to marshal request body")
+
+	return bytes.NewReader(bb)
 }

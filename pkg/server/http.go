@@ -149,16 +149,19 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	v1 := api.Group("/v1")
 
 	// Non-Admin:
+	v1.Get("/getDocumentationForTopicManager", SafeHandler(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
+	v1.Get("/getDocumentationForLookupServiceProvider", SafeHandler(overlayAPI.Queries.LookupServiceDocumentationHandler.Handle))
+	v1.Get("/listLookupServiceProviders", SafeHandler(overlayAPI.Queries.LookupServicesListHandler.Handle))
+
 	v1.Post("/submit", SafeHandler(overlayAPI.Commands.SubmitTransactionHandler.Handle))
-	v1.Get("/topic-managers", SafeHandler(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
-	v1.Post("/request-foreign-gasp-node", SafeHandler(overlayAPI.Commands.RequestForeignGASPNodeHandler.Handle))
-	v1.Post("/request-sync-response", SafeHandler(overlayAPI.Commands.RequestSyncResponseHandler.Handle))
-	v1.Post("/lookup", SafeHandler(overlayAPI.Commands.LookupHandler.Handle))
+	v1.Post("/requestForeignGASPNode", SafeHandler(overlayAPI.Commands.RequestForeignGASPNodeHandler.Handle))
+	v1.Post("/requestSyncResponse", SafeHandler(overlayAPI.Commands.RequestSyncResponseHandler.Handle))
+	v1.Post("/lookup", SafeHandler(overlayAPI.Commands.LookupQuestionHandler.Handle))
 
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
-	admin.Post("/advertisements-sync", SafeHandler(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))
-	admin.Post("/start-gasp-sync", SafeHandler(overlayAPI.Commands.StartGASPSyncHandler.Handle))
+	admin.Post("/syncAdvertisements", SafeHandler(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))
+	admin.Post("/startGASPSync", SafeHandler(overlayAPI.Commands.StartGASPSyncHandler.Handle))
 
 	return http, nil
 }

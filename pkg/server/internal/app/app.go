@@ -15,15 +15,15 @@ type Commands struct {
 	StartGASPSyncHandler          *commands.StartGASPSyncHandler
 	RequestForeignGASPNodeHandler *commands.RequestForeignGASPNodeHandler
 	RequestSyncResponseHandler    *commands.RequestSyncResponseHandler
-	LookupHandler                 *commands.LookupHandler
+	LookupQuestionHandler         *commands.LookupQuestionHandler
 }
 
 // Queries aggregate all the supported queries by the overlay API.
 type Queries struct {
-	LookupListHandler                *queries.LookupListHandler
-	LookupDocumentationHandler       *queries.LookupDocumentationHandler
-	TopicManagerDocumentationHandler *queries.TopicManagerDocumentationHandler
-	TopicManagerListHandler          *queries.TopicManagerListHandler
+	LookupServicesListHandler         *queries.LookupServicesListHandler
+	TopicManagersListHandler          *queries.TopicManagersListHandler
+	LookupServiceDocumentationHandler *queries.LookupServiceDocumentationHandler
+	TopicManagerDocumentationHandler  *queries.TopicManagerDocumentationHandler
 }
 
 // Application aggregates queries and commands supported by the overlay API.
@@ -81,9 +81,9 @@ func initCommands(provider engine.OverlayEngineProvider) (*Commands, error) {
 		return nil, fmt.Errorf("RequestSyncResponseHandler: %w", err)
 	}
 
-	lookupHandler, err := commands.NewLookupHandler(provider)
+	lookupQuestionHandler, err := commands.NewLookupQuestionHandler(provider)
 	if err != nil {
-		return nil, fmt.Errorf("LookupHandler: %w", err)
+		return nil, fmt.Errorf("LookupQuestionHandler: %w", err)
 	}
 
 	return &Commands{
@@ -92,7 +92,7 @@ func initCommands(provider engine.OverlayEngineProvider) (*Commands, error) {
 		StartGASPSyncHandler:          startSyncHandler,
 		RequestForeignGASPNodeHandler: requestGASPHandler,
 		RequestSyncResponseHandler:    requestSyncRespHandler,
-		LookupHandler:                 lookupHandler,
+		LookupQuestionHandler:         lookupQuestionHandler,
 	}, nil
 }
 
@@ -102,25 +102,25 @@ func initQueries(provider engine.OverlayEngineProvider) (*Queries, error) {
 		return nil, fmt.Errorf("TopicManagerDocumentationHandler: %w", err)
 	}
 
-	topicListHandler, err := queries.NewTopicManagerListHandler(provider)
+	topicListHandler, err := queries.NewTopicManagersListHandler(provider)
 	if err != nil {
-		return nil, fmt.Errorf("TopicManagerListHandler: %w", err)
+		return nil, fmt.Errorf("TopicManagersListHandler: %w", err)
 	}
 
-	lookupDocHandler, err := queries.NewLookupDocumentationHandler(provider)
+	lookupServiceDocHandler, err := queries.NewLookupServiceDocumentationHandler(provider)
 	if err != nil {
-		return nil, fmt.Errorf("LookupDocumentationHandler: %w", err)
+		return nil, fmt.Errorf("LookupServiceDocumentationHandler: %w", err)
 	}
 
-	lookupListHandler, err := queries.NewLookupListHandler(provider)
+	lookupServicesListHandler, err := queries.NewLookupServicesListHandler(provider)
 	if err != nil {
 		return nil, fmt.Errorf("LookupListHandler: %w", err)
 	}
 
 	return &Queries{
-		TopicManagerDocumentationHandler: topicDocHandler,
-		TopicManagerListHandler:          topicListHandler,
-		LookupDocumentationHandler:       lookupDocHandler,
-		LookupListHandler:                lookupListHandler,
+		TopicManagerDocumentationHandler:  topicDocHandler,
+		TopicManagersListHandler:          topicListHandler,
+		LookupServiceDocumentationHandler: lookupServiceDocHandler,
+		LookupServicesListHandler:         lookupServicesListHandler,
 	}, nil
 }

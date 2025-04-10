@@ -24,7 +24,7 @@ type RequestForeignGASPNodeHandler struct {
 // RequestForeignGASPNodeHandlerPayload models the incoming request body.
 type RequestForeignGASPNodeHandlerPayload struct {
 	GraphID     string `json:"graphID"`
-	TxID        string `json:"txid"`
+	TxID        string `json:"txID"`
 	OutputIndex uint32 `json:"outputIndex"`
 }
 

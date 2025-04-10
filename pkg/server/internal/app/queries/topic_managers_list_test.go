@@ -12,14 +12,12 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// TopicManagerListProviderAlwaysEmpty is an implementation that always returns an empty list
 type TopicManagerListProviderAlwaysEmpty struct{}
 
 func (*TopicManagerListProviderAlwaysEmpty) ListTopicManagers() map[string]*overlay.MetaData {
 	return map[string]*overlay.MetaData{}
 }
 
-// TopicManagerListProviderAlwaysSuccess is an implementation that always returns a predefined set of topic managers
 type TopicManagerListProviderAlwaysSuccess struct{}
 
 func (*TopicManagerListProviderAlwaysSuccess) ListTopicManagers() map[string]*overlay.MetaData {
@@ -41,47 +39,47 @@ func (*TopicManagerListProviderAlwaysSuccess) ListTopicManagers() map[string]*ov
 	}
 }
 
-func TestTopicManagerListHandler_Handle_EmptyList(t *testing.T) {
-	// Given:
-	handler, err := queries.NewTopicManagerListHandler(&TopicManagerListProviderAlwaysEmpty{})
+func TestTopicManagersListHandler_Handle_EmptyList(t *testing.T) {
+	// given:
+	handler, err := queries.NewTopicManagersListHandler(&TopicManagerListProviderAlwaysEmpty{})
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
-	// When:
+	// when:
 	res, err := ts.Client().Get(ts.URL)
 
-	// Then:
+	// then:
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
-	var actual queries.TopicManagerListHandlerResponse
+	var actual queries.TopicManagersListHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &actual))
 	require.Empty(t, actual)
 }
 
-func TestTopicManagerListHandler_Handle_WithManagers(t *testing.T) {
-	// Given:
-	handler, err := queries.NewTopicManagerListHandler(&TopicManagerListProviderAlwaysSuccess{})
+func TestTopicManagersListHandler_Handle_WithManagers(t *testing.T) {
+	// given:
+	handler, err := queries.NewTopicManagersListHandler(&TopicManagerListProviderAlwaysSuccess{})
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
-	// When:
+	// when:
 	res, err := ts.Client().Get(ts.URL)
 
-	// Then:
+	// then:
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
-	var actual queries.TopicManagerListHandlerResponse
+	var actual queries.TopicManagersListHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &actual))
 
-	expected := queries.TopicManagerListHandlerResponse{
+	expected := queries.TopicManagersListHandlerResponse{
 		"manager1": queries.TopicManagerMetadata{
 			Name:           "manager1",
 			Description:    "Description 1",
@@ -101,14 +99,11 @@ func TestTopicManagerListHandler_Handle_WithManagers(t *testing.T) {
 	require.EqualValues(t, expected, actual)
 }
 
-func TestNewTopicManagerListHandler_WithNilProvider(t *testing.T) {
-	// Given:
-	var provider queries.TopicManagerListProvider = nil
-
-	// When:
-	handler, err := queries.NewTopicManagerListHandler(provider)
+func TestNewTopicManagersListHandler_WithNilProvider(t *testing.T) {
+	// when:
+	handler, err := queries.NewTopicManagersListHandler(nil)
 	require.Error(t, err)
 
-	// Then:
+	// then:
 	require.Nil(t, handler)
 }

@@ -17,9 +17,9 @@ type TopicManagerMetadata struct {
 	InformationURL *string `json:"informationURL,omitempty"`
 }
 
-// TopicManagerListHandlerResponse defines the response body content that
+// TopicManagersListHandlerResponse defines the response body content that
 // will be sent in JSON format after successfully processing the handler logic.
-type TopicManagerListHandlerResponse map[string]TopicManagerMetadata
+type TopicManagersListHandlerResponse map[string]TopicManagerMetadata
 
 // TopicManagerListProvider defines the contract that must be fulfilled
 // to retrieve a list of topic managers from the overlay engine.
@@ -27,16 +27,16 @@ type TopicManagerListProvider interface {
 	ListTopicManagers() map[string]*overlay.MetaData
 }
 
-// TopicManagerListHandler orchestrates the processing flow of a topic manager list
+// TopicManagersListHandler orchestrates the processing flow of a topic manager list
 // request, returning a map of topic manager metadata with appropriate HTTP status.
-type TopicManagerListHandler struct {
+type TopicManagersListHandler struct {
 	provider TopicManagerListProvider
 }
 
 // Handle processes the topic manager list request and sends a JSON response.
-func (t *TopicManagerListHandler) Handle(w http.ResponseWriter, r *http.Request) {
+func (t *TopicManagersListHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	engineTopicManagers := t.provider.ListTopicManagers()
-	result := make(TopicManagerListHandlerResponse, len(engineTopicManagers))
+	result := make(TopicManagersListHandlerResponse, len(engineTopicManagers))
 
 	setIfNotEmpty := func(s string) *string {
 		if s == "" {
@@ -71,11 +71,11 @@ func (t *TopicManagerListHandler) Handle(w http.ResponseWriter, r *http.Request)
 	jsonutil.SendHTTPResponse(w, http.StatusOK, result)
 }
 
-// NewTopicManagerListHandler returns an instance of TopicManagerListHandler.
+// NewTopicManagersListHandler returns an instance of TopicManagerListHandler.
 // If the provided provider is nil, it panics.
-func NewTopicManagerListHandler(provider TopicManagerListProvider) (*TopicManagerListHandler, error) {
+func NewTopicManagersListHandler(provider TopicManagerListProvider) (*TopicManagersListHandler, error) {
 	if provider == nil {
 		return nil, fmt.Errorf("topic manager list provider cannot be nil")
 	}
-	return &TopicManagerListHandler{provider: provider}, nil
+	return &TopicManagersListHandler{provider: provider}, nil
 }
