@@ -34,11 +34,12 @@ func (h *RequestSyncResponseHandler) Handle(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	topic := r.URL.Query().Get("topic")
-	if topic == "" {
-		http.Error(w, "missing 'topic' query parameter", http.StatusBadRequest)
+	topics := r.Header["X-Bsv-Topic"]
+	if len(topics) == 0 {
+		http.Error(w, "missing 'topic' header", http.StatusBadRequest)
 		return
 	}
+	topic := topics[0]
 
 	var initialRequest core.GASPInitialRequest
 	if err := jsonutil.DecodeRequestBody(r, &initialRequest); err != nil {

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	config "github.com/4chain-ag/go-overlay-services/pkg/appconfig"
+	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/app/jsonutil"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/mongo"
@@ -36,10 +37,41 @@ func WithMiddleware(f func(http.Handler) http.Handler) HTTPOption {
 	}
 }
 
+// WithFiberMiddleware adds Fiber middleware to the HTTP server.
+func WithFiberMiddleware(f fiber.Handler) HTTPOption {
+	return func(h *HTTP) error {
+		h.middleware = append(h.middleware, f)
+		return nil
+	}
+}
+
+// WithRouter adds a custom routes to the HTTP server.
+func WithRouter(f func(r fiber.Router)) HTTPOption {
+	return func(h *HTTP) error {
+		h.routers = append(h.routers, f)
+		return nil
+	}
+}
+
 // WithConfig sets the configuration for the HTTP server.
 func WithConfig(cfg *config.Config) HTTPOption {
 	return func(h *HTTP) error {
 		h.cfg = cfg
+		return nil
+	}
+}
+
+// WithEngine sets the overlay engine provider for the HTTP server.
+func WithEngine(engineProvider engine.OverlayEngineProvider) HTTPOption {
+	return func(h *HTTP) error {
+		if engineProvider == nil {
+			return fmt.Errorf("engine provider is nil")
+		}
+		overlayAPI, err := app.New(engineProvider)
+		if err != nil {
+			return fmt.Errorf("failed to create overlay API: %w", err)
+		}
+		h.api = overlayAPI
 		return nil
 	}
 }
@@ -89,15 +121,12 @@ type HTTP struct {
 	app        *fiber.App
 	cfg        *config.Config
 	mongo      *mongo.Client
+	api        *app.Application
+	routers    []func(fiber.Router)
 }
 
 // New returns an instance of the HTTP server and applies all specified functional options before starting it.
 func New(opts ...HTTPOption) (*HTTP, error) {
-	overlayAPI, err := app.New(NewNoopEngineProvider())
-	if err != nil {
-		return nil, fmt.Errorf("failed to create overlay API: %w", err)
-	}
-
 	http := &HTTP{
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
@@ -126,20 +155,32 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 		http.app.Use(m)
 	}
 
+	if http.api == nil {
+		overlayAPI, err := app.New(NewNoopEngineProvider())
+		if err != nil {
+			return nil, fmt.Errorf("failed to create overlay API: %w", err)
+		}
+		http.api = overlayAPI
+	}
+
 	// Routes...
 	api := http.app.Group("/api")
 	v1 := api.Group("/v1")
 
 	// Non-Admin:
-	v1.Post("/submit", SafeHandler(overlayAPI.Commands.SubmitTransactionHandler.Handle))
-	v1.Get("/topic-managers", SafeHandler(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
-	v1.Post("/request-foreign-gasp-node", SafeHandler(overlayAPI.Commands.RequestForeignGASPNodeHandler.Handle))
-	v1.Post("/request-sync-response", SafeHandler(overlayAPI.Commands.RequestSyncResponseHandler.Handle))
+	v1.Post("/submit", SafeHandler(http.api.Commands.SubmitTransactionHandler.Handle))
+	v1.Get("/listTopicManagers", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
+	v1.Post("/requestSyncResponse", SafeHandler(http.api.Commands.RequestSyncResponseHandler.Handle))
+	v1.Post("/requestForeignGASPNode", SafeHandler(http.api.Commands.RequestForeignGASPNodeHandler.Handle))
+
+	for _, r := range http.routers {
+		r(v1)
+	}
 
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
-	admin.Post("/advertisements-sync", SafeHandler(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))
-	admin.Post("/start-gasp-sync", SafeHandler(overlayAPI.Commands.StartGASPSyncHandler.Handle))
+	admin.Post("/advertisements-sync", SafeHandler(http.api.Commands.SyncAdvertismentsHandler.Handle))
+	admin.Post("/start-gasp-sync", SafeHandler(http.api.Commands.StartGASPSyncHandler.Handle))
 
 	return http, nil
 }
