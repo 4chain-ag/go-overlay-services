@@ -53,7 +53,7 @@ func TestRequestSyncResponseHandler_Success(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-bsv-topic", "example-topic")
-	
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -81,7 +81,7 @@ func TestRequestSyncResponseHandler_MissingTopic(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -106,7 +106,7 @@ func TestRequestSyncResponseHandler_InvalidJSON(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-bsv-topic", "example-topic")
-	
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -135,7 +135,7 @@ func TestRequestSyncResponseHandler_InternalServerError(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-bsv-topic", "example-topic")
-	
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
