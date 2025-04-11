@@ -1,20 +1,29 @@
 package commands_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/commands"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/commands/testutil"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/require"
 )
+
+// Constants for tests
+const exampleTopic = "example-topic"
+
+// setSyncResponseRequestHeaders sets the headers required for GASP sync response requests in tests
+func setSyncResponseRequestHeaders(req *http.Request, includeBSVTopic bool) {
+	req.Header.Set(commands.ContentTypeHeader, commands.ContentTypeJSON)
+	if includeBSVTopic {
+		req.Header.Set(commands.XBSVTopicHeader, exampleTopic)
+	}
+}
 
 // Mock provider that always succeeds.
 type foreignSyncProviderAlwaysSuccess struct{}
@@ -44,16 +53,12 @@ func TestRequestSyncResponseHandler_Success(t *testing.T) {
 		Version: 1,
 		Since:   1000,
 	}
-	body, err := json.Marshal(payload)
-	require.NotEmpty(t, body)
-	require.NoError(t, err)
 
 	// When:
-	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, ts.URL, testutil.RequestBody(t, payload))
 	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-bsv-topic", "example-topic")
-
+	setSyncResponseRequestHeaders(req, true)
+	
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -73,25 +78,22 @@ func TestRequestSyncResponseHandler_MissingTopic(t *testing.T) {
 		Version: 1,
 		Since:   1000,
 	}
-	body, err := json.Marshal(payload)
-	require.NotEmpty(t, body)
-	require.NoError(t, err)
 
 	// When:
-	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, ts.URL, testutil.RequestBody(t, payload))
 	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-
+	setSyncResponseRequestHeaders(req, false)
+	
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	// Then:
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-
-	respBody, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-	require.Contains(t, string(respBody), "missing 'x-bsv-topic'")
+	
+	actualErr := testutil.ParseToError(t, resp.Body)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	require.Equal(t, commands.ErrMissingXBSVTopicHeader, actualErr)
 }
 
 func TestRequestSyncResponseHandler_InvalidJSON(t *testing.T) {
@@ -102,17 +104,42 @@ func TestRequestSyncResponseHandler_InvalidJSON(t *testing.T) {
 	defer ts.Close()
 
 	// When:
-	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader([]byte(`{invalid-json}`)))
+	req, err := http.NewRequest(http.MethodPost, ts.URL, testutil.RequestBody(t, `{invalid-json}`))
 	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-bsv-topic", "example-topic")
-
+	setSyncResponseRequestHeaders(req, true)
+	
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	// Then:
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	
+	actualErr := testutil.ParseToError(t, resp.Body)
+	require.Equal(t, commands.ErrSyncResponseInvalidRequestBody, actualErr)
+}
+
+func TestRequestSyncResponseHandler_MethodNotAllowed(t *testing.T) {
+	// Given:
+	handler, err := commands.NewRequestSyncResponseHandler(&foreignSyncProviderAlwaysSuccess{})
+	require.NoError(t, err)
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
+
+	// When:
+	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+	require.NoError(t, err)
+	setSyncResponseRequestHeaders(req, true)
+	
+	resp, err := ts.Client().Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	// Then:
+	require.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
+	
+	actualErr := testutil.ParseToError(t, resp.Body)
+	require.Equal(t, commands.ErrSyncResponseMethodNotAllowed, actualErr)
 }
 
 func TestRequestSyncResponseHandler_InternalServerError(t *testing.T) {
@@ -126,16 +153,12 @@ func TestRequestSyncResponseHandler_InternalServerError(t *testing.T) {
 		Version: 1,
 		Since:   1000,
 	}
-	body, err := json.Marshal(payload)
-	require.NotEmpty(t, body)
-	require.NoError(t, err)
 
 	// When:
-	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, ts.URL, testutil.RequestBody(t, payload))
 	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-bsv-topic", "example-topic")
-
+	setSyncResponseRequestHeaders(req, true)
+	
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
