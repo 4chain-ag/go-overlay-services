@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"slices"
 	"sync"
@@ -152,7 +153,7 @@ func (g *GASP) Sync(ctx context.Context) error {
 	return nil
 }
 
-func (g *GASP) GetInitialResponse(ctx context.Context, request *GASPInitialRequest) (resp *GASPInitialResponse, err error) {
+func (g *GASP) GetInitialResponse2(ctx context.Context, request *GASPInitialRequest) (resp *GASPInitialResponse, err error) {
 	if request.Version != g.Version {
 		return nil, NewGASPVersionMismatchError(
 			g.Version,
@@ -165,6 +166,31 @@ func (g *GASP) GetInitialResponse(ctx context.Context, request *GASPInitialReque
 	if resp.UTXOList, err = g.Storage.FindKnownUTXOs(ctx, request.Since); err != nil {
 		return nil, err
 	}
+	return resp, nil
+}
+
+// GetInitialResponse is a method that handles the initial response from the GASP protocol.
+// It checks the version of the request against the current version of the GASP instance.
+// If the versions match, it retrieves the known UTXOs from the storage and returns them in the response.
+// If the versions do not match, it returns a version mismatch error.
+// The method also updates the LastInteraction field of the GASP instance with the current time.
+// Categorize Feature: Wrap Error added for FindKnownUTXOs
+func (g *GASP) GetInitialResponse(ctx context.Context, request *GASPInitialRequest) (resp *GASPInitialResponse, err error) {
+	if request.Version != g.Version {
+		return nil, NewGASPVersionMismatchError(
+			g.Version,
+			request.Version,
+		)
+	}
+
+	resp = &GASPInitialResponse{
+		Since: g.LastInteraction,
+	}
+
+	if resp.UTXOList, err = g.Storage.FindKnownUTXOs(ctx, request.Since); err != nil {
+		return nil, fmt.Errorf("failed to find known UTXOs: %w", err)
+	}
+
 	return resp, nil
 }
 

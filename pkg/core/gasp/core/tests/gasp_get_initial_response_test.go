@@ -5,10 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/require"
+
+	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 )
 
 type fakeGASPStorage struct {
@@ -44,6 +45,8 @@ func (f fakeGASPStorage) FinalizeGraph(ctx context.Context, graphID *overlay.Out
 }
 
 func TestGASP_GetInitialResponse_Success(t *testing.T) {
+	t.Parallel()
+	
 	// given:
 	ctx := context.Background()
 	request := &core.GASPInitialRequest{
@@ -77,6 +80,8 @@ func TestGASP_GetInitialResponse_Success(t *testing.T) {
 }
 
 func TestGASP_GetInitialResponse_VersionMismatch_ShouldReturnError(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	ctx := context.Background()
 	request := &core.GASPInitialRequest{
@@ -97,6 +102,8 @@ func TestGASP_GetInitialResponse_VersionMismatch_ShouldReturnError(t *testing.T)
 }
 
 func TestGASP_GetInitialResponse_StorageFailure_ShouldReturnError(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	ctx := context.Background()
 	request := &core.GASPInitialRequest{
