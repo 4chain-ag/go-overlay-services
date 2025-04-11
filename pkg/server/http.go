@@ -158,7 +158,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	v1.Post("/requestSyncResponse", SafeHandler(overlayAPI.Commands.RequestSyncResponseHandler.Handle))
 	v1.Post("/lookup", SafeHandler(overlayAPI.Commands.LookupQuestionHandler.Handle))
 	v1.Post("/arc-ingest", SafeHandler(overlayAPI.Commands.ArcIngestHandler.Handle))
-	
+
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
 	admin.Post("/syncAdvertisements", SafeHandler(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))

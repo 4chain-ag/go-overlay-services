@@ -9,7 +9,6 @@ import (
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/bsv-blockchain/go-sdk/transaction"
-
 )
 
 // NoopEngineProvider is a custom test overlay engine implementation. This is only a temporary solution and will be removed
