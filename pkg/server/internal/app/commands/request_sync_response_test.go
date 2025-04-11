@@ -58,7 +58,7 @@ func TestRequestSyncResponseHandler_Success(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, ts.URL, testutil.RequestBody(t, payload))
 	require.NoError(t, err)
 	setSyncResponseRequestHeaders(req, true)
-	
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -83,14 +83,14 @@ func TestRequestSyncResponseHandler_MissingTopic(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, ts.URL, testutil.RequestBody(t, payload))
 	require.NoError(t, err)
 	setSyncResponseRequestHeaders(req, false)
-	
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	// Then:
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	
+
 	actualErr := testutil.ParseToError(t, resp.Body)
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	require.Equal(t, commands.ErrMissingXBSVTopicHeader, actualErr)
@@ -107,14 +107,14 @@ func TestRequestSyncResponseHandler_InvalidJSON(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, ts.URL, testutil.RequestBody(t, `{invalid-json}`))
 	require.NoError(t, err)
 	setSyncResponseRequestHeaders(req, true)
-	
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	// Then:
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	
+
 	actualErr := testutil.ParseToError(t, resp.Body)
 	require.Equal(t, commands.ErrSyncResponseInvalidRequestBody, actualErr)
 }
@@ -130,14 +130,14 @@ func TestRequestSyncResponseHandler_MethodNotAllowed(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	require.NoError(t, err)
 	setSyncResponseRequestHeaders(req, true)
-	
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	// Then:
 	require.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
-	
+
 	actualErr := testutil.ParseToError(t, resp.Body)
 	require.Equal(t, commands.ErrSyncResponseMethodNotAllowed, actualErr)
 }
@@ -158,7 +158,7 @@ func TestRequestSyncResponseHandler_InternalServerError(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, ts.URL, testutil.RequestBody(t, payload))
 	require.NoError(t, err)
 	setSyncResponseRequestHeaders(req, true)
-	
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
