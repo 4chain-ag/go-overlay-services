@@ -5,13 +5,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/script"
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/stretchr/testify/require"
-
-	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 )
 
 var errFakeStorage = errors.New("fakeStorage: method not implemented")
