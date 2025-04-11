@@ -44,6 +44,8 @@ func (f fakeGASPStorage) FinalizeGraph(ctx context.Context, graphID *overlay.Out
 }
 
 func TestGASP_GetInitialResponse_Success(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	ctx := context.Background()
 	request := &core.GASPInitialRequest{
@@ -77,6 +79,8 @@ func TestGASP_GetInitialResponse_Success(t *testing.T) {
 }
 
 func TestGASP_GetInitialResponse_VersionMismatch_ShouldReturnError(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	ctx := context.Background()
 	request := &core.GASPInitialRequest{
@@ -92,11 +96,14 @@ func TestGASP_GetInitialResponse_VersionMismatch_ShouldReturnError(t *testing.T)
 	actualResp, err := sut.GetInitialResponse(ctx, request)
 
 	// then:
-	require.IsType(t, &core.GASPVersionMismatchError{}, err)
+	var mismatchErr *core.GASPVersionMismatchError
+	require.ErrorIs(t, err, mismatchErr)
 	require.Nil(t, actualResp)
 }
 
 func TestGASP_GetInitialResponse_StorageFailure_ShouldReturnError(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	ctx := context.Background()
 	request := &core.GASPInitialRequest{
