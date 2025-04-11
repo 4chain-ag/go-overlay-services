@@ -34,9 +34,9 @@ func (h *RequestSyncResponseHandler) Handle(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	topic := r.URL.Query().Get("topic")
+	topic := r.Header.Get("x-bsv-topic")
 	if topic == "" {
-		http.Error(w, "missing 'topic' query parameter", http.StatusBadRequest)
+		http.Error(w, "missing 'x-bsv-topic' header", http.StatusBadRequest)
 		return
 	}
 

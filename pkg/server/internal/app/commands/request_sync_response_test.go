@@ -49,7 +49,12 @@ func TestRequestSyncResponseHandler_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// When:
-	resp, err := ts.Client().Post(ts.URL+"?topic=example-topic", "application/json", bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-bsv-topic", "example-topic")
+	
+	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -73,7 +78,11 @@ func TestRequestSyncResponseHandler_MissingTopic(t *testing.T) {
 	require.NoError(t, err)
 
 	// When:
-	resp, err := ts.Client().Post(ts.URL, "application/json", bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	
+	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -82,7 +91,7 @@ func TestRequestSyncResponseHandler_MissingTopic(t *testing.T) {
 
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
-	require.Contains(t, string(respBody), "missing 'topic'")
+	require.Contains(t, string(respBody), "missing 'x-bsv-topic'")
 }
 
 func TestRequestSyncResponseHandler_InvalidJSON(t *testing.T) {
@@ -93,7 +102,12 @@ func TestRequestSyncResponseHandler_InvalidJSON(t *testing.T) {
 	defer ts.Close()
 
 	// When:
-	resp, err := ts.Client().Post(ts.URL+"?topic=example-topic", "application/json", bytes.NewReader([]byte(`{invalid-json}`)))
+	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader([]byte(`{invalid-json}`)))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-bsv-topic", "example-topic")
+	
+	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -117,7 +131,12 @@ func TestRequestSyncResponseHandler_InternalServerError(t *testing.T) {
 	require.NoError(t, err)
 
 	// When:
-	resp, err := ts.Client().Post(ts.URL+"?topic=example-topic", "application/json", bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-bsv-topic", "example-topic")
+	
+	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
