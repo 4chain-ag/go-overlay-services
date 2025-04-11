@@ -5,12 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/script"
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/stretchr/testify/require"
+
+	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 )
 
 var errFakeStorage = errors.New("fakeStorage: method not implemented")
@@ -245,6 +246,10 @@ func createDummyValidTaggedBEEF(t *testing.T) (overlay.TaggedBEEF, *chainhash.Ha
 	return overlay.TaggedBEEF{Topics: []string{"test-topic"}, Beef: beefBytes}, prevTxID
 }
 
+// createDummyBeefWithInputs creates a dummy BEEF transaction with inputs for testing.
+// It creates a previous transaction with a dummy locking script and a current transaction
+// that uses the previous transaction as an input. The current transaction also has a dummy locking script.
+// It returns the serialized bytes of the BEEF transaction.
 func createDummyBeefWithInputs(t *testing.T) []byte {
 	t.Helper()
 
@@ -252,13 +257,11 @@ func createDummyBeefWithInputs(t *testing.T) []byte {
 
 	dummyLockingScript := script.Script{script.OpTRUE}
 
-	// Previous TX (to spend from)
 	prevTx := &transaction.Transaction{
 		Inputs:  []*transaction.TransactionInput{},
 		Outputs: []*transaction.TransactionOutput{{Satoshis: 1000, LockingScript: &dummyLockingScript}},
 	}
 
-	// Current TX (with input)
 	currentTx := &transaction.Transaction{
 		Inputs: []*transaction.TransactionInput{
 			{SourceTXID: &prevTxID, SourceTxOutIndex: 0},
