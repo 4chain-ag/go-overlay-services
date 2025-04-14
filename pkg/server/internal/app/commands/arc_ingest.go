@@ -45,14 +45,14 @@ var (
 
 // ArcIngestHandlerResponse defines the response for the ARC ingest endpoint.
 type ArcIngestHandlerResponse struct {
-	Status string `json:"status"`
+	Status  string `json:"status"`
 	Message string `json:"message"`
 }
 
 // ArcIngestRequest defines the expected request structure for the ARC ingest endpoint.
 type ArcIngestRequest struct {
-	Txid string `json:"txid"`
-	MerklePath string `json:"merklePath"`
+	Txid        string `json:"txid"`
+	MerklePath  string `json:"merklePath"`
 	BlockHeight uint32 `json:"blockHeight"`
 }
 
@@ -88,9 +88,9 @@ func (a *OverlayEngineAdaptor) HandleNewMerkleProof(ctx context.Context, txid *c
 // ArcIngestHandler processes new merkle proofs, validating requests and
 // forwarding them to the overlay engine.
 type ArcIngestHandler struct {
-	provider NewMerkleProofProvider
+	provider         NewMerkleProofProvider
 	requestBodyLimit int64
-	responseTimeout time.Duration
+	responseTimeout  time.Duration
 }
 
 // DecodeAndValidateRequest reads and parses the request body, with size limit applied,
@@ -178,7 +178,7 @@ func (h *ArcIngestHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	req, err := h.DecodeAndValidateRequest(r)
 	if errors.Is(err, ErrArcIngestInvalidHTTPMethod) {
 		jsonutil.SendHTTPResponse(w, http.StatusMethodNotAllowed, ArcIngestHandlerResponse{
-			Status: "error",
+			Status:  "error",
 			Message: err.Error(),
 		})
 		return
@@ -186,7 +186,7 @@ func (h *ArcIngestHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	if errors.Is(err, ErrArcIngestRequestBodyTooLarge) {
 		jsonutil.SendHTTPResponse(w, http.StatusRequestEntityTooLarge, ArcIngestHandlerResponse{
-			Status: "error",
+			Status:  "error",
 			Message: err.Error(),
 		})
 		return
@@ -194,7 +194,7 @@ func (h *ArcIngestHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, ArcIngestHandlerResponse{
-			Status: "error",
+			Status:  "error",
 			Message: err.Error(),
 		})
 		return
@@ -222,20 +222,20 @@ func (h *ArcIngestHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			}
 
 			jsonutil.SendHTTPResponse(w, statusCode, ArcIngestHandlerResponse{
-				Status: "error",
+				Status:  "error",
 				Message: errorMessage,
 			})
 			return
 		}
 
 		jsonutil.SendHTTPResponse(w, http.StatusOK, ArcIngestHandlerResponse{
-			Status: "success",
+			Status:  "success",
 			Message: "Transaction status updated",
 		})
 
 	case <-time.After(h.responseTimeout):
 		jsonutil.SendHTTPResponse(w, http.StatusGatewayTimeout, ArcIngestHandlerResponse{
-			Status: "error",
+			Status:  "error",
 			Message: "Request processing timed out after " + h.responseTimeout.String(),
 		})
 	}
@@ -277,9 +277,9 @@ func NewArcIngestHandler(providerOrAdaptor interface{}, opts ...ArcIngestHandler
 	}
 
 	h := &ArcIngestHandler{
-		provider: provider,
+		provider:         provider,
 		requestBodyLimit: requestBodyLimitDefault,
-		responseTimeout: 10 * time.Second,
+		responseTimeout:  10 * time.Second,
 	}
 
 	for _, opt := range opts {
