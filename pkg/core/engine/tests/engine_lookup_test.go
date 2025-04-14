@@ -11,99 +11,107 @@ import (
 )
 
 func TestEngine_Lookup_ShouldReturnError_WhenServiceUnknown(t *testing.T) {
-	t.Parallel()
-
 	// given
-	e := &engine.Engine{
+	expectedErr := engine.ErrUnknownTopic
+
+	sut := &engine.Engine{
 		LookupServices: make(map[string]engine.LookupService),
 	}
 
 	// when
-	answer, err := e.Lookup(context.Background(), &lookup.LookupQuestion{Service: "non-existing"})
+	actualAnswer, actualErr := sut.Lookup(context.Background(), &lookup.LookupQuestion{Service: "non-existing"})
 
 	// then
-	require.Error(t, err)
-	require.Nil(t, answer)
-	require.Equal(t, engine.ErrUnknownTopic, err)
+	require.ErrorIs(t, actualErr, expectedErr)
+	require.Nil(t, actualAnswer)
 }
 
 func TestEngine_Lookup_ShouldReturnError_WhenServiceLookupFails(t *testing.T) {
-	t.Parallel()
-
 	// given
-	e := &engine.Engine{
+	expectedErr := errFakeLookup
+
+	sut := &engine.Engine{
 		LookupServices: map[string]engine.LookupService{
 			"test": fakeLookupService{
 				lookupFunc: func(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
-					return nil, errFakeLookup
+					return nil, expectedErr
 				},
 			},
 		},
 	}
 
 	// when
-	answer, err := e.Lookup(context.Background(), &lookup.LookupQuestion{Service: "test"})
+	actualAnswer, actualErr := sut.Lookup(context.Background(), &lookup.LookupQuestion{Service: "test"})
 
 	// then
-	require.Error(t, err)
-	require.Nil(t, answer)
-	require.Equal(t, errFakeLookup, err)
+	require.ErrorIs(t, actualErr, expectedErr)
+	require.Nil(t, actualAnswer)
 }
 
 func TestEngine_Lookup_ShouldReturnDirectResult_WhenAnswerTypeIsFreeform(t *testing.T) {
-	t.Parallel()
-
 	// given
-	e := &engine.Engine{
+	expectedAnswer := &lookup.LookupAnswer{
+		Type: lookup.AnswerTypeFreeform,
+		Result: map[string]interface{}{
+			"key": "value",
+		},
+	}
+
+	sut := &engine.Engine{
 		LookupServices: map[string]engine.LookupService{
 			"test": fakeLookupService{
 				lookupFunc: func(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
-					return &lookup.LookupAnswer{Type: lookup.AnswerTypeFreeform}, nil
+					return expectedAnswer, nil
 				},
 			},
 		},
 	}
 
 	// when
-	answer, err := e.Lookup(context.Background(), &lookup.LookupQuestion{Service: "test"})
+	actualAnswer, err := sut.Lookup(context.Background(), &lookup.LookupQuestion{Service: "test"})
 
 	// then
 	require.NoError(t, err)
-	require.NotNil(t, answer)
-	require.Equal(t, lookup.AnswerTypeFreeform, answer.Type)
+	require.Equal(t, expectedAnswer, actualAnswer)
 }
 
 func TestEngine_Lookup_ShouldReturnDirectResult_WhenAnswerTypeIsOutputList(t *testing.T) {
-	t.Parallel()
-
 	// given
-	e := &engine.Engine{
+	expectedAnswer := &lookup.LookupAnswer{
+		Type: lookup.AnswerTypeOutputList,
+		Outputs: []*lookup.OutputListItem{
+			{
+				OutputIndex: 0,
+				Beef:        []byte("test"),
+			},
+		},
+	}
+
+	sut := &engine.Engine{
 		LookupServices: map[string]engine.LookupService{
 			"test": fakeLookupService{
 				lookupFunc: func(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
-					return &lookup.LookupAnswer{Type: lookup.AnswerTypeOutputList}, nil
+					return expectedAnswer, nil
 				},
 			},
 		},
 	}
 
 	// when
-	answer, err := e.Lookup(context.Background(), &lookup.LookupQuestion{Service: "test"})
+	actualAnswer, err := sut.Lookup(context.Background(), &lookup.LookupQuestion{Service: "test"})
 
 	// then
 	require.NoError(t, err)
-	require.NotNil(t, answer)
-	require.Equal(t, lookup.AnswerTypeOutputList, answer.Type)
+	require.Equal(t, expectedAnswer, actualAnswer)
 }
 
 func TestEngine_Lookup_ShouldHydrateOutputs_WhenFormulasProvided(t *testing.T) {
-	t.Parallel()
-
 	// given
 	ctx := context.Background()
 	expectedBeef := []byte("hydrated beef")
+	outpoint := &overlay.Outpoint{Txid: fakeTxID(), OutputIndex: 0}
 
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		LookupServices: map[string]engine.LookupService{
 			"test": fakeLookupService{
 				lookupFunc: func(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
@@ -126,13 +134,20 @@ func TestEngine_Lookup_ShouldHydrateOutputs_WhenFormulasProvided(t *testing.T) {
 		},
 	}
 
+	expectedAnswer := &lookup.LookupAnswer{
+		Type: lookup.AnswerTypeOutputList,
+		Outputs: []*lookup.OutputListItem{
+			{
+				OutputIndex: outpoint.OutputIndex,
+				Beef:        expectedBeef,
+			},
+		},
+	}
+
 	// when
-	answer, err := e.Lookup(ctx, &lookup.LookupQuestion{Service: "test"})
+	actualAnswer, err := sut.Lookup(ctx, &lookup.LookupQuestion{Service: "test"})
 
 	// then
 	require.NoError(t, err)
-	require.NotNil(t, answer)
-	require.Equal(t, lookup.AnswerTypeOutputList, answer.Type)
-	require.Len(t, answer.Outputs, 1)
-	require.Equal(t, expectedBeef, answer.Outputs[0].Beef)
+	require.Equal(t, expectedAnswer, actualAnswer)
 }
