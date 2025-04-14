@@ -12,25 +12,21 @@ import (
 )
 
 func TestEngine_SyncAdvertisements_ShouldReturnNil_WhenAdvertiserIsNil(t *testing.T) {
-	t.Parallel()
-
 	// given
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Advertiser: nil,
 	}
 
 	// when
-	err := e.SyncAdvertisements(context.Background())
+	err := sut.SyncAdvertisements(context.Background())
 
 	// then
 	require.NoError(t, err)
 }
 
 func TestEngine_SyncAdvertisements_ShouldNotFail_WhenCreateAdvertisementsFails(t *testing.T) {
-	t.Parallel()
-
 	// given
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Advertiser: fakeAdvertiser{
 			findAllAdvertisementsFunc: func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error) {
 				return []*advertiser.Advertisement{}, nil
@@ -44,17 +40,15 @@ func TestEngine_SyncAdvertisements_ShouldNotFail_WhenCreateAdvertisementsFails(t
 	}
 
 	// when
-	err := e.SyncAdvertisements(context.Background())
+	err := sut.SyncAdvertisements(context.Background())
 
 	// then
-	require.NoError(t, err) // it should NOT fail
+	require.NoError(t, err)
 }
 
 func TestEngine_SyncAdvertisements_ShouldCompleteSuccessfully(t *testing.T) {
-	t.Parallel()
-
 	// given
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Advertiser: fakeAdvertiser{
 			findAllAdvertisementsFunc: func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error) {
 				return []*advertiser.Advertisement{}, nil
@@ -72,17 +66,15 @@ func TestEngine_SyncAdvertisements_ShouldCompleteSuccessfully(t *testing.T) {
 	}
 
 	// when
-	err := e.SyncAdvertisements(context.Background())
+	err := sut.SyncAdvertisements(context.Background())
 
 	// then
 	require.NoError(t, err)
 }
 
 func TestEngine_SyncAdvertisements_ShouldLogAndContinue_WhenCreateOrRevokeFails(t *testing.T) {
-	t.Parallel()
-
 	// given
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Advertiser: fakeAdvertiser{
 			findAllAdvertisementsFunc: func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error) {
 				return []*advertiser.Advertisement{}, nil
@@ -100,7 +92,7 @@ func TestEngine_SyncAdvertisements_ShouldLogAndContinue_WhenCreateOrRevokeFails(
 	}
 
 	// when
-	err := e.SyncAdvertisements(context.Background())
+	err := sut.SyncAdvertisements(context.Background())
 
 	// then
 	require.NoError(t, err)
