@@ -12,14 +12,16 @@ import (
 )
 
 func TestEngine_ProvideForeignSyncResponse_ShouldReturnUTXOList(t *testing.T) {
-	t.Parallel()
-
 	// given
 	expectedOutpoint := &overlay.Outpoint{
 		Txid:        fakeTxID(),
 		OutputIndex: 1,
 	}
-	e := &engine.Engine{
+	expectedResponse := &core.GASPInitialResponse{
+		UTXOList: []*overlay.Outpoint{expectedOutpoint},
+	}
+
+	sut := &engine.Engine{
 		Storage: fakeStorage{
 			findUTXOsForTopicFunc: func(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error) {
 				return []*engine.Output{
@@ -30,21 +32,17 @@ func TestEngine_ProvideForeignSyncResponse_ShouldReturnUTXOList(t *testing.T) {
 	}
 
 	// when
-	resp, err := e.ProvideForeignSyncResponse(context.Background(), &core.GASPInitialRequest{Since: 0}, "test-topic")
+	actualResponse, actualErr := sut.ProvideForeignSyncResponse(context.Background(), &core.GASPInitialRequest{Since: 0}, "test-topic")
 
 	// then
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.Len(t, resp.UTXOList, 1)
-	require.Equal(t, expectedOutpoint, resp.UTXOList[0])
+	require.NoError(t, actualErr)
+	require.Equal(t, expectedResponse, actualResponse)
 }
 
 func TestEngine_ProvideForeignSyncResponse_ShouldReturnError_WhenStorageFails(t *testing.T) {
-	t.Parallel()
-
 	// given
 	expectedError := errors.New("storage failed")
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Storage: fakeStorage{
 			findUTXOsForTopicFunc: func(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error) {
 				return nil, expectedError
@@ -53,7 +51,7 @@ func TestEngine_ProvideForeignSyncResponse_ShouldReturnError_WhenStorageFails(t 
 	}
 
 	// when
-	resp, err := e.ProvideForeignSyncResponse(context.Background(), &core.GASPInitialRequest{Since: 0}, "test-topic")
+	resp, err := sut.ProvideForeignSyncResponse(context.Background(), &core.GASPInitialRequest{Since: 0}, "test-topic")
 
 	// then
 	require.Error(t, err)
