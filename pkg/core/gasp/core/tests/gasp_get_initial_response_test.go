@@ -6,42 +6,9 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
-	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/require"
 )
-
-type fakeGASPStorage struct {
-	findKnownUTXOsFunc func(ctx context.Context, since uint32) ([]*overlay.Outpoint, error)
-}
-
-func (f fakeGASPStorage) FindKnownUTXOs(ctx context.Context, since uint32) ([]*overlay.Outpoint, error) {
-	return f.findKnownUTXOsFunc(ctx, since)
-}
-
-func (f fakeGASPStorage) HydrateGASPNode(ctx context.Context, graphID *overlay.Outpoint, outpoint *overlay.Outpoint, metadata bool) (*core.GASPNode, error) {
-	panic("not implemented")
-}
-
-func (f fakeGASPStorage) FindNeededInputs(ctx context.Context, tx *core.GASPNode) (*core.GASPNodeResponse, error) {
-	panic("not implemented")
-}
-
-func (f fakeGASPStorage) AppendToGraph(ctx context.Context, tx *core.GASPNode, spentBy *chainhash.Hash) error {
-	panic("not implemented")
-}
-
-func (f fakeGASPStorage) ValidateGraphAnchor(ctx context.Context, graphID *overlay.Outpoint) error {
-	panic("not implemented")
-}
-
-func (f fakeGASPStorage) DiscardGraph(ctx context.Context, graphID *overlay.Outpoint) error {
-	panic("not implemented")
-}
-
-func (f fakeGASPStorage) FinalizeGraph(ctx context.Context, graphID *overlay.Outpoint) error {
-	panic("not implemented")
-}
 
 func TestGASP_GetInitialResponse_Success(t *testing.T) {
 	// given:
@@ -61,7 +28,7 @@ func TestGASP_GetInitialResponse_Success(t *testing.T) {
 
 	sut := core.NewGASP(core.GASPParams{
 		Version: ptr(1),
-		Storage: fakeGASPStorage{
+		Storage: fakeStorage{
 			findKnownUTXOsFunc: func(ctx context.Context, since uint32) ([]*overlay.Outpoint, error) {
 				return expectedResponse.UTXOList, nil
 			},
@@ -85,7 +52,7 @@ func TestGASP_GetInitialResponse_VersionMismatch_ShouldReturnError(t *testing.T)
 	}
 	sut := core.NewGASP(core.GASPParams{
 		Version: ptr(1),
-		Storage: fakeGASPStorage{},
+		Storage: fakeStorage{},
 	})
 
 	// when:
@@ -107,7 +74,7 @@ func TestGASP_GetInitialResponse_StorageFailure_ShouldReturnError(t *testing.T) 
 	expectedErr := errors.New("forced storage error")
 	sut := core.NewGASP(core.GASPParams{
 		Version: ptr(1),
-		Storage: fakeGASPStorage{
+		Storage: fakeStorage{
 			findKnownUTXOsFunc: func(ctx context.Context, since uint32) ([]*overlay.Outpoint, error) {
 				return nil, expectedErr
 			},
