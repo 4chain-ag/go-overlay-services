@@ -164,16 +164,19 @@ func (f fakeChainTracker) FindPreviousHeader(tx *transaction.Transaction) ([]byt
 type fakeChainTrackerSPVFail struct{}
 
 func (f fakeChainTrackerSPVFail) Verify(tx *transaction.Transaction, options ...any) (bool, error) {
-	return false, nil
+	panic("Verify not defined")
 }
+
 func (f fakeChainTrackerSPVFail) IsValidRootForHeight(root *chainhash.Hash, height uint32) (bool, error) {
-	return true, nil
+	panic("IsValidRootForHeight not defined")
 }
+
 func (f fakeChainTrackerSPVFail) FindHeader(height uint32) ([]byte, error) {
-	return nil, nil
+	panic("FindHeader not defined")
 }
+
 func (f fakeChainTrackerSPVFail) FindPreviousHeader(tx *transaction.Transaction) ([]byte, error) {
-	return nil, nil
+	panic("FindPreviousHeader not defined")
 }
 
 type fakeBroadcasterFail struct {
@@ -199,18 +202,33 @@ func (f fakeBroadcasterFail) BroadcastCtx(ctx context.Context, tx *transaction.T
 // This function creates a dummy BEEF transaction with a single output and no inputs.
 // It returns the serialized bytes of the BEEF transaction.
 // The transaction is created with a dummy locking script that contains an OP_RETURN opcode.
-func createDummyBeef(t *testing.T) []byte {
+func createDummyBEEF(t *testing.T) []byte {
 	t.Helper()
-	dummyLockingScript := script.Script{script.OpRETURN}
+
 	dummyTx := transaction.Transaction{
-		Inputs:  []*transaction.TransactionInput{},
-		Outputs: []*transaction.TransactionOutput{{Satoshis: 1000, LockingScript: &dummyLockingScript}},
+		Inputs: []*transaction.TransactionInput{},
+		Outputs: []*transaction.TransactionOutput{
+			{
+				Satoshis:      1000,
+				LockingScript: &script.Script{script.OpRETURN},
+			},
+		},
 	}
-	beef, err := transaction.NewBeefFromTransaction(&dummyTx)
+
+	BEEF, err := transaction.NewBeefFromTransaction(&dummyTx)
 	require.NoError(t, err)
-	serializedBytes, err := beef.AtomicBytes(dummyTx.TxID())
+
+	bytes, err := BEEF.AtomicBytes(dummyTx.TxID())
 	require.NoError(t, err)
-	return serializedBytes
+	return bytes
+}
+
+func parseBEEFToTx(t *testing.T, bytes []byte) *transaction.Transaction {
+	t.Helper()
+
+	_, tx, _, err := transaction.ParseBeef(bytes)
+	require.NoError(t, err)
+	return tx
 }
 
 // createDummyValidTaggedBEEF creates a dummy valid tagged BEEF transaction for testing.

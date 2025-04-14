@@ -13,12 +13,10 @@ import (
 )
 
 func TestEngine_Submit_Success(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	ctx := context.Background()
 
-	SUT := &engine.Engine{
+	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{
 				identifyAdmissableOutputsFunc: func(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error) {
@@ -50,7 +48,7 @@ func TestEngine_Submit_Success(t *testing.T) {
 
 	taggedBEEF := overlay.TaggedBEEF{
 		Topics: []string{"test-topic"},
-		Beef:   createDummyBeef(t),
+		Beef:   createDummyBEEF(t),
 	}
 
 	expectedSteak := overlay.Steak{
@@ -60,7 +58,7 @@ func TestEngine_Submit_Success(t *testing.T) {
 	}
 
 	// when:
-	steak, err := SUT.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
+	steak, err := sut.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
 
 	// then:
 	require.NoError(t, err)
@@ -68,11 +66,9 @@ func TestEngine_Submit_Success(t *testing.T) {
 }
 
 func TestEngine_Submit_InvalidBeef_ShouldReturnError(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	ctx := context.Background()
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{
 				identifyAdmissableOutputsFunc: func(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error) {
@@ -99,7 +95,7 @@ func TestEngine_Submit_InvalidBeef_ShouldReturnError(t *testing.T) {
 	}
 
 	// when:
-	steak, err := e.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
+	steak, err := sut.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
 
 	// then:
 	require.Error(t, err)
@@ -108,11 +104,9 @@ func TestEngine_Submit_InvalidBeef_ShouldReturnError(t *testing.T) {
 }
 
 func TestEngine_Submit_SPVFail_ShouldReturnError(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	ctx := context.Background()
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{
 				identifyAdmissableOutputsFunc: func(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error) {
@@ -161,7 +155,7 @@ func TestEngine_Submit_SPVFail_ShouldReturnError(t *testing.T) {
 	}
 
 	// when:
-	steak, err := e.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
+	steak, err := sut.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
 
 	// then:
 	require.Error(t, err)
@@ -170,11 +164,9 @@ func TestEngine_Submit_SPVFail_ShouldReturnError(t *testing.T) {
 }
 
 func TestEngine_Submit_DuplicateTransaction_ShouldReturnEmptySteak(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	ctx := context.Background()
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{},
 		},
@@ -199,36 +191,38 @@ func TestEngine_Submit_DuplicateTransaction_ShouldReturnEmptySteak(t *testing.T)
 	}
 	taggedBEEF := overlay.TaggedBEEF{
 		Topics: []string{"test-topic"},
-		Beef:   createDummyBeef(t),
+		Beef:   createDummyBEEF(t),
+	}
+
+	expectedSteak := overlay.Steak{
+		"test-topic": &overlay.AdmittanceInstructions{
+			OutputsToAdmit: nil,
+		},
 	}
 
 	// when:
-	steak, err := e.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
+	steak, err := sut.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
 
 	// then:
 	require.NoError(t, err)
-	require.NotNil(t, steak)
-	require.NotNil(t, steak["test-topic"])
-	require.Empty(t, steak["test-topic"].OutputsToAdmit)
+	require.Equal(t, expectedSteak, steak)
 }
 
 func TestEngine_Submit_MissingTopic_ShouldReturnError(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	ctx := context.Background()
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Managers:     map[string]engine.TopicManager{},
 		Storage:      fakeStorage{},
 		ChainTracker: fakeChainTracker{},
 	}
 	taggedBEEF := overlay.TaggedBEEF{
 		Topics: []string{"unknown-topic"},
-		Beef:   createDummyBeef(t),
+		Beef:   createDummyBEEF(t),
 	}
 
 	// when:
-	steak, err := e.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
+	steak, err := sut.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
 
 	// then:
 	require.ErrorIs(t, err, engine.ErrUnknownTopic)
@@ -236,11 +230,9 @@ func TestEngine_Submit_MissingTopic_ShouldReturnError(t *testing.T) {
 }
 
 func TestEngine_Submit_BroadcastFails_ShouldReturnError(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	ctx := context.Background()
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{
 				identifyAdmissableOutputsFunc: func(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error) {
@@ -280,11 +272,11 @@ func TestEngine_Submit_BroadcastFails_ShouldReturnError(t *testing.T) {
 
 	taggedBEEF := overlay.TaggedBEEF{
 		Topics: []string{"test-topic"},
-		Beef:   createDummyBeef(t),
+		Beef:   createDummyBEEF(t),
 	}
 
 	// when:
-	steak, err := e.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
+	steak, err := sut.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
 
 	// then:
 	require.Error(t, err)
@@ -293,13 +285,11 @@ func TestEngine_Submit_BroadcastFails_ShouldReturnError(t *testing.T) {
 }
 
 func TestEngine_Submit_OutputInsertFails_ShouldReturnError(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	ctx := context.Background()
 	taggedBEEF, prevTxID := createDummyValidTaggedBEEF(t)
 
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{
 				identifyAdmissableOutputsFunc: func(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error) {
@@ -331,7 +321,7 @@ func TestEngine_Submit_OutputInsertFails_ShouldReturnError(t *testing.T) {
 				return nil
 			},
 			insertOutputFunc: func(ctx context.Context, output *engine.Output) error {
-				return errors.New("insert-failed") // <-- force insert to fail
+				return errors.New("insert-failed")
 			},
 			updateConsumedByFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error {
 				return nil
@@ -344,7 +334,7 @@ func TestEngine_Submit_OutputInsertFails_ShouldReturnError(t *testing.T) {
 	}
 
 	// when:
-	steak, err := e.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
+	steak, err := sut.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
 
 	// then:
 	require.Error(t, err)
