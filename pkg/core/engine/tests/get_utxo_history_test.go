@@ -12,14 +12,12 @@ import (
 )
 
 func TestEngine_GetUTXOHistory_ShouldReturnImmediateOutput_WhenSelectorIsNil(t *testing.T) {
-	t.Parallel()
-
 	// given
 	output := &engine.Output{Beef: []byte("beef")}
-	e := &engine.Engine{}
+	sut := &engine.Engine{}
 
 	// when
-	result, err := e.GetUTXOHistory(context.Background(), output, nil, 0)
+	result, err := sut.GetUTXOHistory(context.Background(), output, nil, 0)
 
 	// then
 	require.NoError(t, err)
@@ -27,18 +25,16 @@ func TestEngine_GetUTXOHistory_ShouldReturnImmediateOutput_WhenSelectorIsNil(t *
 }
 
 func TestEngine_GetUTXOHistory_ShouldReturnNil_WhenSelectorReturnsFalse(t *testing.T) {
-	t.Parallel()
-
 	// given
 	output := &engine.Output{Beef: []byte("beef")}
-	e := &engine.Engine{}
+	sut := &engine.Engine{}
 
 	historySelector := func(beef []byte, outputIndex uint32, currentDepth uint32) bool {
 		return false
 	}
 
 	// when
-	result, err := e.GetUTXOHistory(context.Background(), output, historySelector, 0)
+	result, err := sut.GetUTXOHistory(context.Background(), output, historySelector, 0)
 
 	// then
 	require.NoError(t, err)
@@ -46,21 +42,19 @@ func TestEngine_GetUTXOHistory_ShouldReturnNil_WhenSelectorReturnsFalse(t *testi
 }
 
 func TestEngine_GetUTXOHistory_ShouldReturnOutput_WhenNoOutputsConsumed(t *testing.T) {
-	t.Parallel()
-
 	// given
 	output := &engine.Output{
 		Beef:            []byte("beef"),
 		OutputsConsumed: nil,
 	}
-	e := &engine.Engine{}
+	sut := &engine.Engine{}
 
 	historySelector := func(beef []byte, outputIndex uint32, currentDepth uint32) bool {
 		return true
 	}
 
 	// when
-	result, err := e.GetUTXOHistory(context.Background(), output, historySelector, 0)
+	result, err := sut.GetUTXOHistory(context.Background(), output, historySelector, 0)
 
 	// then
 	require.NoError(t, err)
@@ -68,16 +62,14 @@ func TestEngine_GetUTXOHistory_ShouldReturnOutput_WhenNoOutputsConsumed(t *testi
 }
 
 func TestEngine_GetUTXOHistory_ShouldTravelRecursively_WhenOutputsConsumedPresent(t *testing.T) {
-	t.Parallel()
-
 	// given
 	ctx := context.Background()
 
 	parentOutpoint := &overlay.Outpoint{Txid: fakeTxID(), OutputIndex: 0}
 	childOutpoint := &overlay.Outpoint{Txid: fakeTxID(), OutputIndex: 1}
 
-	childBeef := createDummyBeef(t)
-	parentBeef := createDummyBeef(t)
+	childBeef := createDummyBEEF(t)
+	parentBeef := createDummyBEEF(t)
 
 	childOutput := &engine.Output{
 		Outpoint: *childOutpoint,
@@ -89,7 +81,7 @@ func TestEngine_GetUTXOHistory_ShouldTravelRecursively_WhenOutputsConsumedPresen
 		OutputsConsumed: []*overlay.Outpoint{childOutpoint},
 	}
 
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Storage: fakeStorage{
 			findOutputFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error) {
 				if outpoint.String() == childOutpoint.String() {
@@ -105,7 +97,7 @@ func TestEngine_GetUTXOHistory_ShouldTravelRecursively_WhenOutputsConsumedPresen
 	}
 
 	// when
-	result, err := e.GetUTXOHistory(ctx, parentOutput, historySelector, 0)
+	result, err := sut.GetUTXOHistory(ctx, parentOutput, historySelector, 0)
 
 	// then
 	require.NoError(t, err)
@@ -114,8 +106,6 @@ func TestEngine_GetUTXOHistory_ShouldTravelRecursively_WhenOutputsConsumedPresen
 }
 
 func TestEngine_GetUTXOHistory_ShouldReturnError_WhenStorageFails(t *testing.T) {
-	t.Parallel()
-
 	// given
 	ctx := context.Background()
 
@@ -128,7 +118,7 @@ func TestEngine_GetUTXOHistory_ShouldReturnError_WhenStorageFails(t *testing.T) 
 		OutputsConsumed: []*overlay.Outpoint{childOutpoint},
 	}
 
-	e := &engine.Engine{
+	sut := &engine.Engine{
 		Storage: fakeStorage{
 			findOutputFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error) {
 				return nil, errors.New("storage error")
@@ -141,7 +131,7 @@ func TestEngine_GetUTXOHistory_ShouldReturnError_WhenStorageFails(t *testing.T) 
 	}
 
 	// when
-	result, err := e.GetUTXOHistory(ctx, parentOutput, historySelector, 0)
+	result, err := sut.GetUTXOHistory(ctx, parentOutput, historySelector, 0)
 
 	// then
 	require.Error(t, err)
