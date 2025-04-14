@@ -8,24 +8,24 @@ import (
 )
 
 func TestEngine_NewEngine_ShouldInitializeFields_WhenNilProvided(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	input := engine.Engine{}
 
+	expected := &engine.Engine{
+		Managers:          map[string]engine.TopicManager{},
+		LookupServices:    map[string]engine.LookupService{},
+		SyncConfiguration: map[string]engine.SyncConfiguration{},
+	}
+
 	// when:
-	result := engine.NewEngine(input)
+	actual := engine.NewEngine(input)
 
 	// then:
-	require.NotNil(t, result)
-	require.NotNil(t, result.Managers, "Managers should be initialized")
-	require.NotNil(t, result.LookupServices, "LookupServices should be initialized")
-	require.NotNil(t, result.SyncConfiguration, "SyncConfiguration should be initialized")
+	require.NotNil(t, actual)
+	require.Equal(t, expected, actual)
 }
 
 func TestEngine_NewEngine_ShouldMergeTrackers_WhenManagerIsShipType(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	input := engine.Engine{
 		SHIPTrackers: []string{"http://tracker1.com"},
@@ -37,18 +37,41 @@ func TestEngine_NewEngine_ShouldMergeTrackers_WhenManagerIsShipType(t *testing.T
 		},
 	}
 
+	expected := &engine.Engine{
+		Managers: map[string]engine.TopicManager{
+			"tm_ship": fakeTopicManager{},
+		},
+		LookupServices: map[string]engine.LookupService{},
+		SyncConfiguration: map[string]engine.SyncConfiguration{
+			"tm_ship": {
+				Type:  engine.SyncConfigurationPeers,
+				Peers: []string{"http://tracker1.com", "http://peer1.com"},
+			},
+		},
+		SHIPTrackers: []string{"http://tracker1.com"},
+	}
+
 	// when:
-	result := engine.NewEngine(input)
+	actual := engine.NewEngine(input)
 
 	// then:
-	require.NotNil(t, result)
-	peers := result.SyncConfiguration["tm_ship"].Peers
-	require.ElementsMatch(t, peers, []string{"http://tracker1.com", "http://peer1.com"})
+	require.NotNil(t, actual)
+	require.Equal(t, expected.SHIPTrackers, actual.SHIPTrackers)
+	require.Equal(t, expected.Managers, actual.Managers)
+	require.Equal(t, expected.LookupServices, actual.LookupServices)
+
+	require.ElementsMatch(t,
+		expected.SyncConfiguration["tm_ship"].Peers,
+		actual.SyncConfiguration["tm_ship"].Peers,
+	)
+
+	require.Equal(t,
+		expected.SyncConfiguration["tm_ship"].Type,
+		actual.SyncConfiguration["tm_ship"].Type,
+	)
 }
 
 func TestEngine_NewEngine_ShouldMergeTrackers_WhenManagerIsSlapType(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	input := engine.Engine{
 		SLAPTrackers: []string{"http://slaptracker.com"},
@@ -65,13 +88,12 @@ func TestEngine_NewEngine_ShouldMergeTrackers_WhenManagerIsSlapType(t *testing.T
 
 	// then:
 	require.NotNil(t, result)
-	peers := result.SyncConfiguration["tm_slap"].Peers
-	require.ElementsMatch(t, peers, []string{"http://slaptracker.com", "http://peer2.com"})
+
+	expectedPeers := []string{"http://slaptracker.com", "http://peer2.com"}
+	require.ElementsMatch(t, result.SyncConfiguration["tm_slap"].Peers, expectedPeers)
 }
 
 func TestEngine_NewEngine_ShouldNotMergeTrackers_WhenTypeIsNotPeers(t *testing.T) {
-	t.Parallel()
-
 	// given:
 	input := engine.Engine{
 		SHIPTrackers: []string{"http://tracker-should-not-merge.com"},
@@ -88,6 +110,7 @@ func TestEngine_NewEngine_ShouldNotMergeTrackers_WhenTypeIsNotPeers(t *testing.T
 
 	// then:
 	require.NotNil(t, result)
-	peers := result.SyncConfiguration["tm_ship"].Peers
-	require.ElementsMatch(t, peers, []string{"http://peer1.com"}, "Trackers should not be merged if type != Peers")
+
+	expectedPeers := []string{"http://peer1.com"}
+	require.ElementsMatch(t, result.SyncConfiguration["tm_ship"].Peers, expectedPeers, "Trackers should not be merged if type != Peers")
 }
