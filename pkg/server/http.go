@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/jsonutil"
 	"github.com/gofiber/fiber/v2"
@@ -62,6 +63,14 @@ func WithMiddleware(f func(http.Handler) http.Handler) HTTPOption {
 	}
 }
 
+// WithFiberMiddleware adds Fiber middleware to the HTTP server.
+func WithFiberMiddleware(f fiber.Handler) HTTPOption {
+	return func(h *HTTP) error {
+		h.middleware = append(h.middleware, f)
+		return nil
+	}
+}
+
 // WithConfig sets the configuration for the HTTP server.
 func WithConfig(cfg *Config) HTTPOption {
 	return func(h *HTTP) error {
@@ -72,7 +81,21 @@ func WithConfig(cfg *Config) HTTPOption {
 			ServerHeader:  cfg.ServerHeader,
 			AppName:       cfg.AppName,
 		})
+		return nil
+	}
+}
 
+// WithEngine sets the overlay engine provider for the HTTP server.
+func WithEngine(engineProvider engine.OverlayEngineProvider) HTTPOption {
+	return func(h *HTTP) error {
+		if engineProvider == nil {
+			return fmt.Errorf("engine provider is nil")
+		}
+		overlayAPI, err := app.New(engineProvider)
+		if err != nil {
+			return fmt.Errorf("failed to create overlay API: %w", err)
+		}
+		h.api = overlayAPI
 		return nil
 	}
 }
@@ -103,18 +126,16 @@ func SafeHandler(h http.HandlerFunc) fiber.Handler {
 // using idempotency to improve fault tolerance and mitigate duplicated requests.
 // It applies all configured options along with the list of middlewares.
 type HTTP struct {
-	middleware []fiber.Handler
-	app        *fiber.App
-	cfg        *Config
+	middleware  []fiber.Handler
+	app         *fiber.App
+	cfg         *Config
+	api         *app.Application
+	Router      fiber.Router
+	AdminRouter fiber.Router
 }
 
 // New returns an instance of the HTTP server and applies all specified functional options before starting it.
 func New(opts ...HTTPOption) (*HTTP, error) {
-	overlayAPI, err := app.New(NewNoopEngineProvider())
-	if err != nil {
-		return nil, fmt.Errorf("failed to create overlay API: %w", err)
-	}
-
 	http := &HTTP{
 		cfg: &DefaultConfig,
 		app: fiber.New(fiber.Config{
@@ -144,25 +165,35 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 		http.app.Use(m)
 	}
 
+	if http.api == nil {
+		overlayAPI, err := app.New(NewNoopEngineProvider())
+		if err != nil {
+			return nil, fmt.Errorf("failed to create overlay API: %w", err)
+		}
+		http.api = overlayAPI
+	}
+
 	// Routes...
 	api := http.app.Group("/api")
 	v1 := api.Group("/v1")
+	http.Router = v1
 
 	// Non-Admin:
-	v1.Get("/getDocumentationForTopicManager", SafeHandler(overlayAPI.Queries.TopicManagerDocumentationHandler.Handle))
-	v1.Get("/getDocumentationForLookupServiceProvider", SafeHandler(overlayAPI.Queries.LookupServiceDocumentationHandler.Handle))
-	v1.Get("/listLookupServiceProviders", SafeHandler(overlayAPI.Queries.LookupServicesListHandler.Handle))
-
-	v1.Post("/submit", SafeHandler(overlayAPI.Commands.SubmitTransactionHandler.Handle))
-	v1.Post("/requestForeignGASPNode", SafeHandler(overlayAPI.Commands.RequestForeignGASPNodeHandler.Handle))
-	v1.Post("/requestSyncResponse", SafeHandler(overlayAPI.Commands.RequestSyncResponseHandler.Handle))
-	v1.Post("/lookup", SafeHandler(overlayAPI.Commands.LookupQuestionHandler.Handle))
 	v1.Post("/arc-ingest", SafeHandler(overlayAPI.Commands.ArcIngestHandler.Handle))
+	v1.Get("/getDocumentationForTopicManager", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
+	v1.Get("/getDocumentationForLookupServiceProvider", SafeHandler(http.api.Queries.LookupServiceDocumentationHandler.Handle))
+	v1.Get("/listLookupServiceProviders", SafeHandler(http.api.Queries.LookupServicesListHandler.Handle))
+	v1.Post("/submit", SafeHandler(http.api.Commands.SubmitTransactionHandler.Handle))
+	v1.Post("/lookup", SafeHandler(http.api.Commands.LookupQuestionHandler.Handle))
+	v1.Get("/listTopicManagers", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
+	v1.Post("/requestSyncResponse", SafeHandler(http.api.Commands.RequestSyncResponseHandler.Handle))
+	v1.Post("/requestForeignGASPNode", SafeHandler(http.api.Commands.RequestForeignGASPNodeHandler.Handle))
 
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
-	admin.Post("/syncAdvertisements", SafeHandler(overlayAPI.Commands.SyncAdvertismentsHandler.Handle))
-	admin.Post("/startGASPSync", SafeHandler(overlayAPI.Commands.StartGASPSyncHandler.Handle))
+	http.AdminRouter = admin
+	admin.Post("/advertisements-sync", SafeHandler(http.api.Commands.SyncAdvertismentsHandler.Handle))
+	admin.Post("/start-gasp-sync", SafeHandler(http.api.Commands.StartGASPSyncHandler.Handle))
 
 	return http, nil
 }
