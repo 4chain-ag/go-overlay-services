@@ -66,6 +66,46 @@ func Test_AuthorizationBearerTokenMiddleware(t *testing.T) {
 	}
 }
 
+func Test_ARCAuthMiddleware(t *testing.T) {
+	// Given
+	arcTests := []struct {
+		name           string
+		arcKey         string
+		expectedStatus int
+	}{
+		{
+			name:           "Route access with empty ARC key in config",
+			arcKey:         "",
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "Route access with valid ARC key in config",
+			arcKey:         "valid_arc_key",
+			expectedStatus: http.StatusOK,
+		},
+	}
+
+	for _, tt := range arcTests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := server.ARCAuth(tt.arcKey)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			}))
+
+			ts := httptest.NewServer(handler)
+			defer ts.Close()
+
+			// When
+			req, err := http.NewRequest(http.MethodPost, ts.URL, nil)
+			require.NoError(t, err)
+			resp, err := ts.Client().Do(req)
+
+			// Then
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedStatus, resp.StatusCode)
+		})
+	}
+}
+
 func Test_HTTPServer_ShouldShutdownAfterSendingInterruptSig(t *testing.T) {
 	// given:
 	cfg := config.NewDefault()
