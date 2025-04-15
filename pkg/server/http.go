@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	net "net/http" //TODO: remove once implementing arc-ingest handler code.
 	"os"
 	"os/signal"
 	"strings"
@@ -39,6 +40,9 @@ type Config struct {
 
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
+
+	// ARC is the token required to access the /arc-ingest endpoint.
+	ARC string `mapstructure:"arc"`
 }
 
 // DefaultConfig provides a default configuration with reasonable values for local development.
@@ -48,6 +52,7 @@ var DefaultConfig = Config{
 	Addr:             "localhost",
 	ServerHeader:     "Overlay API",
 	AdminBearerToken: uuid.NewString(),
+	ARC:              "",
 }
 
 // HTTPOption defines a functional option for configuring an HTTP server.
@@ -187,7 +192,10 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	v1.Get("/listTopicManagers", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
 	v1.Post("/requestSyncResponse", SafeHandler(http.api.Commands.RequestSyncResponseHandler.Handle))
 	v1.Post("/requestForeignGASPNode", SafeHandler(http.api.Commands.RequestForeignGASPNodeHandler.Handle))
-
+	v1.Post("/arc-ingest", adaptor.HTTPMiddleware(ARCAuth(http.cfg.ARC)), SafeHandler(func(w net.ResponseWriter, r *net.Request) {
+		// TODO: Replace with real ARC ingestion logic - http.api.Commands.ArcIngestHandler.Handle
+		jsonutil.SendHTTPResponse(w, net.StatusOK, map[string]string{"status": "ARC ingest successful"})
+	}))
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
 	http.AdminRouter = admin
@@ -247,6 +255,27 @@ func AdminAuth(expectedToken string) func(http.Handler) http.Handler {
 				return
 			}
 
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// ARCAuth verifies that the ARC key is set in configuration before allowing requests.
+func ARCAuth(arc string) func(http.Handler) http.Handler {
+	type FailureResponse struct {
+		Status  string `json:"error"`
+		Message string `json:"message"`
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if arc == "" {
+				jsonutil.SendHTTPResponse(w, http.StatusBadRequest, FailureResponse{
+					Status:  http.StatusText(http.StatusBadRequest),
+					Message: "Arc-ingest endpoint not configured",
+				})
+				return
+			}
 			next.ServeHTTP(w, r)
 		})
 	}
