@@ -47,11 +47,11 @@ func (f fakeStorage) DeleteOutputs(ctx context.Context, outpoints []*overlay.Out
 	panic("method not implemented")
 }
 
-func (f fakeStorage) MarkUTXOAsSpent(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+func (f fakeStorage) MarkUTXOAsSpent(ctx context.Context, outpoint *overlay.Outpoint, topic string, spendTxid *chainhash.Hash) error {
 	panic("method not implemented")
 }
 
-func (f fakeStorage) MarkUTXOsAsSpent(ctx context.Context, outpoints []*overlay.Outpoint, topic string) error {
+func (f fakeStorage) MarkUTXOsAsSpent(ctx context.Context, outpoints []*overlay.Outpoint, topic string, spendTxid *chainhash.Hash) error {
 	panic("method not implemented")
 }
 

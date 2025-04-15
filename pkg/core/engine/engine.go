@@ -230,7 +230,7 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 			continue
 		}
 		for _, outpoint := range inpoints {
-			if err := e.Storage.MarkUTXOAsSpent(ctx, outpoint, topic); err != nil {
+			if err := e.Storage.MarkUTXOAsSpent(ctx, outpoint, topic, txid); err != nil {
 				if e.PanicOnError {
 					log.Panicln(err)
 				}
@@ -353,14 +353,17 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 			fmt.Println("Consumes updated in ", time.Since(start))
 			start = time.Now()
 		}
-		if err := e.Storage.InsertAppliedTransaction(ctx, &overlay.AppliedTransaction{
-			Txid:  txid,
-			Topic: topic,
-		}); err != nil {
-			if e.PanicOnError {
-				log.Panicln(err)
+		// Update the beef data for the transaction only if it matched the topic. This may be temporary until out-of-order process is solved for certain topics
+		if len(admit.OutputsToAdmit) > 0 {
+			if err := e.Storage.InsertAppliedTransaction(ctx, &overlay.AppliedTransaction{
+				Txid:  txid,
+				Topic: topic,
+			}); err != nil {
+				if e.PanicOnError {
+					log.Panicln(err)
+				}
+				return nil, err
 			}
-			return nil, err
 		}
 		if e.Verbose {
 			fmt.Println("Applied in", time.Since(start))
