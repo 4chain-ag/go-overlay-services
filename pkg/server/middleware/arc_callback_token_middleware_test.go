@@ -12,10 +12,10 @@ import (
 
 func TestARCCallbackTokenMiddleware(t *testing.T) {
 	tests := map[string]struct {
-		setupRequest         func(r *http.Request)
-		expectedStatus       int
+		setupRequest          func(r *http.Request)
+		expectedStatus        int
 		expectedCallbackToken string
-		expectedResponse     middleware.FailureResponse
+		expectedResponse      middleware.FailureResponse
 	}{
 		"should succeed with 200 when ARC callback token matches the configured key": {
 			setupRequest: func(r *http.Request) {
@@ -33,7 +33,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 			expectedResponse:      middleware.EndpointNotSupportedResponse,
 		},
 		"should fail with 401 when Authorization header is missing": {
-			setupRequest: func(r *http.Request) {},
+			setupRequest:          func(r *http.Request) {},
 			expectedStatus:        http.StatusUnauthorized,
 			expectedCallbackToken: "valid-token",
 			expectedResponse:      middleware.MissingAuthHeaderResponse,
