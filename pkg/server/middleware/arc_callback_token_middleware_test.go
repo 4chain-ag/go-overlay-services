@@ -10,24 +10,57 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: Implement missing test cases..
 func TestARCCallbackTokenMiddleware(t *testing.T) {
 	tests := map[string]struct {
-		actutalToken          string
-		expectedStatus        int
+		setupRequest         func(r *http.Request)
+		expectedStatus       int
 		expectedCallbackToken string
-		expectedResponse      middleware.MiddlewareFailureResponse
+		expectedResponse     middleware.FailureResponse
 	}{
-		"should success with 200 when ARC callback token matches to the configured key": {
+		"should succeed with 200 when ARC callback token matches the configured key": {
+			setupRequest: func(r *http.Request) {
+				r.Header.Set("Authorization", "Bearer 234c13dd-db82-48a5-bb5d-69381aa5478a")
+			},
 			expectedStatus:        http.StatusOK,
-			actutalToken:          "234c13dd-db82-48a5-bb5d-69381aa5478a",
 			expectedCallbackToken: "234c13dd-db82-48a5-bb5d-69381aa5478a",
 		},
 		"should fail with 404 when ARC callback token is not configured": {
+			setupRequest: func(r *http.Request) {
+				r.Header.Set("Authorization", "Bearer 7c3c81fa-f732-4e48-b088-7d29ec0bd3bf")
+			},
 			expectedStatus:        http.StatusNotFound,
-			actutalToken:          "7c3c81fa-f732-4e48-b088-7d29ec0bd3bf",
 			expectedCallbackToken: "",
 			expectedResponse:      middleware.EndpointNotSupportedResponse,
+		},
+		"should fail with 401 when Authorization header is missing": {
+			setupRequest: func(r *http.Request) {},
+			expectedStatus:        http.StatusUnauthorized,
+			expectedCallbackToken: "valid-token",
+			expectedResponse:      middleware.MissingAuthHeaderResponse,
+		},
+		"should fail with 401 when Authorization header doesn't have Bearer prefix": {
+			setupRequest: func(r *http.Request) {
+				r.Header.Set("Authorization", "Token 7c3c81fa-f732-4e48-b088-7d29ec0bd3bf")
+			},
+			expectedStatus:        http.StatusUnauthorized,
+			expectedCallbackToken: "valid-token",
+			expectedResponse:      middleware.MissingAuthHeaderValueResponse,
+		},
+		"should fail with 401 when Authorization header has Bearer prefix but no token": {
+			setupRequest: func(r *http.Request) {
+				r.Header.Set("Authorization", "Bearer ")
+			},
+			expectedStatus:        http.StatusUnauthorized,
+			expectedCallbackToken: "valid-token",
+			expectedResponse:      middleware.MissingAuthHeaderValueResponse,
+		},
+		"should fail with 403 when token doesn't match expected token": {
+			setupRequest: func(r *http.Request) {
+				r.Header.Set("Authorization", "Bearer wrong-token")
+			},
+			expectedStatus:        http.StatusForbidden,
+			expectedCallbackToken: "valid-token",
+			expectedResponse:      middleware.InvalidBearerTokenValueResponse,
 		},
 	}
 
@@ -44,8 +77,8 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 			require.NoError(t, err)
 
-			if tc.actutalToken != "" {
-				req.Header.Set("Authorization", "Bearer "+tc.actutalToken)
+			if tc.setupRequest != nil {
+				tc.setupRequest(req)
 			}
 
 			// when:
@@ -58,7 +91,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 			require.Equal(t, tc.expectedStatus, resp.StatusCode)
 
 			if resp.StatusCode != http.StatusOK {
-				var actual middleware.MiddlewareFailureResponse
+				var actual middleware.FailureResponse
 				require.NoError(t, jsonutil.DecodeResponseBody(resp, &actual))
 				require.Equal(t, tc.expectedResponse, actual)
 			}
