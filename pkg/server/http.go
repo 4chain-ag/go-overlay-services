@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	net "net/http" //TODO: remove once implementing arc-ingest handler code.
 	"os"
 	"os/signal"
 	"strings"
@@ -41,8 +40,8 @@ type Config struct {
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
 
-	// ARC is the token required to access the /arc-ingest endpoint.
-	ARC string `mapstructure:"arc"`
+	// ARC is the API token required to access the /arc-ingest endpoint.
+	ArcAPIKey string `mapstructure:"arc_api_key"`
 }
 
 // DefaultConfig provides a default configuration with reasonable values for local development.
@@ -52,7 +51,7 @@ var DefaultConfig = Config{
 	Addr:             "localhost",
 	ServerHeader:     "Overlay API",
 	AdminBearerToken: uuid.NewString(),
-	ARC:              "",
+	ArcAPIKey:        uuid.NewString(),
 }
 
 // HTTPOption defines a functional option for configuring an HTTP server.
@@ -91,12 +90,12 @@ func WithConfig(cfg *Config) HTTPOption {
 }
 
 // WithEngine sets the overlay engine provider for the HTTP server.
-func WithEngine(engineProvider engine.OverlayEngineProvider) HTTPOption {
+func WithEngine(engineProvider engine.OverlayEngineProvider, arcAPIKey string) HTTPOption {
 	return func(h *HTTP) error {
 		if engineProvider == nil {
 			return fmt.Errorf("engine provider is nil")
 		}
-		overlayAPI, err := app.New(engineProvider)
+		overlayAPI, err := app.New(engineProvider, arcAPIKey)
 		if err != nil {
 			return fmt.Errorf("failed to create overlay API: %w", err)
 		}
@@ -171,7 +170,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	}
 
 	if http.api == nil {
-		overlayAPI, err := app.New(NewNoopEngineProvider())
+		overlayAPI, err := app.New(NewNoopEngineProvider(), http.cfg.ArcAPIKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create overlay API: %w", err)
 		}
@@ -187,15 +186,14 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	v1.Get("/getDocumentationForTopicManager", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
 	v1.Get("/getDocumentationForLookupServiceProvider", SafeHandler(http.api.Queries.LookupServiceDocumentationHandler.Handle))
 	v1.Get("/listLookupServiceProviders", SafeHandler(http.api.Queries.LookupServicesListHandler.Handle))
+	v1.Get("/listTopicManagers", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
+
 	v1.Post("/submit", SafeHandler(http.api.Commands.SubmitTransactionHandler.Handle))
 	v1.Post("/lookup", SafeHandler(http.api.Commands.LookupQuestionHandler.Handle))
-	v1.Get("/listTopicManagers", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
 	v1.Post("/requestSyncResponse", SafeHandler(http.api.Commands.RequestSyncResponseHandler.Handle))
 	v1.Post("/requestForeignGASPNode", SafeHandler(http.api.Commands.RequestForeignGASPNodeHandler.Handle))
-	v1.Post("/arc-ingest", adaptor.HTTPMiddleware(ARCAuth(http.cfg.ARC)), SafeHandler(func(w net.ResponseWriter, r *net.Request) {
-		// TODO: Replace with real ARC ingestion logic - http.api.Commands.ArcIngestHandler.Handle
-		jsonutil.SendHTTPResponse(w, net.StatusOK, map[string]string{"status": "ARC ingest successful"})
-	}))
+	v1.Post("/arc-ingest", SafeHandler(http.api.Commands.ARCIngestHandler.Handle))
+
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
 	http.AdminRouter = admin
@@ -255,27 +253,6 @@ func AdminAuth(expectedToken string) func(http.Handler) http.Handler {
 				return
 			}
 
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-// ARCAuth verifies that the ARC key is set in configuration before allowing requests.
-func ARCAuth(arc string) func(http.Handler) http.Handler {
-	type FailureResponse struct {
-		Status  string `json:"error"`
-		Message string `json:"message"`
-	}
-
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if arc == "" {
-				jsonutil.SendHTTPResponse(w, http.StatusBadRequest, FailureResponse{
-					Status:  http.StatusText(http.StatusBadRequest),
-					Message: "Arc-ingest endpoint not configured",
-				})
-				return
-			}
 			next.ServeHTTP(w, r)
 		})
 	}
