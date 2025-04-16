@@ -14,6 +14,7 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/jsonutil"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -40,8 +41,8 @@ type Config struct {
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
 
-	// ARC is the API token required to access the /arc-ingest endpoint.
-	ArcAPIKey string `mapstructure:"arc_api_key"`
+	// ArcCallbackToken is the token required to access the /arc-ingest endpoint.
+	ArcCallbackToken string `mapstructure:"arc_api_key"`
 }
 
 // DefaultConfig provides a default configuration with reasonable values for local development.
@@ -51,7 +52,7 @@ var DefaultConfig = Config{
 	Addr:             "localhost",
 	ServerHeader:     "Overlay API",
 	AdminBearerToken: uuid.NewString(),
-	ArcAPIKey:        uuid.NewString(),
+	ArcCallbackToken: uuid.NewString(),
 }
 
 // HTTPOption defines a functional option for configuring an HTTP server.
@@ -170,7 +171,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	}
 
 	if http.api == nil {
-		overlayAPI, err := app.New(NewNoopEngineProvider(), http.cfg.ArcAPIKey)
+		overlayAPI, err := app.New(NewNoopEngineProvider(), http.cfg.ArcCallbackToken)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create overlay API: %w", err)
 		}
@@ -192,7 +193,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	v1.Post("/lookup", SafeHandler(http.api.Commands.LookupQuestionHandler.Handle))
 	v1.Post("/requestSyncResponse", SafeHandler(http.api.Commands.RequestSyncResponseHandler.Handle))
 	v1.Post("/requestForeignGASPNode", SafeHandler(http.api.Commands.RequestForeignGASPNodeHandler.Handle))
-	v1.Post("/arc-ingest", SafeHandler(http.api.Commands.ARCIngestHandler.Handle))
+	v1.Post("/arc-ingest", adaptor.HTTPMiddleware(middleware.ARCCallbackTokenMiddleware(http.cfg.ArcCallbackToken)), SafeHandler(http.api.Commands.ARCIngestHandler.Handle))
 
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
