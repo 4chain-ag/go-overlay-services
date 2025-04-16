@@ -6,12 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/commands"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/commands/testutil"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/jsonutil"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/transaction"
@@ -19,8 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockMerkleProofProvider bypasses actual merkle path validation for testing purposes.
-type MockMerkleProofProvider struct {
+// stubMerkleProofProvider bypasses actual merkle path validation for testing purposes.
+type stubMerkleProofProvider struct {
 	ExpectedError error
 	WasCalled     bool
 	CalledTxid    *chainhash.Hash
@@ -28,15 +28,12 @@ type MockMerkleProofProvider struct {
 }
 
 // HandleNewMerkleProof just records the call; returns ExpectedError if set.
-func (m *MockMerkleProofProvider) HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error {
+func (m *stubMerkleProofProvider) HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error {
 	m.WasCalled = true
 	m.CalledTxid = txid
 	m.CalledProof = proof
 	return m.ExpectedError
 }
-
-// Verify the type interfaces for the mock.
-var _ commands.NewMerkleProofProvider = (*MockMerkleProofProvider)(nil)
 
 // Test data for merkle proofs
 // BEEF data containing transaction with merkle path information
@@ -45,103 +42,94 @@ const beefTransactionData = "0100beef01fef4f10c000902fd020100ab2d9b3bbfc2ecf5c83
 // Valid txid data containing transaction with merkle path information
 const validTestTxid = "27c8f37851aabc468d3dbb6bf0789dc398a602dcb897ca04e7815d939d621595"
 
-// Calculate merkle path from transaction
-func getMerklePathFromTransaction() (string, error) {
-	beefBytes, err := hex.DecodeString(beefTransactionData)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode BEEF data: %w", err)
-	}
-	tx, err := transaction.NewTransactionFromBEEF(beefBytes)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse transaction: %w", err)
-	}
-	return tx.MerklePath.Hex(), nil
-}
-
 // Get the valid merkle path for tests
 func getValidTestMerklePath(t *testing.T) string {
 	t.Helper()
-	path, err := getMerklePathFromTransaction()
-	if err != nil {
-		t.Fatalf("Failed to get merkle path: %v", err)
-	}
-	return path
+
+	bb, err := hex.DecodeString(beefTransactionData)
+	require.NoError(t, err)
+	require.NotEmpty(t, bb)
+
+	tx, err := transaction.NewTransactionFromBEEF(bb)
+	require.NoError(t, err)
+	require.NotNil(t, tx)
+
+	return tx.MerklePath.Hex()
 }
 
-// newTestArcIngestHandler is a helper to create the ArcIngestHandler with a mock provider.
-func newTestArcIngestHandler(provider commands.NewMerkleProofProvider, opts ...commands.ArcIngestHandlerOption) (*commands.ArcIngestHandler, error) {
-	return commands.NewArcIngestHandler(provider, opts...)
-}
+func Test_ArcIngestHandler_ShouldRespondsWith200AndCallsProvider(t *testing.T) {
+	// given:
+	stub := &stubMerkleProofProvider{ExpectedError: nil}
+	handler, err := commands.NewArcIngestHandler(stub)
 
-// TestArcIngestHandler_Handle_SuccessfulRequest verifies that a valid request
-// returns 200 OK and calls the provider with the correct parameters.
-func TestArcIngestHandler_Handle_SuccessfulRequest(t *testing.T) {
-	// Given:
-	mock := &MockMerkleProofProvider{ExpectedError: nil}
-	handler, err := newTestArcIngestHandler(mock)
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
 
-	requestBody := commands.ArcIngestRequest{
+	payload := commands.ArcIngestRequest{
 		Txid:        validTestTxid,
 		MerklePath:  getValidTestMerklePath(t),
 		BlockHeight: 848372,
 	}
 
-	bodyBytes, err := json.Marshal(requestBody)
-	require.NoError(t, err)
-	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest(http.MethodPost, ts.URL, testutil.RequestBody(t, payload))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-	// Then:
+	// then:
 	require.Equal(t, http.StatusOK, res.StatusCode)
+
 	var response commands.ArcIngestHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &response))
 	assert.Equal(t, "success", response.Status)
+
 	assert.Equal(t, "Transaction status updated", response.Message)
-	assert.True(t, mock.WasCalled, "Provider should have been called on a valid request")
-	require.NotNil(t, mock.CalledTxid)
-	require.NotNil(t, mock.CalledProof)
-	assert.Equal(t, requestBody.BlockHeight, mock.CalledProof.BlockHeight)
+	assert.True(t, stub.WasCalled, "Provider should have been called on a valid request")
+	require.NotNil(t, stub.CalledTxid)
+	require.NotNil(t, stub.CalledProof)
+
+	assert.Equal(t, payload.BlockHeight, stub.CalledProof.BlockHeight)
 }
 
 // TestArcIngestHandler_Handle_InvalidMethod ensures that non-POST methods are rejected.
 func TestArcIngestHandler_Handle_InvalidMethod(t *testing.T) {
-	// Given:
-	mock := &MockMerkleProofProvider{ExpectedError: nil}
-	handler, err := newTestArcIngestHandler(mock)
+	// given:
+	stub := &stubMerkleProofProvider{ExpectedError: nil}
+	handler, err := commands.NewArcIngestHandler(stub)
 	require.NoError(t, err)
+	require.NotNil(t, handler)
+
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
+
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	require.NoError(t, err)
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-	// Then:
+	// then:
 	require.Equal(t, http.StatusMethodNotAllowed, res.StatusCode)
 	var response commands.ArcIngestHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &response))
+
 	assert.Equal(t, "error", response.Status)
-	assert.Equal(t, commands.ErrArcIngestInvalidHTTPMethod.Error(), response.Message)
-	assert.False(t, mock.WasCalled, "Provider should not be called for invalid method")
+	assert.Equal(t, commands.ErrInvalidHTTPMethod.Error(), response.Message)
+	assert.False(t, stub.WasCalled, "Provider should not be called for invalid method")
 }
 
 // TestArcIngestHandler_Handle_InvalidRequestBody checks if a non-JSON body triggers an error.
 func TestArcIngestHandler_Handle_InvalidRequestBody(t *testing.T) {
-	// Given:
-	mock := &MockMerkleProofProvider{ExpectedError: nil}
-	handler, err := newTestArcIngestHandler(mock)
+	// given:
+	stub := &stubMerkleProofProvider{ExpectedError: nil}
+	handler, err := commands.NewArcIngestHandler(stub)
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
@@ -149,26 +137,26 @@ func TestArcIngestHandler_Handle_InvalidRequestBody(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-	// Then:
+	// then:
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	var response commands.ArcIngestHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &response))
 	assert.Equal(t, "error", response.Status)
 	assert.Contains(t, response.Message, "invalid request body")
-	assert.False(t, mock.WasCalled, "Provider should not be called if JSON is invalid")
+	assert.False(t, stub.WasCalled, "Provider should not be called if JSON is invalid")
 }
 
 // TestArcIngestHandler_Handle_MissingRequiredFields ensures if Txid or MerklePath
 // is empty, we return 400 and do not call the provider.
 func TestArcIngestHandler_Handle_MissingRequiredFields(t *testing.T) {
-	// Given:
-	mock := &MockMerkleProofProvider{}
-	handler, err := newTestArcIngestHandler(mock)
+	// given:
+	stub := &stubMerkleProofProvider{}
+	handler, err := commands.NewArcIngestHandler(stub)
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
@@ -185,27 +173,27 @@ func TestArcIngestHandler_Handle_MissingRequiredFields(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-	// Then:
+	// then:
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	var response commands.ArcIngestHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &response))
 	assert.Equal(t, "error", response.Status)
 	assert.Equal(t, commands.ErrMissingRequiredFields.Error(), response.Message)
-	assert.False(t, mock.WasCalled, "Provider should not be called when required fields are missing")
+	assert.False(t, stub.WasCalled, "Provider should not be called when required fields are missing")
 }
 
 // TestArcIngestHandler_Handle_EngineError ensures that if the provider returns an error,
 // it surfaces as a 500 "Failed to process merkle proof."
 func TestArcIngestHandler_Handle_EngineError(t *testing.T) {
-	// Given:
+	// given:
 	expectedErr := errors.New("merkle proof processing error")
-	mock := &MockMerkleProofProvider{ExpectedError: expectedErr}
-	handler, err := newTestArcIngestHandler(mock)
+	stub := &stubMerkleProofProvider{ExpectedError: expectedErr}
+	handler, err := commands.NewArcIngestHandler(stub)
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
@@ -222,24 +210,24 @@ func TestArcIngestHandler_Handle_EngineError(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-	// Then:
+	// then:
 	require.Equal(t, http.StatusInternalServerError, res.StatusCode)
 	var response commands.ArcIngestHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &response))
 	assert.Equal(t, "error", response.Status)
 	assert.Contains(t, response.Message, "Failed to process merkle proof")
-	assert.True(t, mock.WasCalled, "Provider should be called on valid request despite returning error")
+	assert.True(t, stub.WasCalled, "Provider should be called on valid request despite returning error")
 }
 
 // TestArcIngestHandler_Handle_InvalidTxidFormat verifies that a non-hex or wrong-length TxID returns 400.
 func TestArcIngestHandler_Handle_InvalidTxidFormat(t *testing.T) {
-	mock := &MockMerkleProofProvider{}
-	handler, err := newTestArcIngestHandler(mock)
+	stub := &stubMerkleProofProvider{}
+	handler, err := commands.NewArcIngestHandler(stub)
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
@@ -257,23 +245,25 @@ func TestArcIngestHandler_Handle_InvalidTxidFormat(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-	// Then:
+	// then:
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
+
 	var response commands.ArcIngestHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &response))
+
 	assert.Equal(t, "error", response.Status)
-	assert.Contains(t, response.Message, "invalid txid format")
-	assert.False(t, mock.WasCalled, "Provider should not be called if TxID is invalid")
+	assert.Contains(t, response.Message, "invalid TxID format")
+	assert.False(t, stub.WasCalled, "Provider should not be called if TxID is invalid")
 }
 
 func TestArcIngestHandler_Handle_InvalidTxidLength(t *testing.T) {
-	mock := &MockMerkleProofProvider{}
-	handler, err := newTestArcIngestHandler(mock)
+	stub := &stubMerkleProofProvider{}
+	handler, err := commands.NewArcIngestHandler(stub)
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
@@ -291,25 +281,25 @@ func TestArcIngestHandler_Handle_InvalidTxidLength(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-	// Then:
+	// then:
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	var response commands.ArcIngestHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &response))
 	assert.Equal(t, "error", response.Status)
-	assert.Contains(t, response.Message, "invalid txid format")
-	assert.False(t, mock.WasCalled, "Provider should not be called if TxID length is invalid")
+	assert.Contains(t, response.Message, "invalid TxID format")
+	assert.False(t, stub.WasCalled, "Provider should not be called if TxID length is invalid")
 }
 
 // TestArcIngestHandler_Handle_InvalidMerklePathFormat checks that if the merkle path
 // fails to decode from hex, we get a 400 error.
 func TestArcIngestHandler_Handle_InvalidMerklePathFormat(t *testing.T) {
-	mock := &MockMerkleProofProvider{}
-	handler, err := newTestArcIngestHandler(mock)
+	stub := &stubMerkleProofProvider{}
+	handler, err := commands.NewArcIngestHandler(stub)
 	require.NoError(t, err)
 	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 	defer ts.Close()
@@ -327,16 +317,16 @@ func TestArcIngestHandler_Handle_InvalidMerklePathFormat(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
-	// Then:
+	// then:
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	var response commands.ArcIngestHandlerResponse
 	require.NoError(t, jsonutil.DecodeResponseBody(res, &response))
 	assert.Equal(t, "error", response.Status)
-	assert.Contains(t, response.Message, "invalid merkle path format")
-	assert.False(t, mock.WasCalled)
+	assert.Contains(t, response.Message, "invalid Merkle path format")
+	assert.False(t, stub.WasCalled)
 }

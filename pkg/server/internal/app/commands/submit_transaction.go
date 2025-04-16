@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -18,9 +17,6 @@ import (
 // XTopicsHeader defines the HTTP header key used for specifying transaction topics.
 const XTopicsHeader = "x-topics"
 
-// RequestBodyLimit1GB defines the maximum allowed size for request bodies (1GB).
-const RequestBodyLimit1GB = 1000 * 1024 * 1024
-
 var (
 	// ErrMissingXTopicsHeader is returned when the required x-topics header is missing.
 	ErrMissingXTopicsHeader = errors.New("missing x-topics header")
@@ -30,12 +26,6 @@ var (
 
 	// ErrInvalidHTTPMethod is returned when an unsupported HTTP method is used.
 	ErrInvalidHTTPMethod = errors.New("invalid HTTP method")
-
-	// ErrRequestBodyRead is returned when there's an error reading the request body.
-	ErrRequestBodyRead = errors.New("failed to read request body")
-
-	// ErrRequestBodyTooLarge is returned when the request body exceeds the size limit.
-	ErrRequestBodyTooLarge = errors.New("request body too large")
 )
 
 // SubmitTransactionHandlerResponse defines the response body content that
@@ -60,7 +50,7 @@ type SubmitTransactionHandler struct {
 	responseTimeout  time.Duration
 }
 
-func (s *SubmitTransactionHandler) createTaggedBEEF(body io.ReadCloser, header http.Header) (*overlay.TaggedBEEF, error) {
+func (s *SubmitTransactionHandler) createTaggedBEEF(body io.Reader, header http.Header) (*overlay.TaggedBEEF, error) {
 	actual := header.Get(XTopicsHeader)
 	if actual == "" {
 		return nil, ErrMissingXTopicsHeader
@@ -82,33 +72,17 @@ func (s *SubmitTransactionHandler) createTaggedBEEF(body io.ReadCloser, header h
 		return nil, ErrInvalidXTopicsHeaderFormat
 	}
 
-	reader := io.LimitReader(body, s.requestBodyLimit+1)
-	buff := make([]byte, 64*1024)
-	var dst bytes.Buffer
-	var bytesRead int64
-
-	for {
-		n, err := reader.Read(buff)
-		if n > 0 {
-			bytesRead += int64(n)
-			if bytesRead > s.requestBodyLimit {
-				return nil, ErrRequestBodyTooLarge
-			}
-
-			if _, inner := dst.Write(buff[:n]); inner != nil {
-				return nil, ErrRequestBodyRead
-			}
-		}
-
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return nil, ErrRequestBodyRead
-		}
+	reader := jsonutil.BodyReader{
+		Body:      body,
+		ReadLimit: s.requestBodyLimit,
 	}
 
-	return &overlay.TaggedBEEF{Beef: dst.Bytes(), Topics: topics}, nil
+	bb, err := reader.Read()
+	if err != nil {
+		return nil, fmt.Errorf("body reader failure: %w", err)
+	}
+
+	return &overlay.TaggedBEEF{Beef: bb, Topics: topics}, nil
 }
 
 // Handle orchestrates the processing flow of a transaction. It prepares and
@@ -121,8 +95,8 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	}
 
 	taggedBEEF, err := s.createTaggedBEEF(r.Body, r.Header)
-	if errors.Is(err, ErrRequestBodyTooLarge) {
-		http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
+	if errors.Is(err, jsonutil.ErrRequestBodyTooLarge) {
+		http.Error(w, jsonutil.ErrRequestBodyTooLarge.Error(), http.StatusRequestEntityTooLarge)
 		return
 	}
 	if err != nil {
@@ -131,6 +105,8 @@ func (s *SubmitTransactionHandler) Handle(w http.ResponseWriter, r *http.Request
 	}
 
 	steakChan := make(chan *overlay.Steak, 1)
+	defer close(steakChan)
+
 	_, err = s.provider.Submit(r.Context(), *taggedBEEF, engine.SubmitModeCurrent, func(steak *overlay.Steak) {
 		steakChan <- steak
 	})
@@ -174,7 +150,7 @@ func NewSubmitTransactionCommandHandler(provider SubmitTransactionProvider, opts
 
 	h := SubmitTransactionHandler{
 		provider:         provider,
-		requestBodyLimit: RequestBodyLimit1GB,
+		requestBodyLimit: jsonutil.RequestBodyLimit1GB,
 		responseTimeout:  10 * time.Second,
 	}
 	for _, o := range opts {

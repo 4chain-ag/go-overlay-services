@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,7 +20,7 @@ import (
 )
 
 func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
-	// Given:
+	// given:
 	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
 			OutputsToAdmit: []uint32{1},
@@ -43,10 +44,10 @@ func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(commands.XTopicsHeader, topics)
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 
-	// Then:
+	// then:
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, http.StatusOK, res.StatusCode)
@@ -57,7 +58,7 @@ func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
 }
 
 func TestSubmitTransactionHandler_Handle_InvalidMethod(t *testing.T) {
-	// Given:
+	// given:
 	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
 			OutputsToAdmit: []uint32{1},
@@ -73,10 +74,10 @@ func TestSubmitTransactionHandler_Handle_InvalidMethod(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	require.NoError(t, err)
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 
-	// Then:
+	// then:
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, http.StatusMethodNotAllowed, res.StatusCode)
@@ -87,7 +88,7 @@ func TestSubmitTransactionHandler_Handle_InvalidMethod(t *testing.T) {
 }
 
 func TestSubmitTransactionHandler_Handle_MissingTopicsHeader(t *testing.T) {
-	// Given:
+	// given:
 	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
 			OutputsToAdmit: []uint32{1},
@@ -105,10 +106,10 @@ func TestSubmitTransactionHandler_Handle_MissingTopicsHeader(t *testing.T) {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 
-	// Then:
+	// then:
 	require.NoError(t, err)
 	defer res.Body.Close()
 
@@ -120,7 +121,7 @@ func TestSubmitTransactionHandler_Handle_MissingTopicsHeader(t *testing.T) {
 }
 
 func TestSubmitTransactionHandler_Handle_InvalidTopicsFormat(t *testing.T) {
-	// Given:
+	// given:
 	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
 			OutputsToAdmit: []uint32{1},
@@ -140,10 +141,10 @@ func TestSubmitTransactionHandler_Handle_InvalidTopicsFormat(t *testing.T) {
 	// Empty topic results in invalid format
 	req.Header.Set(commands.XTopicsHeader, "  ,  ,")
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 
-	// Then:
+	// then:
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
@@ -154,7 +155,7 @@ func TestSubmitTransactionHandler_Handle_InvalidTopicsFormat(t *testing.T) {
 }
 
 func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
-	// Given:
+	// given:
 	mock := testutil.NewSubmitTransactionProviderAlwaysFailure(errors.New("internal"))
 	handler, err := commands.NewSubmitTransactionCommandHandler(mock)
 	require.NoError(t, err)
@@ -171,10 +172,10 @@ func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(commands.XTopicsHeader, topics)
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 
-	// Then:
+	// then:
 	require.NoError(t, err)
 	defer res.Body.Close()
 
@@ -188,8 +189,7 @@ func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
 
 func TestSubmitTransactionHandler_Handle_RequestTooLarge(t *testing.T) {
 	tests := []struct {
-		name string
-
+		name                   string
 		requestBodyLimit       int64
 		requestBody            string
 		expectedHTTPStatusCode int
@@ -200,7 +200,7 @@ func TestSubmitTransactionHandler_Handle_RequestTooLarge(t *testing.T) {
 			requestBodyLimit:       10,
 			requestBody:            "abcdefghijklmnoprst",
 			expectedHTTPStatusCode: http.StatusRequestEntityTooLarge,
-			expectedErr:            commands.ErrRequestBodyTooLarge,
+			expectedErr:            jsonutil.ErrRequestBodyTooLarge,
 		},
 		{
 			name:                   "request with body size less than server limit",
@@ -215,6 +215,10 @@ func TestSubmitTransactionHandler_Handle_RequestTooLarge(t *testing.T) {
 			expectedHTTPStatusCode: http.StatusOK,
 		},
 	}
+
+	rand.Shuffle(len(tests), func(i, j int) {
+		tests[i], tests[j] = tests[j], tests[i]
+	})
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -262,7 +266,7 @@ func TestSubmitTransactionHandler_Handle_RequestTooLarge(t *testing.T) {
 }
 
 func TestSubmitTransactionHandler_Handle_Timeout(t *testing.T) {
-	// Given:
+	// given:
 	handler, err := commands.NewSubmitTransactionCommandHandler(
 		&testutil.SubmitTransactionProviderNeverCallback{},
 		commands.WithResponseTime(2*time.Second),
@@ -281,20 +285,20 @@ func TestSubmitTransactionHandler_Handle_Timeout(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(commands.XTopicsHeader, topics)
 
-	// When:
+	// when:
 	res, err := ts.Client().Do(req)
 
-	// Then:
+	// then:
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, http.StatusRequestTimeout, res.StatusCode)
 }
 
 func TestNewSubmitTransactionCommandHandler_WithNilProvider(t *testing.T) {
-	// When:
+	// when:
 	handler, err := commands.NewSubmitTransactionCommandHandler(nil)
 
-	// Then:
+	// then:
 	assert.Nil(t, handler)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "submit transaction provider is nil")
