@@ -107,11 +107,11 @@ func (f fakeStorage) UpdateOutputBlockHeight(ctx context.Context, outpoint *over
 }
 
 type fakeManager struct {
-	identifyAdmissableOutputsFunc func(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error)
+	identifyAdmissableOutputsFunc func(ctx context.Context, beef []byte, previousCoins map[uint32][]byte) (overlay.AdmittanceInstructions, error)
 	identifyNeededInputsFunc      func(ctx context.Context, beef []byte) ([]*overlay.Outpoint, error)
 }
 
-func (f fakeManager) IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error) {
+func (f fakeManager) IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins map[uint32][]byte) (overlay.AdmittanceInstructions, error) {
 	if f.identifyAdmissableOutputsFunc != nil {
 		return f.identifyAdmissableOutputsFunc(ctx, beef, previousCoins)
 	}
