@@ -225,7 +225,7 @@ func (f fakeAdvertiser) ParseAdvertisement(script *script.Script) (*advertiser.A
 
 type fakeTopicManager struct{}
 
-func (fakeTopicManager) IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error) {
+func (fakeTopicManager) IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins map[uint32][]byte) (overlay.AdmittanceInstructions, error) {
 	return overlay.AdmittanceInstructions{}, nil
 }
 func (fakeTopicManager) IdentifyNeededInputs(ctx context.Context, beef []byte) ([]*overlay.Outpoint, error) {
