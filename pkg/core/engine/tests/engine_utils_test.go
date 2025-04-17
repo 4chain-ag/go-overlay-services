@@ -2,12 +2,15 @@ package engine_test
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"testing"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/core/advertiser"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
+	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/bsv-blockchain/go-sdk/script"
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/stretchr/testify/require"
@@ -24,6 +27,7 @@ type fakeStorage struct {
 	insertAppliedTransactionFunc    func(ctx context.Context, tx *overlay.AppliedTransaction) error
 	updateConsumedByFunc            func(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error
 	deleteOutputFunc                func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
+	findUTXOsForTopicFunc           func(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error)
 }
 
 func (f fakeStorage) FindOutput(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error) {
@@ -80,7 +84,10 @@ func (f fakeStorage) FindOutputsForTransaction(ctx context.Context, txid *chainh
 }
 
 func (f fakeStorage) FindUTXOsForTopic(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error) {
-	panic("func not defined")
+	if f.findUTXOsForTopicFunc != nil {
+		return f.findUTXOsForTopicFunc(ctx, topic, since, includeBEEF)
+	}
+	return nil, errFakeStorage
 }
 
 func (f fakeStorage) DeleteOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic string) error {
@@ -198,6 +205,94 @@ func (f fakeBroadcasterFail) BroadcastCtx(ctx context.Context, tx *transaction.T
 	panic("BroadcastCtx not defined")
 }
 
+var errFakeLookup = errors.New("lookup error")
+
+type fakeLookupService struct {
+	lookupFunc func(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error)
+}
+
+func (f fakeLookupService) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
+	if f.lookupFunc != nil {
+		return f.lookupFunc(ctx, question)
+	}
+	return nil, errors.New("lookup not implemented")
+}
+
+func (f fakeLookupService) OutputAdded(context.Context, *overlay.Outpoint, string, []byte) error {
+	return nil
+}
+
+func (f fakeLookupService) OutputSpent(context.Context, *overlay.Outpoint, string, []byte) error {
+	return nil
+}
+
+func (f fakeLookupService) OutputDeleted(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+	return nil
+}
+
+func (f fakeLookupService) OutputBlockHeightUpdated(ctx context.Context, outpoint *overlay.Outpoint, blockHeight uint32, blockIndex uint64) error {
+	return nil
+}
+
+func (f fakeLookupService) GetDocumentation() string {
+	return ""
+}
+
+func (f fakeLookupService) GetMetaData() *overlay.MetaData {
+	return &overlay.MetaData{}
+}
+
+type fakeAdvertiser struct {
+	findAllAdvertisements     func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error)
+	createAdvertisements      func(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error)
+	revokeAdvertisements      func(data []*advertiser.Advertisement) (overlay.TaggedBEEF, error)
+	parseAdvertisement        func(script *script.Script) (*advertiser.Advertisement, error)
+	findAllAdvertisementsFunc func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error)
+	createAdvertisementsFunc  func(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error)
+	revokeAdvertisementsFunc  func(data []*advertiser.Advertisement) (overlay.TaggedBEEF, error)
+	parseAdvertisementFunc    func(script *script.Script) (*advertiser.Advertisement, error)
+}
+
+func (f fakeAdvertiser) FindAllAdvertisements(protocol overlay.Protocol) ([]*advertiser.Advertisement, error) {
+	if f.findAllAdvertisements != nil {
+		return f.findAllAdvertisements(protocol)
+	}
+	return nil, nil
+}
+func (f fakeAdvertiser) CreateAdvertisements(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error) {
+	if f.createAdvertisements != nil {
+		return f.createAdvertisements(data)
+	}
+	return overlay.TaggedBEEF{}, nil
+}
+func (f fakeAdvertiser) RevokeAdvertisements(data []*advertiser.Advertisement) (overlay.TaggedBEEF, error) {
+	if f.revokeAdvertisements != nil {
+		return f.revokeAdvertisements(data)
+	}
+	return overlay.TaggedBEEF{}, nil
+}
+func (f fakeAdvertiser) ParseAdvertisement(script *script.Script) (*advertiser.Advertisement, error) {
+	if f.parseAdvertisement != nil {
+		return f.parseAdvertisement(script)
+	}
+	return nil, nil
+}
+
+type fakeTopicManager struct{}
+
+func (fakeTopicManager) IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins map[uint32][]byte) (overlay.AdmittanceInstructions, error) {
+	return overlay.AdmittanceInstructions{}, nil
+}
+func (fakeTopicManager) IdentifyNeededInputs(ctx context.Context, beef []byte) ([]*overlay.Outpoint, error) {
+	return nil, nil
+}
+func (fakeTopicManager) GetMetaData() *overlay.MetaData {
+	return &overlay.MetaData{}
+}
+func (fakeTopicManager) GetDocumentation() string {
+	return ""
+}
+
 // helper function to create a dummy BEEF transaction
 // This function creates a dummy BEEF transaction with a single output and no inputs.
 // It returns the serialized bytes of the BEEF transaction.
@@ -261,6 +356,13 @@ func createDummyValidTaggedBEEF(t *testing.T) (overlay.TaggedBEEF, *chainhash.Ha
 	require.NoError(t, err)
 
 	return overlay.TaggedBEEF{Topics: []string{"test-topic"}, Beef: beefBytes}, prevTxID
+}
+
+func fakeTxID() chainhash.Hash {
+	b, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	var h chainhash.Hash
+	copy(h[:], b)
+	return h
 }
 
 // createDummyBeefWithInputs creates a dummy BEEF transaction with inputs for testing.
