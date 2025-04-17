@@ -33,7 +33,7 @@ func TestEngine_ProvideForeignGASPNode_Success(t *testing.T) {
 	}
 
 	// when:
-	node, err := sut.ProvideForeignGASPNode(ctx, graphID, outpoint)
+	node, err := sut.ProvideForeignGASPNode(ctx, graphID, outpoint, "test-topic")
 
 	// then:
 	require.NoError(t, err)
@@ -55,7 +55,7 @@ func TestEngine_ProvideForeignGASPNode_MissingBeef_ShouldReturnError(t *testing.
 	}
 
 	// when:
-	node, err := sut.ProvideForeignGASPNode(ctx, graphID, outpoint)
+	node, err := sut.ProvideForeignGASPNode(ctx, graphID, outpoint, "test-topic")
 
 	// then:
 	require.ErrorIs(t, err, engine.ErrMissingInput)
@@ -78,7 +78,7 @@ func TestEngine_ProvideForeignGASPNode_CannotFindOutput_ShouldReturnError(t *tes
 	}
 
 	// when:
-	node, err := sut.ProvideForeignGASPNode(ctx, graphID, outpoint)
+	node, err := sut.ProvideForeignGASPNode(ctx, graphID, outpoint, "test-topic")
 
 	// then:
 	require.ErrorIs(t, err, expectedErr)
@@ -100,7 +100,7 @@ func TestEngine_ProvideForeignGASPNode_TransactionNotFound_ShouldReturnError(t *
 	}
 
 	// when:
-	node, err := sut.ProvideForeignGASPNode(ctx, graphID, outpoint)
+	node, err := sut.ProvideForeignGASPNode(ctx, graphID, outpoint, "test-topic")
 
 	// then:
 	require.ErrorContains(t, err, "invalid-atomic-beef") // temp solution

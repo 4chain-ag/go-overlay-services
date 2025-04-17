@@ -41,8 +41,9 @@ const (
 )
 
 type SyncConfiguration struct {
-	Type  SyncConfigurationType
-	Peers []string
+	Type        SyncConfigurationType
+	Peers       []string
+	Concurrency int
 }
 
 type OnSteakReady func(steak *overlay.Steak)
@@ -179,12 +180,12 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 			continue
 		} else {
 			topicInputs[topic] = make(map[uint32]*Output, len(tx.Inputs))
-			previousCoins := make([]uint32, 0, len(tx.Inputs))
+			previousCoins := make(map[uint32][]byte, len(tx.Inputs))
 			for vin, outpoint := range inpoints {
-				if output, err := e.Storage.FindOutput(ctx, outpoint, &topic, nil, false); err != nil {
+				if output, err := e.Storage.FindOutput(ctx, outpoint, &topic, nil, true); err != nil {
 					return nil, err
 				} else if output != nil {
-					previousCoins = append(previousCoins, uint32(vin))
+					previousCoins[uint32(vin)] = output.Beef
 					topicInputs[topic][uint32(vin)] = output
 				}
 			}
@@ -223,10 +224,7 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 			}
 		}
 	}
-	// if e.Verbose {
-	// 	fmt.Println("Identified in", time.Since(start))
-	// 	start = time.Now()
-	// }
+
 	for _, topic := range taggedBEEF.Topics {
 		if _, ok := dupeTopics[topic]; ok {
 			continue
@@ -240,7 +238,7 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 			} else {
 				for _, l := range e.LookupServices {
 					for _, inpoint := range inpoints {
-						if err := l.OutputSpent(ctx, inpoint, topic); err != nil {
+						if err := l.OutputSpent(ctx, inpoint, topic, taggedBEEF.Beef); err != nil {
 							if e.PanicOnError {
 								log.Panicln(err)
 							}
@@ -329,7 +327,7 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 			}
 			newOutpoints = append(newOutpoints, &output.Outpoint)
 			for _, l := range e.LookupServices {
-				if err := l.OutputAdded(ctx, &output.Outpoint, output.Script, topic, output.BlockHeight, output.BlockIdx); err != nil {
+				if err := l.OutputAdded(ctx, &output.Outpoint, topic, output.Beef); err != nil {
 					if e.PanicOnError {
 						log.Panicln(err)
 					}
@@ -633,6 +631,7 @@ func (e *Engine) StartGASPSync(ctx context.Context) error {
 					},
 					LogPrefix:      &logPrefix,
 					Unidirectional: true,
+					Concurrency:    syncEndpoints.Concurrency,
 				})
 				if err := gasp.Sync(ctx); err != nil {
 					log.Println("Failed to sync with peer", peer, ":", err)
@@ -657,8 +656,7 @@ func (e *Engine) ProvideForeignSyncResponse(ctx context.Context, initialRequest 
 	}
 }
 
-func (e *Engine) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoint *overlay.Outpoint) (*core.GASPNode, error) {
-	log.Println("ProvideForeignGASPNode", graphId.String(), outpoint.String())
+func (e *Engine) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error) {
 	var hydrator func(ctx context.Context, output *Output) (*core.GASPNode, error)
 	hydrator = func(ctx context.Context, output *Output) (*core.GASPNode, error) {
 		if output.Beef == nil {
@@ -667,7 +665,7 @@ func (e *Engine) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Ou
 			return nil, err
 		} else if tx == nil {
 			for _, outpoint := range output.OutputsConsumed {
-				if output, err := e.Storage.FindOutput(ctx, outpoint, nil, nil, false); err == nil {
+				if output, err := e.Storage.FindOutput(ctx, outpoint, &topic, nil, false); err == nil {
 					return hydrator(ctx, output)
 				}
 			}
@@ -688,7 +686,7 @@ func (e *Engine) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Ou
 		}
 
 	}
-	if output, err := e.Storage.FindOutput(ctx, graphId, nil, nil, true); err != nil {
+	if output, err := e.Storage.FindOutput(ctx, graphId, &topic, nil, true); err != nil {
 		return nil, err
 	} else {
 		return hydrator(ctx, output)
