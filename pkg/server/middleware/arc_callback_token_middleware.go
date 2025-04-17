@@ -48,8 +48,8 @@ func ARCCallbackTokenMiddleware(arcCallbackToken string, arcApiKey string) func(
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if arcApiKey == "" {
-					jsonutil.SendHTTPResponse(w, http.StatusNotFound, EndpointNotSupportedResponse)
-					return
+				jsonutil.SendHTTPResponse(w, http.StatusNotFound, EndpointNotSupportedResponse)
+				return
 			}
 
 			if arcCallbackToken == "" {

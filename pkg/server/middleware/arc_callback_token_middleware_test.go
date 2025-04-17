@@ -15,7 +15,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 		setupRequest          func(r *http.Request)
 		expectedStatus        int
 		expectedCallbackToken string
-		expectedArcApiKey string
+		expectedArcApiKey     string
 		expectedResponse      middleware.FailureResponse
 	}{
 		"should succeed with 200 when Arc api key is provided and Arc callback token matches the configured key": {
@@ -23,7 +23,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 				r.Header.Set("Authorization", "Bearer valid-callback-token")
 			},
 			expectedStatus:        http.StatusOK,
-			expectedArcApiKey :  "valid-arc-api-key",
+			expectedArcApiKey:     "valid-arc-api-key",
 			expectedCallbackToken: "valid-callback-token",
 		},
 		"should succeed with 200 when Arc api key is provided and Arc callback token is empty": {
@@ -31,7 +31,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 				r.Header.Set("Authorization", "Bearer valid-callback-token")
 			},
 			expectedStatus:        http.StatusOK,
-			expectedArcApiKey :  "valid-arc-api-key",
+			expectedArcApiKey:     "valid-arc-api-key",
 			expectedCallbackToken: "",
 		},
 		"should fail with 404 when Arc api key token is not configured and Arc callback token matches the configured key": {
@@ -40,7 +40,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 			},
 			expectedStatus:        http.StatusNotFound,
 			expectedCallbackToken: "valid-callback-token",
-			expectedArcApiKey :  "",
+			expectedArcApiKey:     "",
 			expectedResponse:      middleware.EndpointNotSupportedResponse,
 		},
 		"should fail with 404 when Arc api key token is not configured and Arc callback token is empty": {
@@ -49,14 +49,14 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 			},
 			expectedStatus:        http.StatusNotFound,
 			expectedCallbackToken: "",
-			expectedArcApiKey :  "",
+			expectedArcApiKey:     "",
 			expectedResponse:      middleware.EndpointNotSupportedResponse,
 		},
 		"should fail with 401 when Authorization header is missing": {
 			setupRequest:          func(r *http.Request) {},
 			expectedStatus:        http.StatusUnauthorized,
 			expectedCallbackToken: "valid-callback-token",
-			expectedArcApiKey :  "valid-arc-api-key",
+			expectedArcApiKey:     "valid-arc-api-key",
 			expectedResponse:      middleware.MissingAuthHeaderResponse,
 		},
 		"should fail with 401 when Authorization header doesn't have Bearer prefix": {
@@ -65,7 +65,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 			},
 			expectedStatus:        http.StatusUnauthorized,
 			expectedCallbackToken: "valid-callback-token",
-			expectedArcApiKey :  "valid-arc-api-key",
+			expectedArcApiKey:     "valid-arc-api-key",
 			expectedResponse:      middleware.MissingAuthHeaderValueResponse,
 		},
 		"should fail with 401 when Authorization header has Bearer prefix but no token": {
@@ -74,7 +74,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 			},
 			expectedStatus:        http.StatusUnauthorized,
 			expectedCallbackToken: "valid-callback-token",
-			expectedArcApiKey :  "valid-arc-api-key",
+			expectedArcApiKey:     "valid-arc-api-key",
 			expectedResponse:      middleware.MissingAuthHeaderValueResponse,
 		},
 		"should fail with 403 when token doesn't match expected token": {
@@ -83,7 +83,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 			},
 			expectedStatus:        http.StatusForbidden,
 			expectedCallbackToken: "valid-callback-token",
-			expectedArcApiKey :  "valid-arc-api-key",
+			expectedArcApiKey:     "valid-arc-api-key",
 			expectedResponse:      middleware.InvalidBearerTokenValueResponse,
 		},
 	}

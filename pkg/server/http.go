@@ -42,10 +42,10 @@ type Config struct {
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
 
 	// Token for authenticating TO ARC when submitting transactions
-    ArcApiKey string `mapstructure:"arc_api_key"`
+	ArcApiKey string `mapstructure:"arc_api_key"`
 
 	// Token for authenticating requests FROM ARC to our callback endpoint
-    ArcCallbackToken string `mapstructure:"arc_callback_token"`
+	ArcCallbackToken string `mapstructure:"arc_callback_token"`
 }
 
 // DefaultConfig provides a default configuration with reasonable values for local development.
@@ -56,7 +56,7 @@ var DefaultConfig = Config{
 	ServerHeader:     "Overlay API",
 	AdminBearerToken: uuid.NewString(),
 	ArcCallbackToken: uuid.NewString(),
-	ArcApiKey: "",
+	ArcApiKey:        "",
 }
 
 // HTTPOption defines a functional option for configuring an HTTP server.
