@@ -72,7 +72,7 @@ func (s *SubmitTransactionHandler) createTaggedBEEF(body io.Reader, header http.
 		return nil, ErrInvalidXTopicsHeaderFormat
 	}
 
-	reader := jsonutil.BodyReader{
+	reader := jsonutil.LimitedBodyReader{
 		Body:      body,
 		ReadLimit: s.requestBodyLimit,
 	}

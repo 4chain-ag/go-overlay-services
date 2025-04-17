@@ -1,8 +1,9 @@
 package jsonutil
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 )
 
@@ -33,7 +34,7 @@ func DecodeResponseBody(res *http.Response, dst any) error {
 	dec := json.NewDecoder(res.Body)
 	err := dec.Decode(dst)
 	if err != nil {
-		return fmt.Errorf("decoding http response body op failure: %w", err)
+		return errors.Join(err, JSONDecoderFailure)
 	}
 	return nil
 }
@@ -45,7 +46,20 @@ func DecodeRequestBody(r *http.Request, dst any) error {
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(dst)
 	if err != nil {
-		return fmt.Errorf("decoding http request body op failure: %w", err)
+		return errors.Join(err, JSONDecoderFailure)
 	}
 	return nil
 }
+
+func DecodeBytes(bb []byte, dst any) error {
+	dec := json.NewDecoder(bytes.NewBuffer(bb))
+	err := dec.Decode(dst)
+	if err != nil {
+		return errors.Join(err, JSONDecoderFailure)
+	}
+	return nil
+}
+
+// JSONDecoderFailure represents an error that occurs when the JSON decoder fails
+// to parse the input data into the expected structure.
+var JSONDecoderFailure = errors.New("failed to decode JSON payload")
