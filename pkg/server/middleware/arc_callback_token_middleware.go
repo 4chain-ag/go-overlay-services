@@ -42,13 +42,18 @@ var (
 // ARCCallbackTokenMiddleware is a middleware that checks the Authorization header for a valid Bearer token.
 // It protects the ARC ingest endpoint from unauthorized access.
 // It checks for a Bearer token in the Authorization header and compares it to the expected token value.
-// If the expectedToken is empty, the endpoint will return a 404 Not Found response.
-func ARCCallbackTokenMiddleware(expectedToken string) func(http.Handler) http.Handler {
+// If the arcCallbackToken is empty, the endpoint will return a 404 Not Found response.
+func ARCCallbackTokenMiddleware(arcCallbackToken string, arcApiKey string) func(http.Handler) http.Handler {
 	const schema = "Bearer "
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if expectedToken == "" {
-				jsonutil.SendHTTPResponse(w, http.StatusNotFound, EndpointNotSupportedResponse)
+			if arcApiKey == "" {
+					jsonutil.SendHTTPResponse(w, http.StatusNotFound, EndpointNotSupportedResponse)
+					return
+			}
+
+			if arcCallbackToken == "" {
+				next.ServeHTTP(w, r)
 				return
 			}
 
@@ -64,7 +69,7 @@ func ARCCallbackTokenMiddleware(expectedToken string) func(http.Handler) http.Ha
 			}
 
 			token := strings.TrimPrefix(auth, schema)
-			if token != expectedToken {
+			if token != arcCallbackToken {
 				jsonutil.SendHTTPResponse(w, http.StatusForbidden, InvalidBearerTokenValueResponse)
 				return
 			}

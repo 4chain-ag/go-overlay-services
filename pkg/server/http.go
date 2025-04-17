@@ -41,8 +41,11 @@ type Config struct {
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
 
-	// ArcCallbackToken is the token required to access the /arc-ingest endpoint.
-	ArcCallbackToken string `mapstructure:"arc_api_key"`
+	// Token for authenticating TO ARC when submitting transactions
+    ArcApiKey string `mapstructure:"arc_api_key"`
+
+	// Token for authenticating requests FROM ARC to our callback endpoint
+    ArcCallbackToken string `mapstructure:"arc_callback_token"`
 }
 
 // DefaultConfig provides a default configuration with reasonable values for local development.
@@ -53,6 +56,7 @@ var DefaultConfig = Config{
 	ServerHeader:     "Overlay API",
 	AdminBearerToken: uuid.NewString(),
 	ArcCallbackToken: uuid.NewString(),
+	ArcApiKey: "",
 }
 
 // HTTPOption defines a functional option for configuring an HTTP server.
@@ -193,7 +197,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	v1.Post("/lookup", SafeHandler(http.api.Commands.LookupQuestionHandler.Handle))
 	v1.Post("/requestSyncResponse", SafeHandler(http.api.Commands.RequestSyncResponseHandler.Handle))
 	v1.Post("/requestForeignGASPNode", SafeHandler(http.api.Commands.RequestForeignGASPNodeHandler.Handle))
-	v1.Post("/arc-ingest", adaptor.HTTPMiddleware(middleware.ARCCallbackTokenMiddleware(http.cfg.ArcCallbackToken)), SafeHandler(http.api.Commands.ARCIngestHandler.Handle))
+	v1.Post("/arc-ingest", adaptor.HTTPMiddleware(middleware.ARCCallbackTokenMiddleware(http.cfg.ArcCallbackToken, http.cfg.ArcApiKey)), SafeHandler(http.api.Commands.ARCIngestHandler.Handle))
 
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))

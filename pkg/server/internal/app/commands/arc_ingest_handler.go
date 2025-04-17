@@ -15,10 +15,6 @@ type ARCIngestHandler struct {
 // Handle is a no-op call that returns a StatusInternalServerError response if the ARC API key was not set
 // during initialization. Otherwise, it returns a plain text response with HTTP status OK (200).
 func (a *ARCIngestHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	if len(a.arcAPIKey) == 0 {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
 	jsonutil.SendHTTPResponse(w, http.StatusOK, http.StatusText(http.StatusOK))
 }
 

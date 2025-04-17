@@ -15,35 +15,57 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 		setupRequest          func(r *http.Request)
 		expectedStatus        int
 		expectedCallbackToken string
+		expectedArcApiKey string
 		expectedResponse      middleware.FailureResponse
 	}{
-		"should succeed with 200 when ARC callback token matches the configured key": {
+		"should succeed with 200 when Arc api key is provided and Arc callback token matches the configured key": {
 			setupRequest: func(r *http.Request) {
-				r.Header.Set("Authorization", "Bearer 234c13dd-db82-48a5-bb5d-69381aa5478a")
+				r.Header.Set("Authorization", "Bearer valid-callback-token")
 			},
 			expectedStatus:        http.StatusOK,
-			expectedCallbackToken: "234c13dd-db82-48a5-bb5d-69381aa5478a",
+			expectedArcApiKey :  "valid-arc-api-key",
+			expectedCallbackToken: "valid-callback-token",
 		},
-		"should fail with 404 when ARC callback token is not configured": {
+		"should succeed with 200 when Arc api key is provided and Arc callback token is empty": {
 			setupRequest: func(r *http.Request) {
-				r.Header.Set("Authorization", "Bearer 7c3c81fa-f732-4e48-b088-7d29ec0bd3bf")
+				r.Header.Set("Authorization", "Bearer valid-callback-token")
+			},
+			expectedStatus:        http.StatusOK,
+			expectedArcApiKey :  "valid-arc-api-key",
+			expectedCallbackToken: "",
+		},
+		"should fail with 404 when Arc api key token is not configured and Arc callback token matches the configured key": {
+			setupRequest: func(r *http.Request) {
+				r.Header.Set("Authorization", "Bearer valid-callback-token")
+			},
+			expectedStatus:        http.StatusNotFound,
+			expectedCallbackToken: "valid-callback-token",
+			expectedArcApiKey :  "",
+			expectedResponse:      middleware.EndpointNotSupportedResponse,
+		},
+		"should fail with 404 when Arc api key token is not configured and Arc callback token is empty": {
+			setupRequest: func(r *http.Request) {
+				r.Header.Set("Authorization", "")
 			},
 			expectedStatus:        http.StatusNotFound,
 			expectedCallbackToken: "",
+			expectedArcApiKey :  "",
 			expectedResponse:      middleware.EndpointNotSupportedResponse,
 		},
 		"should fail with 401 when Authorization header is missing": {
 			setupRequest:          func(r *http.Request) {},
 			expectedStatus:        http.StatusUnauthorized,
-			expectedCallbackToken: "valid-token",
+			expectedCallbackToken: "valid-callback-token",
+			expectedArcApiKey :  "valid-arc-api-key",
 			expectedResponse:      middleware.MissingAuthHeaderResponse,
 		},
 		"should fail with 401 when Authorization header doesn't have Bearer prefix": {
 			setupRequest: func(r *http.Request) {
-				r.Header.Set("Authorization", "Token 7c3c81fa-f732-4e48-b088-7d29ec0bd3bf")
+				r.Header.Set("Authorization", "IncorrectPrefix valid-callback-token")
 			},
 			expectedStatus:        http.StatusUnauthorized,
-			expectedCallbackToken: "valid-token",
+			expectedCallbackToken: "valid-callback-token",
+			expectedArcApiKey :  "valid-arc-api-key",
 			expectedResponse:      middleware.MissingAuthHeaderValueResponse,
 		},
 		"should fail with 401 when Authorization header has Bearer prefix but no token": {
@@ -51,15 +73,17 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 				r.Header.Set("Authorization", "Bearer ")
 			},
 			expectedStatus:        http.StatusUnauthorized,
-			expectedCallbackToken: "valid-token",
+			expectedCallbackToken: "valid-callback-token",
+			expectedArcApiKey :  "valid-arc-api-key",
 			expectedResponse:      middleware.MissingAuthHeaderValueResponse,
 		},
 		"should fail with 403 when token doesn't match expected token": {
 			setupRequest: func(r *http.Request) {
-				r.Header.Set("Authorization", "Bearer wrong-token")
+				r.Header.Set("Authorization", "Bearer wrong-callback-token")
 			},
 			expectedStatus:        http.StatusForbidden,
-			expectedCallbackToken: "valid-token",
+			expectedCallbackToken: "valid-callback-token",
+			expectedArcApiKey :  "valid-arc-api-key",
 			expectedResponse:      middleware.InvalidBearerTokenValueResponse,
 		},
 	}
@@ -67,7 +91,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			// given:
-			handler := middleware.ARCCallbackTokenMiddleware(tc.expectedCallbackToken)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler := middleware.ARCCallbackTokenMiddleware(tc.expectedCallbackToken, tc.expectedArcApiKey)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			}))
 
