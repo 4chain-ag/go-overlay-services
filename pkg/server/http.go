@@ -41,10 +41,10 @@ type Config struct {
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
 
-	// Token for authenticating TO ARC when submitting transactions
+	// Token for authenticating to ARC when submitting transactions.
 	ArcApiKey string `mapstructure:"arc_api_key"`
 
-	// Token for authenticating requests FROM ARC to our callback endpoint
+	// Token for authenticating requests from ARC to callback endpoints.
 	ArcCallbackToken string `mapstructure:"arc_callback_token"`
 }
 

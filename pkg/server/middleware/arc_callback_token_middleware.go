@@ -33,7 +33,7 @@ var (
 	}
 
 	// EndpointNotSupportedResponse is returned when the endpoint is accessed but
-	// is not configured in the current service (token is empty).
+	// is not configured in the current service (arcApiKey is empty).
 	EndpointNotSupportedResponse = FailureResponse{
 		Message: "This endpoint is not supported by the current service configuration.",
 	}
@@ -42,7 +42,7 @@ var (
 // ARCCallbackTokenMiddleware is a middleware that checks the Authorization header for a valid Bearer token.
 // It protects the ARC ingest endpoint from unauthorized access.
 // It checks for a Bearer token in the Authorization header and compares it to the expected token value.
-// If the arcCallbackToken is empty, the endpoint will return a 404 Not Found response.
+// The endpoint will return 404 Not Found if arcApiKey is empty, indicating ARC integration is disabled.
 func ARCCallbackTokenMiddleware(arcCallbackToken string, arcApiKey string) func(http.Handler) http.Handler {
 	const schema = "Bearer "
 
@@ -56,11 +56,6 @@ func ARCCallbackTokenMiddleware(arcCallbackToken string, arcApiKey string) func(
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if arcApiKey == "" {
-				jsonutil.SendHTTPResponse(w, http.StatusNotFound, EndpointNotSupportedResponse)
-				return
-			}
-
 			if arcCallbackToken == "" {
 				next.ServeHTTP(w, r)
 				return
