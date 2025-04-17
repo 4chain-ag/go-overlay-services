@@ -77,7 +77,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 			expectedArcApiKey:     "valid-arc-api-key",
 			expectedResponse:      middleware.MissingAuthHeaderValueResponse,
 		},
-		"should fail with 403 when token doesn't match expected token": {
+		"should fail with 403 when call back token doesn't match expected token": {
 			setupRequest: func(r *http.Request) {
 				r.Header.Set("Authorization", "Bearer wrong-callback-token")
 			},
