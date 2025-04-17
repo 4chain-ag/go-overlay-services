@@ -18,7 +18,7 @@ import (
 
 type stubEngine struct{}
 
-func (s *stubEngine) ProvideForeignGASPNode(ctx context.Context, graphID, outpoint *overlay.Outpoint) (*core.GASPNode, error) {
+func (s *stubEngine) ProvideForeignGASPNode(ctx context.Context, graphID, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error) {
 	return &core.GASPNode{}, nil
 }
 
@@ -34,9 +34,12 @@ func TestRequestForeignGASPNodeHandler_ValidInput_ReturnsGASPNode(t *testing.T) 
 		TxID:        "0000000000000000000000000000000000000000000000000000000000000000",
 		OutputIndex: 1,
 	}
-
+	req, err := http.NewRequest("POST", ts.URL, NewRequestPayload(t, payload))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-BSV-Topic", "test-topic")
 	// When:
-	resp, err := http.Post(ts.URL, "application/json", NewRequestPayload(t, payload))
+	resp, err := http.DefaultClient.Do(req)
 
 	// Then:
 	require.NoError(t, err)

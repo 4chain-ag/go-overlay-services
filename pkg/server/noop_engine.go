@@ -69,7 +69,7 @@ func (*NoopEngineProvider) ProvideForeignSyncResponse(ctx context.Context, initi
 }
 
 // ProvideForeignGASPNode is a no-op call that always returns an empty GASP node with nil error.
-func (*NoopEngineProvider) ProvideForeignGASPNode(ctx context.Context, graphId, outpoint *overlay.Outpoint) (*core.GASPNode, error) {
+func (*NoopEngineProvider) ProvideForeignGASPNode(ctx context.Context, graphId, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error) {
 	return &core.GASPNode{}, nil
 }
 
