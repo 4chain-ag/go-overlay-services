@@ -16,6 +16,7 @@ type Commands struct {
 	RequestForeignGASPNodeHandler *commands.RequestForeignGASPNodeHandler
 	RequestSyncResponseHandler    *commands.RequestSyncResponseHandler
 	LookupQuestionHandler         *commands.LookupQuestionHandler
+	ARCIngestHandler              *commands.ARCIngestHandler
 }
 
 // Queries aggregate all the supported queries by the overlay API.
@@ -34,12 +35,12 @@ type Application struct {
 
 // New returns an instance of an Application with intialized commands and queries
 // utilizing an implementation of OverlayEngineProvider. If the provided argument is nil, it triggers a panic.
-func New(provider engine.OverlayEngineProvider) (*Application, error) {
+func New(provider engine.OverlayEngineProvider, arcAPIKey string) (*Application, error) {
 	if provider == nil {
 		return nil, fmt.Errorf("overlay engine provider is nil")
 	}
 
-	cmds, err := initCommands(provider)
+	cmds, err := initCommands(provider, arcAPIKey)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,7 @@ func New(provider engine.OverlayEngineProvider) (*Application, error) {
 	}, nil
 }
 
-func initCommands(provider engine.OverlayEngineProvider) (*Commands, error) {
+func initCommands(provider engine.OverlayEngineProvider, arcAPIKey string) (*Commands, error) {
 	submitHandler, err := commands.NewSubmitTransactionCommandHandler(provider)
 	if err != nil {
 		return nil, fmt.Errorf("SubmitTransactionHandler: %w", err)
@@ -86,6 +87,11 @@ func initCommands(provider engine.OverlayEngineProvider) (*Commands, error) {
 		return nil, fmt.Errorf("LookupQuestionHandler: %w", err)
 	}
 
+	arcIngestHandler, err := commands.NewARCIngestHandler(arcAPIKey)
+	if err != nil {
+		return nil, fmt.Errorf("NewARCIngestHandler: %w", err)
+	}
+
 	return &Commands{
 		SubmitTransactionHandler:      submitHandler,
 		SyncAdvertismentsHandler:      syncAdsHandler,
@@ -93,6 +99,7 @@ func initCommands(provider engine.OverlayEngineProvider) (*Commands, error) {
 		RequestForeignGASPNodeHandler: requestGASPHandler,
 		RequestSyncResponseHandler:    requestSyncRespHandler,
 		LookupQuestionHandler:         lookupQuestionHandler,
+		ARCIngestHandler:              arcIngestHandler,
 	}, nil
 }
 

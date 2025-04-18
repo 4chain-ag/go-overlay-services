@@ -14,6 +14,7 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/jsonutil"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -39,6 +40,12 @@ type Config struct {
 
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
+
+	// Token for authenticating to ARC when submitting transactions.
+	ArcApiKey string `mapstructure:"arc_api_key"`
+
+	// Token for authenticating requests from ARC to callback endpoints.
+	ArcCallbackToken string `mapstructure:"arc_callback_token"`
 }
 
 // DefaultConfig provides a default configuration with reasonable values for local development.
@@ -48,6 +55,8 @@ var DefaultConfig = Config{
 	Addr:             "localhost",
 	ServerHeader:     "Overlay API",
 	AdminBearerToken: uuid.NewString(),
+	ArcCallbackToken: uuid.NewString(),
+	ArcApiKey:        "",
 }
 
 // HTTPOption defines a functional option for configuring an HTTP server.
@@ -86,12 +95,12 @@ func WithConfig(cfg *Config) HTTPOption {
 }
 
 // WithEngine sets the overlay engine provider for the HTTP server.
-func WithEngine(engineProvider engine.OverlayEngineProvider) HTTPOption {
+func WithEngine(engineProvider engine.OverlayEngineProvider, arcAPIKey string) HTTPOption {
 	return func(h *HTTP) error {
 		if engineProvider == nil {
 			return fmt.Errorf("engine provider is nil")
 		}
-		overlayAPI, err := app.New(engineProvider)
+		overlayAPI, err := app.New(engineProvider, arcAPIKey)
 		if err != nil {
 			return fmt.Errorf("failed to create overlay API: %w", err)
 		}
@@ -166,7 +175,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	}
 
 	if http.api == nil {
-		overlayAPI, err := app.New(NewNoopEngineProvider())
+		overlayAPI, err := app.New(NewNoopEngineProvider(), http.cfg.ArcCallbackToken)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create overlay API: %w", err)
 		}
@@ -182,11 +191,13 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	v1.Get("/getDocumentationForTopicManager", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
 	v1.Get("/getDocumentationForLookupServiceProvider", SafeHandler(http.api.Queries.LookupServiceDocumentationHandler.Handle))
 	v1.Get("/listLookupServiceProviders", SafeHandler(http.api.Queries.LookupServicesListHandler.Handle))
+	v1.Get("/listTopicManagers", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
+
 	v1.Post("/submit", SafeHandler(http.api.Commands.SubmitTransactionHandler.Handle))
 	v1.Post("/lookup", SafeHandler(http.api.Commands.LookupQuestionHandler.Handle))
-	v1.Get("/listTopicManagers", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
 	v1.Post("/requestSyncResponse", SafeHandler(http.api.Commands.RequestSyncResponseHandler.Handle))
 	v1.Post("/requestForeignGASPNode", SafeHandler(http.api.Commands.RequestForeignGASPNodeHandler.Handle))
+	v1.Post("/arc-ingest", adaptor.HTTPMiddleware(middleware.ARCCallbackTokenMiddleware(http.cfg.ArcCallbackToken, http.cfg.ArcApiKey)), SafeHandler(http.api.Commands.ARCIngestHandler.Handle))
 
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
