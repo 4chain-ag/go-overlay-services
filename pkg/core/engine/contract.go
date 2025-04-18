@@ -4,8 +4,10 @@ import (
 	"context"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
+	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
+	"github.com/bsv-blockchain/go-sdk/transaction"
 )
 
 // OverlayEngineProvider defines the contract for the overlay engine.
@@ -23,4 +25,5 @@ type OverlayEngineProvider interface {
 	ListLookupServiceProviders() map[string]*overlay.MetaData
 	GetDocumentationForLookupServiceProvider(provider string) (string, error)
 	GetDocumentationForTopicManager(provider string) (string, error)
+	HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error
 }

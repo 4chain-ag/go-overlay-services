@@ -3,10 +3,14 @@ package server
 import (
 	"context"
 
+	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
+	"github.com/bsv-blockchain/go-sdk/transaction"
+
+
 )
 
 // NoopEngineProvider is a custom test overlay engine implementation. This is only a temporary solution and will be removed
@@ -106,6 +110,11 @@ func (*NoopEngineProvider) GetDocumentationForLookupServiceProvider(provider str
 // GetDocumentationForTopicManager is a no-op call that always returns an empty string with nil error.
 func (*NoopEngineProvider) GetDocumentationForTopicManager(provider string) (string, error) {
 	return "noop_engine_topic_manager_doc", nil
+}
+
+// HandleNewMerkleProof is a no-op implementation that fulfills the NewMerkleProofProvider interface.
+func (*NoopEngineProvider) HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error {
+	return nil
 }
 
 // NewNoopEngineProvider returns an OverlayEngineProvider implementation
