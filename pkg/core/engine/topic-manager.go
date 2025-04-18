@@ -7,7 +7,7 @@ import (
 )
 
 type TopicManager interface {
-	IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error)
+	IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins map[uint32][]byte) (overlay.AdmittanceInstructions, error)
 	IdentifyNeededInputs(ctx context.Context, beef []byte) ([]*overlay.Outpoint, error)
 	GetDocumentation() string
 	GetMetaData() *overlay.MetaData

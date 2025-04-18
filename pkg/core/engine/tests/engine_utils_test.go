@@ -6,6 +6,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/core/advertiser"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
@@ -15,134 +16,213 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var errFakeStorage = errors.New("fakeStorage: method not implemented")
-
 type fakeStorage struct {
 	findOutputFunc                  func(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error)
+	findOutputsFunc                 func(ctx context.Context, outpoints []*overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) ([]*engine.Output, error)
 	doesAppliedTransactionExistFunc func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error)
 	insertOutputFunc                func(ctx context.Context, utxo *engine.Output) error
 	markUTXOAsSpentFunc             func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
 	insertAppliedTransactionFunc    func(ctx context.Context, tx *overlay.AppliedTransaction) error
 	updateConsumedByFunc            func(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error
 	deleteOutputFunc                func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
+	findUTXOsForTopicFunc           func(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error)
+	updateTransactionBEEF           func(ctx context.Context, txid *chainhash.Hash, beef []byte) error
+	updateOutputBlockHeight         func(ctx context.Context, outpoint *overlay.Outpoint, topic string, blockHeight uint32, blockIndex uint64, ancillaryBeef []byte) error
 }
 
 func (f fakeStorage) FindOutput(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error) {
 	if f.findOutputFunc != nil {
 		return f.findOutputFunc(ctx, outpoint, topic, spent, includeBEEF)
 	}
-	return nil, errFakeStorage
+	panic("func not defined")
 }
 func (f fakeStorage) DoesAppliedTransactionExist(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
 	if f.doesAppliedTransactionExistFunc != nil {
 		return f.doesAppliedTransactionExistFunc(ctx, tx)
 	}
-	return false, errFakeStorage
+	panic("func not defined")
 }
 func (f fakeStorage) InsertOutput(ctx context.Context, utxo *engine.Output) error {
 	if f.insertOutputFunc != nil {
 		return f.insertOutputFunc(ctx, utxo)
 	}
-	return errFakeStorage
+	panic("func not defined")
 }
 func (f fakeStorage) MarkUTXOAsSpent(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
 	if f.markUTXOAsSpentFunc != nil {
 		return f.markUTXOAsSpentFunc(ctx, outpoint, topic)
 	}
-	return errFakeStorage
+	panic("func not defined")
 }
 func (f fakeStorage) InsertAppliedTransaction(ctx context.Context, tx *overlay.AppliedTransaction) error {
 	if f.insertAppliedTransactionFunc != nil {
 		return f.insertAppliedTransactionFunc(ctx, tx)
 	}
-	return errFakeStorage
+	panic("func not defined")
 }
 func (f fakeStorage) UpdateConsumedBy(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error {
 	if f.updateConsumedByFunc != nil {
 		return f.updateConsumedByFunc(ctx, outpoint, topic, consumedBy)
 	}
-	return nil
+	panic("func not defined")
 }
 func (f fakeStorage) DeleteOutput(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
 	if f.deleteOutputFunc != nil {
 		return f.deleteOutputFunc(ctx, outpoint, topic)
 	}
-	return nil
+	panic("DeleteOutput not defined")
 }
 func (f fakeStorage) FindOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) ([]*engine.Output, error) {
-	return nil, errFakeStorage
+	if f.findOutputsFunc != nil {
+		return f.findOutputsFunc(ctx, outpoints, topic, spent, includeBEEF)
+	}
+	panic("FindOutputs not defined")
 }
+
 func (f fakeStorage) FindOutputsForTransaction(ctx context.Context, txid *chainhash.Hash, includeBEEF bool) ([]*engine.Output, error) {
-	return nil, errFakeStorage
+	panic("func not defined")
 }
+
 func (f fakeStorage) FindUTXOsForTopic(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error) {
-	return nil, errFakeStorage
+	if f.findUTXOsForTopicFunc != nil {
+		return f.findUTXOsForTopicFunc(ctx, topic, since, includeBEEF)
+	}
+	panic("func not defined")
 }
+
 func (f fakeStorage) DeleteOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic string) error {
-	return errFakeStorage
+	if f.deleteOutputFunc != nil {
+		return f.DeleteOutputs(ctx, outpoints, topic)
+	}
+	panic("func not defined")
 }
+
 func (f fakeStorage) MarkUTXOsAsSpent(ctx context.Context, outpoints []*overlay.Outpoint, topic string) error {
-	return errFakeStorage
+	if f.markUTXOAsSpentFunc != nil {
+		return f.MarkUTXOsAsSpent(ctx, outpoints, topic)
+	}
+	panic("func not defined")
 }
+
 func (f fakeStorage) UpdateTransactionBEEF(ctx context.Context, txid *chainhash.Hash, beef []byte) error {
-	return errFakeStorage
+	if f.updateTransactionBEEF(ctx, txid, beef) != nil {
+		return f.UpdateTransactionBEEF(ctx, txid, beef)
+	}
+	panic("func not defined")
 }
+
 func (f fakeStorage) UpdateOutputBlockHeight(ctx context.Context, outpoint *overlay.Outpoint, topic string, blockHeight uint32, blockIndex uint64, ancillaryBeef []byte) error {
-	return errFakeStorage
+	if f.updateOutputBlockHeight != nil {
+		return f.updateOutputBlockHeight(ctx, outpoint, topic, blockHeight, blockIndex, ancillaryBeef)
+	}
+	panic("func not defined")
 }
 
-type fakeManager struct{}
-
-func (f fakeManager) IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins []uint32) (overlay.AdmittanceInstructions, error) {
-	return overlay.AdmittanceInstructions{OutputsToAdmit: []uint32{0}}, nil
+type fakeManager struct {
+	identifyAdmissableOutputsFunc func(ctx context.Context, beef []byte, previousCoins map[uint32][]byte) (overlay.AdmittanceInstructions, error)
+	identifyNeededInputsFunc      func(ctx context.Context, beef []byte) ([]*overlay.Outpoint, error)
+	getMetaData                   func() *overlay.MetaData
+	getDocumentation              func() string
 }
+
+func (f fakeManager) IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins map[uint32][]byte) (overlay.AdmittanceInstructions, error) {
+	if f.identifyAdmissableOutputsFunc != nil {
+		return f.identifyAdmissableOutputsFunc(ctx, beef, previousCoins)
+	}
+	panic("func not defined")
+}
+
 func (f fakeManager) IdentifyNeededInputs(ctx context.Context, beef []byte) ([]*overlay.Outpoint, error) {
-	return nil, nil
-}
-func (f fakeManager) GetMetaData() *overlay.MetaData {
-	return nil
-}
-func (f fakeManager) GetDocumentation() string {
-	return ""
+	if f.identifyNeededInputsFunc != nil {
+		return f.identifyNeededInputsFunc(ctx, beef)
+	}
+	panic("func not defined")
 }
 
-type fakeChainTracker struct{}
+func (f fakeManager) GetMetaData() *overlay.MetaData {
+	if f.getMetaData != nil {
+		return f.getMetaData()
+	}
+	panic("func not defined")
+}
+
+func (f fakeManager) GetDocumentation() string {
+	if f.getDocumentation != nil {
+		return f.getDocumentation()
+	}
+	panic("func not defined")
+}
+
+type fakeChainTracker struct {
+	verifyFunc             func(tx *transaction.Transaction, options ...any) (bool, error)
+	isValidRootForHeight   func(root *chainhash.Hash, height uint32) (bool, error)
+	findHeaderFunc         func(height uint32) ([]byte, error)
+	findPreviousHeaderFunc func(tx *transaction.Transaction) ([]byte, error)
+}
 
 func (f fakeChainTracker) Verify(tx *transaction.Transaction, options ...any) (bool, error) {
-	return true, nil
+	if f.verifyFunc != nil {
+		return f.verifyFunc(tx, options...)
+	}
+	panic("Verify not defined")
 }
+
 func (f fakeChainTracker) IsValidRootForHeight(root *chainhash.Hash, height uint32) (bool, error) {
-	return true, nil
+	if f.isValidRootForHeight != nil {
+		return f.isValidRootForHeight(root, height)
+	}
+	panic("IsValidRootForHeight not defined")
 }
+
 func (f fakeChainTracker) FindHeader(height uint32) ([]byte, error) {
-	return nil, nil
+	if f.findHeaderFunc != nil {
+		return f.findHeaderFunc(height)
+	}
+	panic("FindHeader not defined")
 }
+
 func (f fakeChainTracker) FindPreviousHeader(tx *transaction.Transaction) ([]byte, error) {
-	return nil, nil
+	if f.findPreviousHeaderFunc != nil {
+		return f.findPreviousHeaderFunc(tx)
+	}
+	panic("FindPreviousHeader not defined")
 }
 
 type fakeChainTrackerSPVFail struct{}
 
 func (f fakeChainTrackerSPVFail) Verify(tx *transaction.Transaction, options ...any) (bool, error) {
-	return false, nil
-}
-func (f fakeChainTrackerSPVFail) IsValidRootForHeight(root *chainhash.Hash, height uint32) (bool, error) {
-	return true, nil
-}
-func (f fakeChainTrackerSPVFail) FindHeader(height uint32) ([]byte, error) {
-	return nil, nil
-}
-func (f fakeChainTrackerSPVFail) FindPreviousHeader(tx *transaction.Transaction) ([]byte, error) {
-	return nil, nil
+	panic("Verify not defined")
 }
 
-type fakeBroadcasterFail struct{}
+func (f fakeChainTrackerSPVFail) IsValidRootForHeight(root *chainhash.Hash, height uint32) (bool, error) {
+	panic("IsValidRootForHeight not defined")
+}
+
+func (f fakeChainTrackerSPVFail) FindHeader(height uint32) ([]byte, error) {
+	panic("FindHeader not defined")
+}
+
+func (f fakeChainTrackerSPVFail) FindPreviousHeader(tx *transaction.Transaction) ([]byte, error) {
+	panic("FindPreviousHeader not defined")
+}
+
+type fakeBroadcasterFail struct {
+	broadcastFunc    func(tx *transaction.Transaction) (*transaction.BroadcastSuccess, *transaction.BroadcastFailure)
+	broadcastCtxFunc func(ctx context.Context, tx *transaction.Transaction) (*transaction.BroadcastSuccess, *transaction.BroadcastFailure)
+}
 
 func (f fakeBroadcasterFail) Broadcast(tx *transaction.Transaction) (*transaction.BroadcastSuccess, *transaction.BroadcastFailure) {
-	return nil, &transaction.BroadcastFailure{Code: "broadcast-failed", Description: "forced failure for testing"}
+	if f.broadcastFunc != nil {
+		return f.broadcastFunc(tx)
+	}
+	panic("Broadcast not defined")
 }
+
 func (f fakeBroadcasterFail) BroadcastCtx(ctx context.Context, tx *transaction.Transaction) (*transaction.BroadcastSuccess, *transaction.BroadcastFailure) {
-	return nil, &transaction.BroadcastFailure{Code: "broadcast-failed", Description: "forced failure for testing"}
+	if f.broadcastCtxFunc != nil {
+		return f.broadcastCtxFunc(ctx, tx)
+	}
+	panic("BroadcastCtx not defined")
 }
 
 var errFakeLookup = errors.New("lookup error")
@@ -158,11 +238,11 @@ func (f fakeLookupService) Lookup(ctx context.Context, question *lookup.LookupQu
 	return nil, errors.New("lookup not implemented")
 }
 
-func (f fakeLookupService) OutputAdded(ctx context.Context, outpoint *overlay.Outpoint, outputScript *script.Script, topic string, blockHeight uint32, blockIndex uint64) error {
+func (f fakeLookupService) OutputAdded(context.Context, *overlay.Outpoint, string, []byte) error {
 	return nil
 }
 
-func (f fakeLookupService) OutputSpent(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+func (f fakeLookupService) OutputSpent(context.Context, *overlay.Outpoint, string, []byte) error {
 	return nil
 }
 
@@ -180,6 +260,57 @@ func (f fakeLookupService) GetDocumentation() string {
 
 func (f fakeLookupService) GetMetaData() *overlay.MetaData {
 	return &overlay.MetaData{}
+}
+
+type fakeAdvertiser struct {
+	findAllAdvertisements     func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error)
+	createAdvertisements      func(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error)
+	revokeAdvertisements      func(data []*advertiser.Advertisement) (overlay.TaggedBEEF, error)
+	parseAdvertisement        func(script *script.Script) (*advertiser.Advertisement, error)
+	findAllAdvertisementsFunc func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error)
+	createAdvertisementsFunc  func(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error)
+	revokeAdvertisementsFunc  func(data []*advertiser.Advertisement) (overlay.TaggedBEEF, error)
+	parseAdvertisementFunc    func(script *script.Script) (*advertiser.Advertisement, error)
+}
+
+func (f fakeAdvertiser) FindAllAdvertisements(protocol overlay.Protocol) ([]*advertiser.Advertisement, error) {
+	if f.findAllAdvertisements != nil {
+		return f.findAllAdvertisements(protocol)
+	}
+	return nil, nil
+}
+func (f fakeAdvertiser) CreateAdvertisements(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error) {
+	if f.createAdvertisements != nil {
+		return f.createAdvertisements(data)
+	}
+	return overlay.TaggedBEEF{}, nil
+}
+func (f fakeAdvertiser) RevokeAdvertisements(data []*advertiser.Advertisement) (overlay.TaggedBEEF, error) {
+	if f.revokeAdvertisements != nil {
+		return f.revokeAdvertisements(data)
+	}
+	return overlay.TaggedBEEF{}, nil
+}
+func (f fakeAdvertiser) ParseAdvertisement(script *script.Script) (*advertiser.Advertisement, error) {
+	if f.parseAdvertisement != nil {
+		return f.parseAdvertisement(script)
+	}
+	return nil, nil
+}
+
+type fakeTopicManager struct{}
+
+func (fakeTopicManager) IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins map[uint32][]byte) (overlay.AdmittanceInstructions, error) {
+	return overlay.AdmittanceInstructions{}, nil
+}
+func (fakeTopicManager) IdentifyNeededInputs(ctx context.Context, beef []byte) ([]*overlay.Outpoint, error) {
+	return nil, nil
+}
+func (fakeTopicManager) GetMetaData() *overlay.MetaData {
+	return &overlay.MetaData{}
+}
+func (fakeTopicManager) GetDocumentation() string {
+	return ""
 }
 
 // helper function to create a dummy BEEF transaction
@@ -252,4 +383,43 @@ func fakeTxID() chainhash.Hash {
 	var h chainhash.Hash
 	copy(h[:], b)
 	return h
+}
+
+// createDummyBeefWithInputs creates a dummy BEEF transaction with inputs for testing.
+// It creates a previous transaction with a dummy locking script and a current transaction
+// that uses the previous transaction as an input. The current transaction also has a dummy locking script.
+// It returns the serialized bytes of the BEEF transaction.
+func createDummyBeefWithInputs(t *testing.T) []byte {
+	t.Helper()
+
+	prevTxID := chainhash.DoubleHashH([]byte("dummy prev tx"))
+
+	dummyLockingScript := script.Script{script.OpTRUE}
+
+	prevTx := &transaction.Transaction{
+		Inputs:  []*transaction.TransactionInput{},
+		Outputs: []*transaction.TransactionOutput{{Satoshis: 1000, LockingScript: &dummyLockingScript}},
+	}
+
+	currentTx := &transaction.Transaction{
+		Inputs: []*transaction.TransactionInput{
+			{SourceTXID: &prevTxID, SourceTxOutIndex: 0},
+		},
+		Outputs: []*transaction.TransactionOutput{
+			{Satoshis: 900, LockingScript: &dummyLockingScript},
+		},
+	}
+
+	beef := &transaction.Beef{
+		Version: transaction.BEEF_V2,
+		Transactions: map[string]*transaction.BeefTx{
+			prevTx.TxID().String():    {Transaction: prevTx},
+			currentTx.TxID().String(): {Transaction: currentTx},
+		},
+	}
+
+	beefBytes, err := beef.AtomicBytes(currentTx.TxID())
+	require.NoError(t, err)
+
+	return beefBytes
 }
