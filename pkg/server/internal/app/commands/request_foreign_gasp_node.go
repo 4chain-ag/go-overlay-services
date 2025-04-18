@@ -13,7 +13,7 @@ import (
 
 // RequestForeignGASPNodeProvider defines the contract that must be fulfilled to send a requestForeignGASPNode to the overlay engine.
 type RequestForeignGASPNodeProvider interface {
-	ProvideForeignGASPNode(ctx context.Context, graphID, outpoint *overlay.Outpoint) (*core.GASPNode, error)
+	ProvideForeignGASPNode(ctx context.Context, graphID, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error)
 }
 
 // RequestForeignGASPNodeHandler orchestrates the requestForeignGASPNode flow.
@@ -35,6 +35,12 @@ func (h *RequestForeignGASPNodeHandler) Handle(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	topics := r.Header["X-Bsv-Topic"]
+	if len(topics) == 0 {
+		http.Error(w, "missing 'topic' header", http.StatusBadRequest)
+		return
+	}
+	topic := topics[0]
 	var payload RequestForeignGASPNodeHandlerPayload
 	if err := jsonutil.DecodeRequestBody(r, &payload); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -56,7 +62,7 @@ func (h *RequestForeignGASPNodeHandler) Handle(w http.ResponseWriter, r *http.Re
 		http.Error(w, "invalid graphID", http.StatusBadRequest)
 		return
 	}
-	node, err := h.provider.ProvideForeignGASPNode(r.Context(), graphId, outpoint)
+	node, err := h.provider.ProvideForeignGASPNode(r.Context(), graphId, outpoint, topic)
 	if err != nil {
 		jsonutil.SendHTTPInternalServerErrorTextResponse(w)
 		return
