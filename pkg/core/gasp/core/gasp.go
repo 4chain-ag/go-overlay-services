@@ -2,7 +2,8 @@ package core
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
 	"slices"
 	"sync"
 
@@ -12,16 +13,6 @@ import (
 )
 
 const MAX_CONCURRENCY = 16
-
-type LogLevel int
-
-var (
-	LogLevelNone  LogLevel = 0
-	LogLevelError LogLevel = 1
-	LogLevelWarn  LogLevel = 2
-	LogLevelInfo  LogLevel = 3
-	LogLevelDebug LogLevel = 4
-)
 
 type GASPNodeRequest struct {
 	GraphID     *overlay.Outpoint `json:"graphID"`
@@ -37,7 +28,7 @@ type GASPParams struct {
 	Version         *int
 	LogPrefix       *string
 	Unidirectional  bool
-	LogLevel        *LogLevel
+	LogLevel        slog.Level
 	Concurrency     int
 }
 
@@ -48,7 +39,7 @@ type GASP struct {
 	LastInteraction uint32
 	LogPrefix       string
 	Unidirectional  bool
-	LogLevel        LogLevel
+	LogLevel        slog.Level
 	limiter         chan struct{}
 }
 
@@ -75,15 +66,12 @@ func NewGASP(params GASPParams) *GASP {
 	} else {
 		gasp.LogPrefix = "[GASP] "
 	}
-	if params.LogLevel != nil {
-		gasp.LogLevel = *params.LogLevel
-	} else {
-		gasp.LogLevel = LogLevelInfo
-	}
+	slog.SetLogLoggerLevel(slog.LevelInfo)
 	return gasp
 }
 
 func (g *GASP) Sync(ctx context.Context) error {
+	slog.Info(fmt.Sprintf("%sStarting sync process. Last interaction timestamp: %d", g.LogPrefix, g.LastInteraction))
 	initialRequest := &GASPInitialRequest{
 		Version: g.Version,
 		Since:   g.LastInteraction,
@@ -109,16 +97,18 @@ func (g *GASP) Sync(ctx context.Context) error {
 						<-g.limiter
 						wg.Done()
 					}()
+					slog.Info(fmt.Sprintf("%sRequesting node for UTXO: %s", g.LogPrefix, outpoint.String()))
 					var resolvedNode *GASPNode
 					var err error
 					if resolvedNode, err = g.Remote.RequestNode(ctx, outpoint, outpoint, true); err == nil {
+						slog.Debug(fmt.Sprintf("%sReceived unspent graph node from remote: %v", g.LogPrefix, resolvedNode))
 						if err = g.processIncomingNode(ctx, resolvedNode, nil, &sync.Map{}); err == nil {
 							if err = g.CompleteGraph(ctx, resolvedNode.GraphID); err == nil {
 								return
 							}
 						}
 					}
-					log.Printf("Error with incoming UTXO %s: %v", outpoint.String(), err)
+					slog.Warn(fmt.Sprintf("%sError with incoming UTXO %s: %v", g.LogPrefix, outpoint.String(), err))
 				}(outpoint)
 			}
 			wg.Wait()
@@ -128,6 +118,7 @@ func (g *GASP) Sync(ctx context.Context) error {
 		if initialReply, err := g.Remote.GetInitialReplay(ctx, initialResponse); err != nil {
 			return err
 		} else {
+			slog.Info(fmt.Sprintf("%sReceived initial reply: %v", g.LogPrefix, initialReply))
 			var wg sync.WaitGroup
 			for _, outpoint := range initialReply.UTXOList {
 				wg.Add(1)
@@ -138,22 +129,27 @@ func (g *GASP) Sync(ctx context.Context) error {
 						wg.Done()
 					}()
 					var outgoingNode *GASPNode
+					slog.Info(fmt.Sprintf("%sHydrating GASP node for UTXO: %s", g.LogPrefix, outpoint.String()))
 					if outgoingNode, err = g.Storage.HydrateGASPNode(ctx, outpoint, outpoint, true); err == nil {
+						slog.Debug(fmt.Sprintf("%sSending unspent graph node for remote: %v", g.LogPrefix, outgoingNode))
 						if err = g.processOutgoingNode(ctx, outgoingNode, &sync.Map{}); err == nil {
 							return
 						}
 					}
-					log.Printf("Error with outgoing UTXO %s: %v", outpoint, err)
+					slog.Warn(fmt.Sprintf("%sError with outgoing UTXO %s: %v", g.LogPrefix, outpoint, err))
 				}(outpoint)
 			}
 			wg.Wait()
 		}
 	}
+	slog.Info(fmt.Sprintf("%sSync completed!", g.LogPrefix))
 	return nil
 }
 
 func (g *GASP) GetInitialResponse(ctx context.Context, request *GASPInitialRequest) (resp *GASPInitialResponse, err error) {
+	slog.Info(fmt.Sprintf("%sReceived initial request: %v", g.LogPrefix, request))
 	if request.Version != g.Version {
+		slog.Error(fmt.Sprintf("%sGASP version mismatch", g.LogPrefix))
 		return nil, NewGASPVersionMismatchError(
 			g.Version,
 			request.Version,
@@ -165,10 +161,12 @@ func (g *GASP) GetInitialResponse(ctx context.Context, request *GASPInitialReque
 	if resp.UTXOList, err = g.Storage.FindKnownUTXOs(ctx, request.Since); err != nil {
 		return nil, err
 	}
+	slog.Debug(fmt.Sprintf("%sBuilt initial response: %v", g.LogPrefix, resp))
 	return resp, nil
 }
 
 func (g *GASP) GetInitialReplay(ctx context.Context, response *GASPInitialResponse) (resp *GASPInitialReply, err error) {
+	slog.Info(fmt.Sprintf("%sReceived initial response: %v", g.LogPrefix, response))
 	if knownUtxos, err := g.Storage.FindKnownUTXOs(ctx, response.Since); err != nil {
 		return nil, err
 	} else {
@@ -182,23 +180,28 @@ func (g *GASP) GetInitialReplay(ctx context.Context, response *GASPInitialRespon
 				resp.UTXOList = append(resp.UTXOList, utxo)
 			}
 		}
+		slog.Debug(fmt.Sprintf("%sBuilt initial reply: %v", g.LogPrefix, resp))
 		return resp, nil
 	}
 }
 
 func (g *GASP) RequestNode(ctx context.Context, graphID *overlay.Outpoint, outpoint *overlay.Outpoint, metadata bool) (node *GASPNode, err error) {
+	slog.Info(fmt.Sprintf("%sRemote is requesting node with graphID: %s, txid: %s, outputIndex: %d, metadata: %v", g.LogPrefix, graphID.String(), outpoint.Txid.String(), outpoint.OutputIndex, metadata))
 	if node, err = g.Storage.HydrateGASPNode(ctx, graphID, outpoint, metadata); err != nil {
 		return nil, err
 	}
+	slog.Debug(fmt.Sprintf("%sReturning node: %v", g.LogPrefix, node))
 	return node, nil
 }
 
 func (g *GASP) SubmitNode(ctx context.Context, node *GASPNode) (requestedInputs *GASPNodeResponse, err error) {
+	slog.Info(fmt.Sprintf("%sRemote is submitting node: %v", g.LogPrefix, node))
 	if err = g.Storage.AppendToGraph(ctx, node, nil); err != nil {
 		return nil, err
 	} else if requestedInputs, err = g.Storage.FindNeededInputs(ctx, node); err != nil {
 		return nil, err
 	} else if requestedInputs != nil {
+		slog.Debug(fmt.Sprintf("%sRequested inputs: %v", g.LogPrefix, requestedInputs))
 		if err := g.CompleteGraph(ctx, node.GraphID); err != nil {
 			return nil, err
 		}
@@ -207,12 +210,15 @@ func (g *GASP) SubmitNode(ctx context.Context, node *GASPNode) (requestedInputs 
 }
 
 func (g *GASP) CompleteGraph(ctx context.Context, graphID *overlay.Outpoint) (err error) {
+	slog.Info(fmt.Sprintf("%sCompleting newly-synced graph: %s", g.LogPrefix, graphID.String()))
 	if err = g.Storage.ValidateGraphAnchor(ctx, graphID); err == nil {
+		slog.Debug(fmt.Sprintf("%sGraph validated for node: %s", g.LogPrefix, graphID.String()))
 		if err := g.Storage.FinalizeGraph(ctx, graphID); err == nil {
 			return nil
 		}
+		slog.Info(fmt.Sprintf("%sGraph finalized for node: %s", g.LogPrefix, graphID.String()))
 	}
-	log.Printf("Error completing graph %s: %v", graphID.String(), err)
+	slog.Warn(fmt.Sprintf("%sError completing graph %s: %v", g.LogPrefix, graphID.String(), err))
 	return g.Storage.DiscardGraph(ctx, graphID)
 }
 
@@ -224,7 +230,9 @@ func (g *GASP) processIncomingNode(ctx context.Context, node *GASPNode, spentBy 
 			Txid:        *txid,
 			OutputIndex: node.OutputIndex,
 		}).String()
+		slog.Debug(fmt.Sprintf("%sProcessing incoming node: %v, spentBy: %v", g.LogPrefix, node, spentBy))
 		if _, ok := seenNodes.Load(nodeId); ok {
+			slog.Debug(fmt.Sprintf("%sNode %s already processed, skipping.", g.LogPrefix, nodeId))
 			return nil
 		}
 		seenNodes.Store(nodeId, struct{}{})
@@ -233,6 +241,7 @@ func (g *GASP) processIncomingNode(ctx context.Context, node *GASPNode, spentBy 
 		} else if neededInputs, err := g.Storage.FindNeededInputs(ctx, node); err != nil {
 			return err
 		} else if neededInputs != nil {
+			slog.Debug(fmt.Sprintf("%sNeeded inputs for node %s: %v", g.LogPrefix, nodeId, neededInputs))
 			var wg sync.WaitGroup
 			errors := make(chan error)
 			for outpointStr, data := range neededInputs.RequestedInputs {
@@ -243,12 +252,16 @@ func (g *GASP) processIncomingNode(ctx context.Context, node *GASPNode, spentBy 
 						<-g.limiter
 						wg.Done()
 					}()
+					slog.Info(fmt.Sprintf("%sRequesting new node for outpoint: %s, metadata: %v", g.LogPrefix, outpointStr, data.Metadata))
 					if outpoint, err := overlay.NewOutpointFromString(outpointStr); err != nil {
 						errors <- err
 					} else if newNode, err := g.Remote.RequestNode(ctx, node.GraphID, outpoint, data.Metadata); err != nil {
 						errors <- err
-					} else if err := g.processIncomingNode(ctx, newNode, txid, seenNodes); err != nil {
-						errors <- err
+					} else {
+						slog.Debug(fmt.Sprintf("%sReceived new node: %v", g.LogPrefix, newNode))
+						if err := g.processIncomingNode(ctx, newNode, txid, seenNodes); err != nil {
+							errors <- err
+						}
 					}
 				}(outpointStr, data)
 			}
@@ -268,6 +281,7 @@ func (g *GASP) processIncomingNode(ctx context.Context, node *GASPNode, spentBy 
 
 func (g *GASP) processOutgoingNode(ctx context.Context, node *GASPNode, seenNodes *sync.Map) error {
 	if g.Unidirectional {
+		slog.Debug(fmt.Sprintf("%sSkipping outgoing node processing in unidirectional mode.", g.LogPrefix))
 		return nil
 	}
 	if txid, err := g.computeTxID(node.RawTx); err != nil {
@@ -277,7 +291,9 @@ func (g *GASP) processOutgoingNode(ctx context.Context, node *GASPNode, seenNode
 			Txid:        *txid,
 			OutputIndex: node.OutputIndex,
 		}).String()
+		slog.Debug(fmt.Sprintf("%sProcessing outgoing node: %v", g.LogPrefix, node))
 		if _, ok := seenNodes.Load(nodeId); ok {
+			slog.Debug(fmt.Sprintf("%sNode %s already processed, skipping.", g.LogPrefix, nodeId))
 			return nil
 		}
 		seenNodes.Store(nodeId, struct{}{})
@@ -297,13 +313,15 @@ func (g *GASP) processOutgoingNode(ctx context.Context, node *GASPNode, seenNode
 					var err error
 					if outpoint, err = overlay.NewOutpointFromString(outpointStr); err == nil {
 						var hydratedNode *GASPNode
-						if hydratedNode, err = g.Remote.RequestNode(ctx, node.GraphID, outpoint, data.Metadata); err == nil {
+						slog.Info(fmt.Sprintf("%sHydrating node for outpoint: %s, metadata: %v", g.LogPrefix, outpoint, data.Metadata))
+						if hydratedNode, err = g.Storage.HydrateGASPNode(ctx, node.GraphID, outpoint, data.Metadata); err == nil {
+							slog.Debug(fmt.Sprintf("%sSending hydrated node: %v", g.LogPrefix, hydratedNode))
 							if err = g.processOutgoingNode(ctx, hydratedNode, seenNodes); err == nil {
 								return
 							}
 						}
 					}
-					log.Printf("Error hydrating node: %v", err)
+					slog.Error(fmt.Sprintf("%sError hydrating node: %v", g.LogPrefix, err))
 				}(outpointStr, data)
 			}
 			wg.Wait()
