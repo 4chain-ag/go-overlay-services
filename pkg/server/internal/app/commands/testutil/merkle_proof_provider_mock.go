@@ -14,11 +14,11 @@ import (
 // It records the inputs it was called with and returns a preconfigured error.
 type MerkleProofProviderMock struct {
 	// Expected values
-	err error
+	err            error
 	expectedHeight uint32
 	// Call tracking
-	called bool
-	calledTxID *chainhash.Hash
+	called      bool
+	calledTxID  *chainhash.Hash
 	calledProof *transaction.MerklePath
 }
 
@@ -26,7 +26,7 @@ type MerkleProofProviderMock struct {
 // with the expected error and block height configured.
 func NewMerkleProofProviderMock(err error, expectedHeight uint32) *MerkleProofProviderMock {
 	return &MerkleProofProviderMock{
-		err: err,
+		err:            err,
 		expectedHeight: expectedHeight,
 	}
 }

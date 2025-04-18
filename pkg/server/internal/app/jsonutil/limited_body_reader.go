@@ -24,8 +24,8 @@ var (
 // It helps manage reading large request bodies by ensuring the data doesn't
 // exceed a predefined size limit.
 type LimitedBodyReader struct {
-	Body io.Reader // The reader that provides the data to be read
-	ReadLimit int64 // The maximum number of bytes that can be read
+	Body      io.Reader // The reader that provides the data to be read
+	ReadLimit int64     // The maximum number of bytes that can be read
 }
 
 // Read reads data from the LimitedBodyReader's io.Reader and returns the data as a byte slice.

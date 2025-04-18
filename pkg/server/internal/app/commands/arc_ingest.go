@@ -36,7 +36,7 @@ var (
 // ArcIngestHandlerResponse represents the response format for the ArcIngestHandler,
 // containing the status of the operation and a message providing additional context.
 type ArcIngestHandlerResponse struct {
-	Status string `json:"status"` // The status of the request (e.g., "success", "error")
+	Status  string `json:"status"`  // The status of the request (e.g., "success", "error")
 	Message string `json:"message"` // A message providing additional information about the result
 }
 
@@ -44,8 +44,8 @@ type ArcIngestHandlerResponse struct {
 // containing the transaction ID, Merkle path, and block height. This structure
 // is used to validate and process incoming ARC ingest requests.
 type ArcIngestRequest struct {
-	TxID string `json:"txid"` // Transaction ID in hexadecimal format
-	MerklePath string `json:"merklePath"` // Merkle path as a hex string
+	TxID        string `json:"txid"`        // Transaction ID in hexadecimal format
+	MerklePath  string `json:"merklePath"`  // Merkle path as a hex string
 	BlockHeight uint32 `json:"blockHeight"` // Block height associated with the Merkle path
 }
 
@@ -118,16 +118,16 @@ type NewMerkleProofProvider interface {
 // validation of incoming request bodies, conversion of the data into the
 // appropriate format, and forwarding the data to the overlay engine for processing.
 type ArcIngestHandler struct {
-	provider NewMerkleProofProvider
+	provider         NewMerkleProofProvider
 	requestBodyLimit int64
-	responseTimeout time.Duration
+	responseTimeout  time.Duration
 }
 
 // decode reads and decodes the request body into the provided destination
 // struct. It ensures the request body size is within the allowed limit.
 func (h *ArcIngestHandler) decode(body io.Reader, dst *ArcIngestRequest) error {
 	reader := jsonutil.LimitedBodyReader{
-		Body: body,
+		Body:      body,
 		ReadLimit: jsonutil.RequestBodyLimit1GB,
 	}
 	bb, err := reader.Read()
@@ -234,9 +234,9 @@ func NewArcIngestHandler(provider NewMerkleProofProvider, opts ...ArcIngestHandl
 		return nil, fmt.Errorf("provider is nil")
 	}
 	h := ArcIngestHandler{
-		provider: provider,
+		provider:         provider,
 		requestBodyLimit: jsonutil.RequestBodyLimit1GB,
-		responseTimeout: 10 * time.Second,
+		responseTimeout:  10 * time.Second,
 	}
 	for _, opt := range opts {
 		opt(&h)
@@ -254,7 +254,7 @@ func NewSuccessArcIngestHandlerResponse() ArcIngestHandlerResponse {
 // with the provided message describing the error that occurred during the process.
 func NewFailureArcIngestHandlerResponse(message string) ArcIngestHandlerResponse {
 	return ArcIngestHandlerResponse{
-		Status: "error",
+		Status:  "error",
 		Message: message,
 	}
 }
@@ -263,7 +263,7 @@ func NewFailureArcIngestHandlerResponse(message string) ArcIngestHandlerResponse
 // indicating an internal server error, with the default error message for HTTP 500.
 func NewInternalFailureArcIngestHandlerResponse() ArcIngestHandlerResponse {
 	return ArcIngestHandlerResponse{
-		Status: "error",
+		Status:  "error",
 		Message: http.StatusText(http.StatusInternalServerError),
 	}
 }
