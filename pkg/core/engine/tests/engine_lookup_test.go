@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
@@ -28,7 +29,7 @@ func TestEngine_Lookup_ShouldReturnError_WhenServiceUnknown(t *testing.T) {
 
 func TestEngine_Lookup_ShouldReturnError_WhenServiceLookupFails(t *testing.T) {
 	// given
-	expectedErr := errFakeLookup
+	expectedErr := errors.New("internal error")
 
 	sut := &engine.Engine{
 		LookupServices: map[string]engine.LookupService{
@@ -41,10 +42,10 @@ func TestEngine_Lookup_ShouldReturnError_WhenServiceLookupFails(t *testing.T) {
 	}
 
 	// when
-	actualAnswer, actualErr := sut.Lookup(context.Background(), &lookup.LookupQuestion{Service: "test"})
+	actualAnswer, err := sut.Lookup(context.Background(), &lookup.LookupQuestion{Service: "test"})
 
 	// then
-	require.ErrorIs(t, actualErr, expectedErr)
+	require.ErrorIs(t, err, expectedErr)
 	require.Nil(t, actualAnswer)
 }
 
@@ -109,7 +110,7 @@ func TestEngine_Lookup_ShouldHydrateOutputs_WhenFormulasProvided(t *testing.T) {
 	// given
 	ctx := context.Background()
 	expectedBeef := []byte("hydrated beef")
-	outpoint := &overlay.Outpoint{Txid: fakeTxID(), OutputIndex: 0}
+	outpoint := &overlay.Outpoint{Txid: fakeTxID(t), OutputIndex: 0}
 
 	sut := &engine.Engine{
 		LookupServices: map[string]engine.LookupService{
@@ -118,7 +119,7 @@ func TestEngine_Lookup_ShouldHydrateOutputs_WhenFormulasProvided(t *testing.T) {
 					return &lookup.LookupAnswer{
 						Type: lookup.AnswerTypeFormula,
 						Formulas: []lookup.LookupFormula{
-							{Outpoint: &overlay.Outpoint{Txid: fakeTxID(), OutputIndex: 0}},
+							{Outpoint: &overlay.Outpoint{Txid: fakeTxID(t), OutputIndex: 0}},
 						},
 					}, nil
 				},

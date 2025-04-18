@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
+	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/script"
 	"github.com/bsv-blockchain/go-sdk/transaction"
@@ -27,6 +28,9 @@ func TestEngine_Submit_Success(t *testing.T) {
 			},
 		},
 		Storage: fakeStorage{
+			deleteOutputFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+				return nil
+			},
 			findOutputFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error) {
 				return &engine.Output{}, nil
 			},
@@ -43,7 +47,11 @@ func TestEngine_Submit_Success(t *testing.T) {
 				return nil
 			},
 		},
-		ChainTracker: fakeChainTracker{},
+		ChainTracker: fakeChainTracker{
+			isValidRootForHeight: func(root *chainhash.Hash, height uint32) (bool, error) {
+				return true, nil
+			},
+		},
 	}
 
 	taggedBEEF := overlay.TaggedBEEF{
@@ -54,6 +62,7 @@ func TestEngine_Submit_Success(t *testing.T) {
 	expectedSteak := overlay.Steak{
 		"test-topic": &overlay.AdmittanceInstructions{
 			OutputsToAdmit: []uint32{0},
+			CoinsRemoved:   []uint32{0},
 		},
 	}
 
@@ -78,14 +87,7 @@ func TestEngine_Submit_InvalidBeef_ShouldReturnError(t *testing.T) {
 				},
 			},
 		},
-		Storage: fakeStorage{
-			findOutputFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error) {
-				return &engine.Output{}, nil
-			},
-			doesAppliedTransactionExistFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
-				return false, nil
-			},
-		},
+		Storage:      fakeStorage{},
 		ChainTracker: fakeChainTracker{},
 	}
 
@@ -133,18 +135,6 @@ func TestEngine_Submit_SPVFail_ShouldReturnError(t *testing.T) {
 					},
 				}, nil
 			},
-			doesAppliedTransactionExistFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
-				return false, nil
-			},
-			insertOutputFunc: func(ctx context.Context, output *engine.Output) error {
-				return nil
-			},
-			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
-				return nil
-			},
-			insertAppliedTransactionFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) error {
-				return nil
-			},
 		},
 		ChainTracker: fakeChainTrackerSPVFail{},
 	}
@@ -171,23 +161,15 @@ func TestEngine_Submit_DuplicateTransaction_ShouldReturnEmptySteak(t *testing.T)
 			"test-topic": fakeManager{},
 		},
 		Storage: fakeStorage{
-			findOutputFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error) {
-				return &engine.Output{}, nil
-			},
 			doesAppliedTransactionExistFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
 				return true, nil
 			},
-			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
-				return nil
-			},
-			insertAppliedTransactionFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) error {
-				return nil
-			},
-			insertOutputFunc: func(ctx context.Context, output *engine.Output) error {
-				return nil
+		},
+		ChainTracker: fakeChainTracker{
+			isValidRootForHeight: func(root *chainhash.Hash, height uint32) (bool, error) {
+				return true, nil
 			},
 		},
-		ChainTracker: fakeChainTracker{},
 	}
 	taggedBEEF := overlay.TaggedBEEF{
 		Topics: []string{"test-topic"},
@@ -252,14 +234,15 @@ func TestEngine_Submit_BroadcastFails_ShouldReturnError(t *testing.T) {
 			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
 				return nil
 			},
-			insertAppliedTransactionFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) error {
-				return nil
+		},
+		ChainTracker: fakeChainTracker{
+			verifyFunc: func(tx *transaction.Transaction, options ...any) (bool, error) {
+				return true, nil
 			},
-			insertOutputFunc: func(ctx context.Context, output *engine.Output) error {
-				return nil
+			isValidRootForHeight: func(root *chainhash.Hash, height uint32) (bool, error) {
+				return true, nil
 			},
 		},
-		ChainTracker: fakeChainTracker{},
 		Broadcaster: fakeBroadcasterFail{
 			broadcastFunc: func(tx *transaction.Transaction) (*transaction.BroadcastSuccess, *transaction.BroadcastFailure) {
 				return nil, &transaction.BroadcastFailure{Description: "forced failure for testing"}
@@ -288,6 +271,7 @@ func TestEngine_Submit_OutputInsertFails_ShouldReturnError(t *testing.T) {
 	// given:
 	ctx := context.Background()
 	taggedBEEF, prevTxID := createDummyValidTaggedBEEF(t)
+	expectedErr := errors.New("insert-failed")
 
 	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
@@ -317,14 +301,8 @@ func TestEngine_Submit_OutputInsertFails_ShouldReturnError(t *testing.T) {
 			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
 				return nil
 			},
-			insertAppliedTransactionFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) error {
-				return nil
-			},
 			insertOutputFunc: func(ctx context.Context, output *engine.Output) error {
-				return errors.New("insert-failed")
-			},
-			updateConsumedByFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error {
-				return nil
+				return expectedErr
 			},
 			deleteOutputFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
 				return nil
@@ -337,7 +315,6 @@ func TestEngine_Submit_OutputInsertFails_ShouldReturnError(t *testing.T) {
 	steak, err := sut.Submit(ctx, taggedBEEF, engine.SubmitModeCurrent, nil)
 
 	// then:
-	require.Error(t, err)
+	require.ErrorIs(t, err, expectedErr)
 	require.Nil(t, steak)
-	require.EqualError(t, err, "insert-failed")
 }
