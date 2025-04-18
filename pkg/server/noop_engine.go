@@ -3,14 +3,12 @@ package server
 import (
 	"context"
 
-	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
+	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/bsv-blockchain/go-sdk/transaction"
-
-
 )
 
 // NoopEngineProvider is a custom test overlay engine implementation. This is only a temporary solution and will be removed

@@ -1,11 +1,11 @@
 package jsonutil
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"bytes"
-	"errors"
 )
 
 // SendHTTPResponse replies to the request with the specified HTTP status code and response body content.

@@ -17,7 +17,6 @@ type Commands struct {
 	RequestSyncResponseHandler    *commands.RequestSyncResponseHandler
 	LookupQuestionHandler         *commands.LookupQuestionHandler
 	ArcIngestHandler              *commands.ArcIngestHandler
-
 }
 
 // Queries aggregate all the supported queries by the overlay API.
@@ -101,7 +100,6 @@ func initCommands(provider engine.OverlayEngineProvider) (*Commands, error) {
 		RequestSyncResponseHandler:    requestSyncRespHandler,
 		LookupQuestionHandler:         lookupQuestionHandler,
 		ArcIngestHandler:              arcIngestHandler,
-
 	}, nil
 }
 

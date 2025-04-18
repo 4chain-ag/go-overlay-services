@@ -56,11 +56,11 @@ func Test_ArcIngestHandler_ShouldRespondsWith200AndCallsProvider(t *testing.T) {
 // Test_ArcIngestHandler_ValidationTests tests error handling for various invalid inputs
 func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 	tests := map[string]struct {
-		method           string
-		payload          commands.ArcIngestRequest
-		setupRequest     func(*http.Request)
-		expectedStatus   int
-		expectedError    error
+		method         string
+		payload        commands.ArcIngestRequest
+		setupRequest   func(*http.Request)
+		expectedStatus int
+		expectedError  error
 	}{
 		"should fail with 405 when HTTP method is GET": {
 			method: http.MethodGet,
@@ -165,7 +165,7 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 
 			req, err := http.NewRequest(tc.method, ts.URL, requestBody)
 			require.NoError(t, err)
-			
+
 			if tc.method == http.MethodPost {
 				req.Header.Set("Content-Type", "application/json")
 			}
@@ -185,7 +185,7 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 			var response commands.ArcIngestHandlerResponse
 			err = jsonutil.DecodeResponseBody(res, &response)
 			require.NoError(t, err)
-			
+
 			require.Contains(t, response.Message, tc.expectedError.Error())
 			require.Equal(t, "error", response.Status)
 		})
