@@ -6,6 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/bsv-blockchain/go-sdk v1.1.22
+	github.com/bsv-blockchain/universal-test-vectors v0.5.0
 	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/google/uuid v1.6.0

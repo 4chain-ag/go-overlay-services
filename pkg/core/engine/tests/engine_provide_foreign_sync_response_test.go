@@ -14,7 +14,7 @@ import (
 func TestEngine_ProvideForeignSyncResponse_ShouldReturnUTXOList(t *testing.T) {
 	// given
 	expectedOutpoint := &overlay.Outpoint{
-		Txid:        fakeTxID(),
+		Txid:        fakeTxID(t),
 		OutputIndex: 1,
 	}
 	expectedResponse := &core.GASPInitialResponse{

@@ -65,8 +65,8 @@ func TestEngine_GetUTXOHistory_ShouldTravelRecursively_WhenOutputsConsumedPresen
 	// given
 	ctx := context.Background()
 
-	parentOutpoint := &overlay.Outpoint{Txid: fakeTxID(), OutputIndex: 0}
-	childOutpoint := &overlay.Outpoint{Txid: fakeTxID(), OutputIndex: 1}
+	parentOutpoint := &overlay.Outpoint{Txid: fakeTxID(t), OutputIndex: 0}
+	childOutpoint := &overlay.Outpoint{Txid: fakeTxID(t), OutputIndex: 1}
 
 	childBeef := createDummyBEEF(t)
 	parentBeef := createDummyBEEF(t)
@@ -109,8 +109,8 @@ func TestEngine_GetUTXOHistory_ShouldReturnError_WhenStorageFails(t *testing.T) 
 	// given
 	ctx := context.Background()
 
-	parentOutpoint := &overlay.Outpoint{Txid: fakeTxID(), OutputIndex: 0}
-	childOutpoint := &overlay.Outpoint{Txid: fakeTxID(), OutputIndex: 1}
+	parentOutpoint := &overlay.Outpoint{Txid: fakeTxID(t), OutputIndex: 0}
+	childOutpoint := &overlay.Outpoint{Txid: fakeTxID(t), OutputIndex: 1}
 
 	parentOutput := &engine.Output{
 		Outpoint:        *parentOutpoint,
