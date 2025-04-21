@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
+	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/script"
 	"github.com/bsv-blockchain/go-sdk/transaction"
@@ -33,7 +34,7 @@ func TestEngine_Submit_Success(t *testing.T) {
 			doesAppliedTransactionExistFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
 				return false, nil
 			},
-			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, spendTxid *chainhash.Hash) error {
 				return nil
 			},
 			insertOutputFunc: func(ctx context.Context, output *engine.Output) error {
@@ -139,7 +140,7 @@ func TestEngine_Submit_SPVFail_ShouldReturnError(t *testing.T) {
 			insertOutputFunc: func(ctx context.Context, output *engine.Output) error {
 				return nil
 			},
-			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, spendTxid *chainhash.Hash) error {
 				return nil
 			},
 			insertAppliedTransactionFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) error {
@@ -177,7 +178,7 @@ func TestEngine_Submit_DuplicateTransaction_ShouldReturnEmptySteak(t *testing.T)
 			doesAppliedTransactionExistFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
 				return true, nil
 			},
-			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, spendTxid *chainhash.Hash) error {
 				return nil
 			},
 			insertAppliedTransactionFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) error {
@@ -249,7 +250,7 @@ func TestEngine_Submit_BroadcastFails_ShouldReturnError(t *testing.T) {
 			doesAppliedTransactionExistFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
 				return false, nil
 			},
-			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, spendTxid *chainhash.Hash) error {
 				return nil
 			},
 			insertAppliedTransactionFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) error {
@@ -314,7 +315,7 @@ func TestEngine_Submit_OutputInsertFails_ShouldReturnError(t *testing.T) {
 			doesAppliedTransactionExistFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
 				return false, nil
 			},
-			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, spendTxid *chainhash.Hash) error {
 				return nil
 			},
 			insertAppliedTransactionFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) error {
