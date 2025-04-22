@@ -9,6 +9,9 @@ import (
 // RequestBodyLimit1GB defines the maximum allowed size for request bodies (1GB).
 const RequestBodyLimit1GB = 1000 * 1024 * 1024
 
+// chunkSize defines the size of chunks to use when reading request bodies (64KB).
+const chunkSize = 64 * 1024
+
 var (
 	// ErrRequestBodyRead is returned when there's an error reading the request body.
 	ErrRequestBodyRead = errors.New("failed to read request body")
@@ -38,7 +41,7 @@ type LimitedBodyReader struct {
 func (l *LimitedBodyReader) Read() ([]byte, error) {
 	reader := io.LimitReader(l.Body, l.ReadLimit+1)
 	buff := bytes.NewBuffer(nil)
-	bb := make([]byte, 64*1024)
+	bb := make([]byte, chunkSize)
 	var read int64
 
 	for {

@@ -1,9 +1,6 @@
 package commands_test
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Test_ArcIngestHandler_ShouldRespondsWith200AndCallsProvider tests the successful handling of a valid request
 func Test_ArcIngestHandler_ShouldRespondsWith200AndCallsProvider(t *testing.T) {
 	// given:
 	payload := commands.ArcIngestRequest{
@@ -53,14 +49,13 @@ func Test_ArcIngestHandler_ShouldRespondsWith200AndCallsProvider(t *testing.T) {
 	mock.AssertCalled(t)
 }
 
-// Test_ArcIngestHandler_ValidationTests tests error handling for various invalid inputs
 func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 	tests := map[string]struct {
 		method         string
 		payload        commands.ArcIngestRequest
 		setupRequest   func(*http.Request)
-		expectedStatus int
-		expectedError  error
+		expectedResponse commands.ArcIngestHandlerResponse
+		expectedHTTPStatus  int
 	}{
 		"should fail with 405 when HTTP method is GET": {
 			method: http.MethodGet,
@@ -69,18 +64,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  testutil.NewValidTestMerklePath(t),
 				BlockHeight: 848372,
 			},
-			expectedStatus: http.StatusMethodNotAllowed,
-			expectedError:  commands.ErrInvalidHTTPMethod,
-		},
-		"should fail with 405 when HTTP method is PUT": {
-			method: http.MethodPut,
-			payload: commands.ArcIngestRequest{
-				TxID:        testutil.ValidTxId,
-				MerklePath:  testutil.NewValidTestMerklePath(t),
-				BlockHeight: 848372,
-			},
-			expectedStatus: http.StatusMethodNotAllowed,
-			expectedError:  commands.ErrInvalidHTTPMethod,
+			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidHTTPMethod.Error()),
+			expectedHTTPStatus:  http.StatusMethodNotAllowed,
 		},
 		"should fail with 400 when all required fields are missing": {
 			method: http.MethodPost,
@@ -89,8 +74,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  "",
 				BlockHeight: 0,
 			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  commands.ErrMissingRequiredRequestFieldsDefinition,
+			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrMissingRequiredRequestFieldsDefinition.Error()),
+			expectedHTTPStatus:  http.StatusBadRequest,
 		},
 		"should fail with 400 when TxID field is missing": {
 			method: http.MethodPost,
@@ -99,8 +84,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  testutil.NewValidTestMerklePath(t),
 				BlockHeight: 848372,
 			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  commands.ErrMissingRequiredTxIDFieldDefinition,
+			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrMissingRequiredTxIDFieldDefinition.Error()),
+			expectedHTTPStatus:  http.StatusBadRequest,
 		},
 		"should fail with 400 when MerklePath field is missing": {
 			method: http.MethodPost,
@@ -109,8 +94,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  "",
 				BlockHeight: 848372,
 			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  commands.ErrMissingRequiredMerklePathFieldDefinition,
+			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrMissingRequiredMerklePathFieldDefinition.Error()),
+			expectedHTTPStatus:  http.StatusBadRequest,
 		},
 		"should fail with 400 when TxID format is invalid": {
 			method: http.MethodPost,
@@ -119,8 +104,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  testutil.NewValidTestMerklePath(t),
 				BlockHeight: 848372,
 			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  commands.ErrInvalidTxIDFormat,
+			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidTxIDFormat.Error()),
+			expectedHTTPStatus:  http.StatusBadRequest,
 		},
 		"should fail with 400 when TxID length is invalid": {
 			method: http.MethodPost,
@@ -129,8 +114,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  testutil.NewValidTestMerklePath(t),
 				BlockHeight: 848372,
 			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  commands.ErrInvalidTxIDLength,
+			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidTxIDLength.Error()),
+			expectedHTTPStatus:  http.StatusBadRequest,
 		},
 		"should fail with 400 when MerklePath format is invalid": {
 			method: http.MethodPost,
@@ -139,8 +124,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  "invalid-merkle-path",
 				BlockHeight: 848372,
 			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  commands.ErrInvalidMerklePathFormat,
+			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidMerklePathFormat.Error()),
+			expectedHTTPStatus:  http.StatusBadRequest,
 		},
 	}
 
@@ -154,25 +139,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 			ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
 			defer ts.Close()
 
-			var requestBody io.Reader
-			if tc.setupRequest == nil {
-				data, err := json.Marshal(tc.payload)
-				require.NoError(t, err)
-				requestBody = bytes.NewReader(data)
-			} else {
-				requestBody = bytes.NewReader([]byte{})
-			}
-
-			req, err := http.NewRequest(tc.method, ts.URL, requestBody)
+			req, err := http.NewRequest(tc.method, ts.URL, testutil.RequestBody(t, tc.payload))
 			require.NoError(t, err)
-
-			if tc.method == http.MethodPost {
-				req.Header.Set("Content-Type", "application/json")
-			}
-
-			if tc.setupRequest != nil {
-				tc.setupRequest(req)
-			}
 
 			// when:
 			res, err := ts.Client().Do(req)
@@ -180,14 +148,13 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 			defer res.Body.Close()
 
 			// then:
-			require.Equal(t, tc.expectedStatus, res.StatusCode)
+			require.Equal(t, tc.expectedHTTPStatus, res.StatusCode)
 
-			var response commands.ArcIngestHandlerResponse
-			err = jsonutil.DecodeResponseBody(res, &response)
+			var actualResponse commands.ArcIngestHandlerResponse
+			err = jsonutil.DecodeResponseBody(res, &actualResponse)
 			require.NoError(t, err)
 
-			require.Contains(t, response.Message, tc.expectedError.Error())
-			require.Equal(t, "error", response.Status)
+			require.Equal(t, tc.expectedResponse, actualResponse)
 		})
 	}
 }

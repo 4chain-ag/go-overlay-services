@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -18,19 +17,29 @@ import (
 var (
 	// ErrInvalidTxIDFormat is returned when the transaction ID is not in a valid format (e.g., not hexadecimal).
 	ErrInvalidTxIDFormat = errors.New("invalid transaction ID format")
+	
 	// ErrInvalidTxIDLength is returned when the transaction ID does not match the expected length (typically 64 characters for a SHA-256 hash).
 	ErrInvalidTxIDLength = errors.New("invalid transaction ID length")
+
 	// ErrInvalidMerklePathFormat is returned when the Merkle path is malformed or does not conform to the expected structure.
 	ErrInvalidMerklePathFormat = errors.New("invalid Merkle path format")
+	
 	// ErrMissingRequiredRequestFieldsDefinition is returned when the request body is missing
 	// required fields, such as the transaction ID and Merkle path.
 	ErrMissingRequiredRequestFieldsDefinition = errors.New("missing required fields: txid, merkle path")
+	
 	// ErrMissingRequiredTxIDFieldDefinition is returned when the request body is missing
 	// the required transaction ID field.
 	ErrMissingRequiredTxIDFieldDefinition = errors.New("missing required field: txid")
+	
 	// ErrMissingRequiredMerklePathFieldDefinition is returned when the request body is missing
 	// the required Merkle path field.
 	ErrMissingRequiredMerklePathFieldDefinition = errors.New("missing required field: merkle path")
+)
+
+const (
+	// DefaultResponseTimeout is the default duration after which a request will time out
+	DefaultResponseTimeout = 10 * time.Second
 )
 
 // ArcIngestHandlerResponse represents the response format for the ArcIngestHandler,
@@ -91,22 +100,6 @@ func (r *ArcIngestRequest) MerklePathStruct() (*transaction.MerklePath, error) {
 	return path, nil
 }
 
-// TxIDHash converts the transaction ID (TxID) from a hex string to a chainhash.Hash
-// representation. It returns an error if the string is improperly formatted or has
-// an invalid length.
-func (r *ArcIngestRequest) TxIDHash() (chainhash.Hash, error) {
-	bb, err := hex.DecodeString(r.TxID)
-	if err != nil {
-		return chainhash.Hash{}, errors.Join(err, ErrInvalidTxIDFormat)
-	}
-	if len(bb) != chainhash.HashSize {
-		return chainhash.Hash{}, ErrInvalidTxIDLength
-	}
-	var hash chainhash.Hash
-	copy(hash[:], bb)
-	return hash, nil
-}
-
 // NewMerkleProofProvider defines the contract for handling new Merkle proofs.
 // It allows the overlay engine to verify mined transactions and maintain
 // a chain-of-custody for transaction outputs.
@@ -154,15 +147,21 @@ func (h *ArcIngestHandler) buildHandleNewMerkleProofArguments(body io.Reader) (c
 	if err != nil {
 		return chainhash.Hash{}, nil, err
 	}
-	txIDHash, err := dst.TxIDHash()
+	
+	hash, err := chainhash.NewHashFromHex(dst.TxID)
+	if err != nil {
+		return chainhash.Hash{}, nil, errors.Join(err, ErrInvalidTxIDFormat)
+	}
+
+	if len(dst.TxID) != chainhash.MaxHashStringSize {
+		return chainhash.Hash{}, nil, ErrInvalidTxIDLength
+	}
+	
+	merklePath, err := dst.MerklePathStruct() 
 	if err != nil {
 		return chainhash.Hash{}, nil, err
 	}
-	merklePath, err := dst.MerklePathStruct()
-	if err != nil {
-		return chainhash.Hash{}, nil, err
-	}
-	return txIDHash, merklePath, nil
+	return *hash, merklePath, nil
 }
 
 // Handle processes an ARC ingest request, handling the validation, converting
@@ -176,37 +175,63 @@ func (h *ArcIngestHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	txIDHash, merklePath, err := h.buildHandleNewMerkleProofArguments(r.Body)
 	if err != nil {
 		slog.Error(fmt.Sprintf("[ArcIngest] Failed to build Merkle proof arguments: %v", err))
-
-		switch {
-		case errors.Is(err, jsonutil.ErrBodyReaderFailure),
-			errors.Is(err, jsonutil.JSONDecoderFailure):
-			jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, NewInternalFailureArcIngestHandlerResponse())
-			return
-		case errors.Is(err, ErrInvalidMerklePathFormat):
-			jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(ErrInvalidMerklePathFormat.Error()))
-			return
-		case errors.Is(err, ErrInvalidTxIDFormat):
-			jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(ErrInvalidTxIDFormat.Error()))
-			return
-		default:
-			jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(err.Error()))
-			return
-		}
+		h.handleMerkleProofArgumentError(w, err)
+		return
 	}
-	errCh := make(chan error, 1)
-	defer close(errCh)
-	go func() { errCh <- h.provider.HandleNewMerkleProof(r.Context(), &txIDHash, merklePath) }()
-	select {
-	case err := <-errCh:
-		if err == nil {
-			jsonutil.SendHTTPResponse(w, http.StatusOK, NewSuccessArcIngestHandlerResponse())
-			return
-		}
-		slog.Error(fmt.Sprintf("[ArcIngest] Merkle proof processing failed: %v", err))
+	
+	ctx, cancel := context.WithTimeout(r.Context(), h.responseTimeout)
+	defer cancel()
+	
+	err = h.provider.HandleNewMerkleProof(ctx, &txIDHash, merklePath)
+	h.handleMerkleProofResult(w, err)
+}
 
-		jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, NewFailureArcIngestHandlerResponse(http.StatusText(http.StatusInternalServerError)))
-	case <-time.After(h.responseTimeout):
+// handleMerkleProofResult handles the result of processing a Merkle proof,
+// sending appropriate HTTP responses based on the specific error type.
+func (h *ArcIngestHandler) handleMerkleProofResult(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, context.DeadlineExceeded):
+		slog.Error(fmt.Sprintf("[ArcIngest] Merkle proof processing timed out: %v", err))
 		jsonutil.SendHTTPResponse(w, http.StatusGatewayTimeout, NewFailureArcIngestHandlerResponse(http.StatusText(http.StatusGatewayTimeout)))
+
+	case errors.Is(err, context.Canceled):
+		slog.Error(fmt.Sprintf("[ArcIngest] Merkle proof processing canceled: %v", err))
+		jsonutil.SendHTTPResponse(w, http.StatusRequestTimeout, NewFailureArcIngestHandlerResponse(http.StatusText(http.StatusRequestTimeout)))
+
+	case err != nil:
+		slog.Error(fmt.Sprintf("[ArcIngest] Merkle proof processing failed: %v", err))
+		jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, NewFailureArcIngestHandlerResponse(http.StatusText(http.StatusInternalServerError)))
+
+	default:
+		slog.Info("[ArcIngest] Merkle proof successfully processed")
+		jsonutil.SendHTTPResponse(w, http.StatusOK, NewSuccessArcIngestHandlerResponse())
+	}
+}
+
+// handleMerkleProofArgumentError handles errors that occur during Merkle proof argument building,
+// sending appropriate HTTP responses based on the specific error type.
+func (h *ArcIngestHandler) handleMerkleProofArgumentError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, jsonutil.ErrBodyReaderFailure),
+		errors.Is(err, jsonutil.JSONDecoderFailure):
+		slog.Error(fmt.Sprintf("[ArcIngest] Request body read/decode error: %v", err))
+		jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, NewInternalFailureArcIngestHandlerResponse())
+	
+	case errors.Is(err, ErrInvalidMerklePathFormat):
+		slog.Error(fmt.Sprintf("[ArcIngest] Invalid Merkle path format: %v", err))
+		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(ErrInvalidMerklePathFormat.Error()))
+	
+	case errors.Is(err, ErrInvalidTxIDFormat):
+		slog.Error(fmt.Sprintf("[ArcIngest] Invalid transaction ID format: %v", err))
+		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(ErrInvalidTxIDFormat.Error()))
+	
+	case errors.Is(err, ErrInvalidTxIDLength):
+		slog.Error(fmt.Sprintf("[ArcIngest] Invalid transaction ID length: %v", err))
+		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(ErrInvalidTxIDLength.Error()))
+	
+	default:
+		slog.Error(fmt.Sprintf("[ArcIngest] Bad request error: %v", err))
+		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(err.Error()))
 	}
 }
 
@@ -236,7 +261,7 @@ func NewArcIngestHandler(provider NewMerkleProofProvider, opts ...ArcIngestHandl
 	h := ArcIngestHandler{
 		provider:         provider,
 		requestBodyLimit: jsonutil.RequestBodyLimit1GB,
-		responseTimeout:  10 * time.Second,
+		responseTimeout:  DefaultResponseTimeout,
 	}
 	for _, opt := range opts {
 		opt(&h)
