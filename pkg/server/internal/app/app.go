@@ -35,12 +35,12 @@ type Application struct {
 
 // New returns an instance of an Application with intialized commands and queries
 // utilizing an implementation of OverlayEngineProvider. If the provided argument is nil, it triggers a panic.
-func New(provider engine.OverlayEngineProvider, arcAPIKey string) (*Application, error) {
+func New(provider engine.OverlayEngineProvider) (*Application, error) {
 	if provider == nil {
 		return nil, fmt.Errorf("overlay engine provider is nil")
 	}
 
-	cmds, err := initCommands(provider, arcAPIKey)
+	cmds, err := initCommands(provider)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func New(provider engine.OverlayEngineProvider, arcAPIKey string) (*Application,
 	}, nil
 }
 
-func initCommands(provider engine.OverlayEngineProvider, arcAPIKey string) (*Commands, error) {
+func initCommands(provider engine.OverlayEngineProvider) (*Commands, error) {
 	submitHandler, err := commands.NewSubmitTransactionCommandHandler(provider)
 	if err != nil {
 		return nil, fmt.Errorf("SubmitTransactionHandler: %w", err)

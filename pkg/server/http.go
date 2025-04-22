@@ -95,12 +95,12 @@ func WithConfig(cfg *Config) HTTPOption {
 }
 
 // WithEngine sets the overlay engine provider for the HTTP server.
-func WithEngine(engineProvider engine.OverlayEngineProvider, arcAPIKey string) HTTPOption {
+func WithEngine(engineProvider engine.OverlayEngineProvider) HTTPOption {
 	return func(h *HTTP) error {
 		if engineProvider == nil {
 			return fmt.Errorf("engine provider is nil")
 		}
-		overlayAPI, err := app.New(engineProvider, arcAPIKey)
+		overlayAPI, err := app.New(engineProvider)
 		if err != nil {
 			return fmt.Errorf("failed to create overlay API: %w", err)
 		}
@@ -175,7 +175,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	}
 
 	if http.api == nil {
-		overlayAPI, err := app.New(NewNoopEngineProvider(), http.cfg.ArcCallbackToken)
+		overlayAPI, err := app.New(NewNoopEngineProvider())
 		if err != nil {
 			return nil, fmt.Errorf("failed to create overlay API: %w", err)
 		}
