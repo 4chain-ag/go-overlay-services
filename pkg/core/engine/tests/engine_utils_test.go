@@ -16,8 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var errFakeStorage = errors.New("fakeStorage: method not implemented")
-
 type fakeStorage struct {
 	findOutputFunc                  func(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error)
 	findOutputsFunc                 func(ctx context.Context, outpoints []*overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) ([]*engine.Output, error)
@@ -28,6 +26,8 @@ type fakeStorage struct {
 	updateConsumedByFunc            func(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error
 	deleteOutputFunc                func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
 	findUTXOsForTopicFunc           func(ctx context.Context, topic string, since uint32, includeBEEF bool) ([]*engine.Output, error)
+	updateTransactionBEEF           func(ctx context.Context, txid *chainhash.Hash, beef []byte) error
+	updateOutputBlockHeight         func(ctx context.Context, outpoint *overlay.Outpoint, topic string, blockHeight uint32, blockIndex uint64, ancillaryBeef []byte) error
 }
 
 func (f fakeStorage) FindOutput(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error) {
@@ -87,50 +87,70 @@ func (f fakeStorage) FindUTXOsForTopic(ctx context.Context, topic string, since 
 	if f.findUTXOsForTopicFunc != nil {
 		return f.findUTXOsForTopicFunc(ctx, topic, since, includeBEEF)
 	}
-	return nil, errFakeStorage
+	panic("func not defined")
 }
 
 func (f fakeStorage) DeleteOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic string) error {
+	if f.deleteOutputFunc != nil {
+		return f.DeleteOutputs(ctx, outpoints, topic)
+	}
 	panic("func not defined")
 }
 
 func (f fakeStorage) MarkUTXOsAsSpent(ctx context.Context, outpoints []*overlay.Outpoint, topic string) error {
+	if f.markUTXOAsSpentFunc != nil {
+		return f.MarkUTXOsAsSpent(ctx, outpoints, topic)
+	}
 	panic("func not defined")
 }
 
 func (f fakeStorage) UpdateTransactionBEEF(ctx context.Context, txid *chainhash.Hash, beef []byte) error {
+	if f.updateTransactionBEEF(ctx, txid, beef) != nil {
+		return f.UpdateTransactionBEEF(ctx, txid, beef)
+	}
 	panic("func not defined")
 }
 
 func (f fakeStorage) UpdateOutputBlockHeight(ctx context.Context, outpoint *overlay.Outpoint, topic string, blockHeight uint32, blockIndex uint64, ancillaryBeef []byte) error {
+	if f.updateOutputBlockHeight != nil {
+		return f.updateOutputBlockHeight(ctx, outpoint, topic, blockHeight, blockIndex, ancillaryBeef)
+	}
 	panic("func not defined")
 }
 
 type fakeManager struct {
 	identifyAdmissableOutputsFunc func(ctx context.Context, beef []byte, previousCoins map[uint32][]byte) (overlay.AdmittanceInstructions, error)
 	identifyNeededInputsFunc      func(ctx context.Context, beef []byte) ([]*overlay.Outpoint, error)
+	getMetaData                   func() *overlay.MetaData
+	getDocumentation              func() string
 }
 
 func (f fakeManager) IdentifyAdmissableOutputs(ctx context.Context, beef []byte, previousCoins map[uint32][]byte) (overlay.AdmittanceInstructions, error) {
 	if f.identifyAdmissableOutputsFunc != nil {
 		return f.identifyAdmissableOutputsFunc(ctx, beef, previousCoins)
 	}
-	panic("IdentifyAdmissableOutputs not defined")
+	panic("func not defined")
 }
 
 func (f fakeManager) IdentifyNeededInputs(ctx context.Context, beef []byte) ([]*overlay.Outpoint, error) {
 	if f.identifyNeededInputsFunc != nil {
 		return f.identifyNeededInputsFunc(ctx, beef)
 	}
-	panic("IdentifyNeededInputs not defined")
+	panic("func not defined")
 }
 
 func (f fakeManager) GetMetaData() *overlay.MetaData {
-	panic("GetMetaData not defined")
+	if f.getMetaData != nil {
+		return f.getMetaData()
+	}
+	panic("func not defined")
 }
 
 func (f fakeManager) GetDocumentation() string {
-	panic("GetDocumentation not defined")
+	if f.getDocumentation != nil {
+		return f.getDocumentation()
+	}
+	panic("func not defined")
 }
 
 type fakeChainTracker struct {
