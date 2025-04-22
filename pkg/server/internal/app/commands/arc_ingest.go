@@ -35,6 +35,15 @@ var (
 	// ErrMissingRequiredMerklePathFieldDefinition is returned when the request body is missing
 	// the required Merkle path field.
 	ErrMissingRequiredMerklePathFieldDefinition = errors.New("missing required field: merkle path")
+
+	// ErrMerkleProofProcessingTimeout is returned when Merkle proof processing times out.
+	ErrMerkleProofProcessingTimeout = errors.New("Merkle proof processing timed out")
+	
+	// ErrMerkleProofProcessingCanceled is returned when Merkle proof processing is canceled.
+	ErrMerkleProofProcessingCanceled = errors.New("Merkle proof processing canceled")
+	
+	// ErrMerkleProofProcessingFailed is returned when Merkle proof processing fails for an unknown reason.
+	ErrMerkleProofProcessingFailed = errors.New("Internal server error occurred during processing")
 )
 
 const (
@@ -192,15 +201,15 @@ func (h *ArcIngestHandler) handleMerkleProofResult(w http.ResponseWriter, err er
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
 		slog.Error(fmt.Sprintf("[ArcIngest] Merkle proof processing timed out: %v", err))
-		jsonutil.SendHTTPResponse(w, http.StatusGatewayTimeout, NewFailureArcIngestHandlerResponse(http.StatusText(http.StatusGatewayTimeout)))
+		jsonutil.SendHTTPResponse(w, http.StatusGatewayTimeout, NewFailureArcIngestHandlerResponse(ErrMerkleProofProcessingTimeout.Error()))
 
 	case errors.Is(err, context.Canceled):
 		slog.Error(fmt.Sprintf("[ArcIngest] Merkle proof processing canceled: %v", err))
-		jsonutil.SendHTTPResponse(w, http.StatusRequestTimeout, NewFailureArcIngestHandlerResponse(http.StatusText(http.StatusRequestTimeout)))
+		jsonutil.SendHTTPResponse(w, http.StatusRequestTimeout, NewFailureArcIngestHandlerResponse(ErrMerkleProofProcessingCanceled.Error()))
 
 	case err != nil:
 		slog.Error(fmt.Sprintf("[ArcIngest] Merkle proof processing failed: %v", err))
-		jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, NewFailureArcIngestHandlerResponse(http.StatusText(http.StatusInternalServerError)))
+		jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, NewFailureArcIngestHandlerResponse(ErrMerkleProofProcessingFailed.Error()))
 
 	default:
 		slog.Info("[ArcIngest] Merkle proof successfully processed")
@@ -272,7 +281,10 @@ func NewArcIngestHandler(provider NewMerkleProofProvider, opts ...ArcIngestHandl
 // NewSuccessArcIngestHandlerResponse creates a success response for the ArcIngestHandler,
 // indicating that the transaction status has been successfully updated.
 func NewSuccessArcIngestHandlerResponse() ArcIngestHandlerResponse {
-	return ArcIngestHandlerResponse{Status: "success", Message: "Transaction status updated"}
+	return ArcIngestHandlerResponse{
+		Status: "success",
+		Message: "Transaction status updated",
+	}
 }
 
 // NewFailureArcIngestHandlerResponse creates a failure response for the ArcIngestHandler,
