@@ -15,9 +15,9 @@ import (
 type MerkleProofProviderMock struct {
 	err            error
 	expectedHeight uint32
-	called      bool
-	calledTxID  *chainhash.Hash
-	calledProof *transaction.MerklePath
+	called         bool
+	calledTxID     *chainhash.Hash
+	calledProof    *transaction.MerklePath
 }
 
 // NewMerkleProofProviderMock creates a new MerkleProofProviderMock
