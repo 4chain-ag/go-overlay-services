@@ -36,17 +36,17 @@ var (
 // ArcIngestHandlerResponse represents the response format for the ArcIngestHandler,
 // containing the status of the operation and a message providing additional context.
 type ArcIngestHandlerResponse struct {
-	Status  string `json:"status"`  // The status of the request (e.g., "success", "error")
-	Message string `json:"message"` // A message providing additional information about the result
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // ArcIngestRequest defines the expected structure for the ARC ingest request body,
 // containing the transaction ID, Merkle path, and block height. This structure
 // is used to validate and process incoming ARC ingest requests.
 type ArcIngestRequest struct {
-	TxID        string `json:"txid"`        // Transaction ID in hexadecimal format
-	MerklePath  string `json:"merklePath"`  // Merkle path as a hex string
-	BlockHeight uint32 `json:"blockHeight"` // Block height associated with the Merkle path
+	TxID        string `json:"txid"`
+	MerklePath  string `json:"merklePath"`
+	BlockHeight uint32 `json:"blockHeight"`
 }
 
 // IsMerklePathEmpty checks if the MerklePath field is empty, indicating missing data.

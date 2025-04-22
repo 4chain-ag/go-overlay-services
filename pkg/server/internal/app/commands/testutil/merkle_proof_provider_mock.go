@@ -13,10 +13,8 @@ import (
 // MerkleProofProviderMock is a test double for a Merkle proof handler.
 // It records the inputs it was called with and returns a preconfigured error.
 type MerkleProofProviderMock struct {
-	// Expected values
 	err            error
 	expectedHeight uint32
-	// Call tracking
 	called      bool
 	calledTxID  *chainhash.Hash
 	calledProof *transaction.MerklePath
