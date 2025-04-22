@@ -15,6 +15,7 @@ func TestEngine_NewEngine_ShouldInitializeFields_WhenNilProvided(t *testing.T) {
 		Managers:          map[string]engine.TopicManager{},
 		LookupServices:    map[string]engine.LookupService{},
 		SyncConfiguration: map[string]engine.SyncConfiguration{},
+		LookupResolver:    engine.NewLookupResolver(),
 	}
 
 	// when:

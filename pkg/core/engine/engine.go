@@ -47,6 +47,17 @@ type SyncConfiguration struct {
 }
 
 type OnSteakReady func(steak *overlay.Steak)
+
+type LookupResolverProvider interface {
+	SLAPTrackers() []string
+	SetSLAPTrackers(trackers []string)
+	Query(ctx context.Context, question *lookup.LookupQuestion, timeout time.Duration) (*lookup.LookupAnswer, error)
+}
+
+type GASPProvider interface {
+	Sync(ctx context.Context) error
+}
+
 type Engine struct {
 	Managers                map[string]TopicManager
 	LookupServices          map[string]LookupService
@@ -64,6 +75,8 @@ type Engine struct {
 	BroadcastFacilitator    topic.Facilitator
 	Verbose                 bool
 	PanicOnError            bool
+	LookupResolver          LookupResolverProvider
+	GASPProvider            GASPProvider
 	// Logger				  Logger //TODO: Implement Logger Interface
 }
 
@@ -77,6 +90,10 @@ func NewEngine(cfg Engine) *Engine {
 	if cfg.LookupServices == nil {
 		cfg.LookupServices = make(map[string]LookupService)
 	}
+	if cfg.LookupResolver == nil {
+		cfg.LookupResolver = NewLookupResolver()
+	}
+
 	for name, manager := range cfg.Managers {
 		config := cfg.SyncConfiguration[name]
 
@@ -117,6 +134,8 @@ var ErrInvalidBeef = errors.New("invalid-beef")
 var ErrInvalidTransaction = errors.New("invalid-transaction")
 var ErrMissingInput = errors.New("missing-input")
 var ErrInputSpent = errors.New("input-spent")
+
+var ErrNilSyncConfiguration = errors.New("sync configuration is missing or not set up for topical synchronization")
 
 func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode SumbitMode, onSteakReady OnSteakReady) (overlay.Steak, error) {
 	start := time.Now()
@@ -566,7 +585,7 @@ func (e *Engine) SyncAdvertisements(ctx context.Context) error {
 
 func (e *Engine) StartGASPSync(ctx context.Context) error {
 	if e.SyncConfiguration == nil {
-		return errors.New("not configured for topical synchronization")
+		return ErrNilSyncConfiguration
 	}
 
 	for topic := range e.SyncConfiguration {
@@ -574,36 +593,40 @@ func (e *Engine) StartGASPSync(ctx context.Context) error {
 		if !ok {
 			continue
 		}
+
 		if syncEndpoints.Type == SyncConfigurationSHIP {
-			resolver := lookup.LookupResolver{
-				Facilitator: &lookup.HTTPSOverlayLookupFacilitator{
-					Client: http.DefaultClient,
-				},
-			}
-			if e.SLAPTrackers != nil {
-				resolver.SLAPTrackers = e.SLAPTrackers
+			e.LookupResolver.SetSLAPTrackers(e.SLAPTrackers)
+
+			query, err := json.Marshal(map[string]any{"topics": []string{topic}})
+			if err != nil {
+				return err
 			}
 
-			if query, err := json.Marshal(map[string]any{
-				"topics": []string{topic},
-			}); err != nil {
+			lookupAnswer, err := e.LookupResolver.Query(ctx, &lookup.LookupQuestion{Service: "ls_ship", Query: query}, 10*time.Second)
+			if err != nil {
 				return err
-			} else if lookupAnswer, err := resolver.Query(ctx, &lookup.LookupQuestion{
-				Service: "ls_ship",
-				Query:   query,
-			}, 10*time.Second); err != nil {
-				return err
-			} else if lookupAnswer.Type == lookup.AnswerTypeOutputList {
+			}
+
+			if lookupAnswer.Type == lookup.AnswerTypeOutputList {
 				endpointSet := make(map[string]struct{}, len(lookupAnswer.Outputs))
 				for _, output := range lookupAnswer.Outputs {
-					if tx, err := transaction.NewTransactionFromBEEF(output.Beef); err != nil {
+					tx, err := transaction.NewTransactionFromBEEF(output.Beef)
+					if err != nil {
 						log.Println("Failed to parse advertisement output:", err)
-					} else if advertisement, err := e.Advertiser.ParseAdvertisement(tx.Outputs[output.OutputIndex].LockingScript); err != nil {
+						continue
+					}
+
+					advertisement, err := e.Advertiser.ParseAdvertisement(tx.Outputs[output.OutputIndex].LockingScript)
+					if err != nil {
 						log.Println("Failed to parse advertisement output:", err)
-					} else if advertisement != nil && advertisement.Protocol == "SHIP" {
+						continue
+					}
+
+					if advertisement != nil && advertisement.Protocol == "SHIP" {
 						endpointSet[advertisement.Domain] = struct{}{}
 					}
 				}
+
 				syncEndpoints.Peers = make([]string, 0, len(endpointSet))
 				for endpoint := range endpointSet {
 					if endpoint != e.HostingURL {
@@ -620,20 +643,25 @@ func (e *Engine) StartGASPSync(ctx context.Context) error {
 					peers = append(peers, peer)
 				}
 			}
+
 			for _, peer := range peers {
 				logPrefix := "[GASP Sync of " + topic + " with " + peer + "]"
-				gasp := core.NewGASP(core.GASPParams{
-					Storage: NewOverlayGASPStorage(topic, e, nil),
-					Remote: &OverlayGASPRemote{
-						EndpointUrl: peer,
-						Topic:       topic,
-						HttpClient:  http.DefaultClient,
-					},
-					LogPrefix:      &logPrefix,
-					Unidirectional: true,
-					Concurrency:    syncEndpoints.Concurrency,
-				})
-				if err := gasp.Sync(ctx); err != nil {
+
+				if e.GASPProvider == nil {
+					e.GASPProvider = core.NewGASP(core.GASPParams{
+						Storage: NewOverlayGASPStorage(topic, e, nil),
+						Remote: &OverlayGASPRemote{
+							EndpointUrl: peer,
+							Topic:       topic,
+							HttpClient:  http.DefaultClient,
+						},
+						LogPrefix:      &logPrefix,
+						Unidirectional: true,
+						Concurrency:    syncEndpoints.Concurrency,
+					})
+				}
+
+				if err := e.GASPProvider.Sync(ctx); err != nil {
 					log.Println("Failed to sync with peer", peer, ":", err)
 				}
 			}

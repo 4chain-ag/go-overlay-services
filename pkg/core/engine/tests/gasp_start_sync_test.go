@@ -5,39 +5,144 @@ import (
 	"testing"
 	"time"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/core/advertiser"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
+	"github.com/bsv-blockchain/go-sdk/script"
 	"github.com/stretchr/testify/require"
 )
 
-func TestEngine_StartGASPSync_Success(t *testing.T) {
-	// given
-	e := engine.NewEngine(engine.Engine{
-		SyncConfiguration: map[string]engine.SyncConfiguration{
-			"test-topic": {Type: engine.SyncConfigurationSHIP},
-		},
-		Advertiser: fakeAdvertiser{},
-		HostingURL: "http://localhost",
-	})
-	e.SHIPTrackers = []string{"http://localhost"}
-
-	e.LookupServices = map[string]engine.LookupService{
-		"ls_ship": fakeLookupResolver{
-			lookupAnswer: &lookup.LookupAnswer{
-				Type: lookup.AnswerTypeOutputList,
-				Outputs: []*lookup.OutputListItem{
-					{Beef: []byte{0x00}, OutputIndex: 0},
+func TestEngine_StartGASPSync_ShouldCallSyncWithoutFailure(t *testing.T) {
+	// given:
+	resolver := LookupResolverMock{
+		ExpectQueryCall:       true,
+		ExpectSetTrackersCall: true,
+		ExpectedAnswer: &lookup.LookupAnswer{
+			Type: lookup.AnswerTypeOutputList,
+			Outputs: []*lookup.OutputListItem{
+				{
+					Beef:        createDummyBEEF(t),
+					OutputIndex: 0,
 				},
 			},
 		},
 	}
+	gasp := GASPMock{
+		ExpectedErr:  nil,
+		ExpectedCall: true,
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
+	advertiser := fakeAdvertiser{
+		parseAdvertisement: func(script *script.Script) (*advertiser.Advertisement, error) {
+			return &advertiser.Advertisement{Protocol: "SHIP"}, nil
+		},
+	}
 
-	// when
-	err := e.StartGASPSync(ctx)
+	sut := engine.NewEngine(engine.Engine{
+		SyncConfiguration: map[string]engine.SyncConfiguration{"test-topic": {Type: engine.SyncConfigurationSHIP}},
+		Advertiser:        &advertiser,
+		HostingURL:        "http://localhost",
+		SHIPTrackers:      []string{"http://localhost"},
+		LookupResolver:    &resolver,
+		GASPProvider:      &gasp,
+	})
 
-	// then
+	// when:
+	err := sut.StartGASPSync(context.Background())
+
+	// then:
 	require.NoError(t, err)
+
+	resolver.AssertCalled(t)
+	gasp.AssertCalled(t)
+}
+
+// GASPMock is a test double for a GASP implementation.
+// It allows simulating the behavior of the Sync method
+// and verifying whether it was called during testing.
+type GASPMock struct {
+	// ExpectedErr is the error to return when Sync is called.
+	ExpectedErr error
+
+	// ExpectedCall indicates whether Sync is expected to be called.
+	ExpectedCall bool
+
+	// Called is true if Sync was called during the test.
+	Called bool
+}
+
+// Sync simulates the synchronization process.
+// It returns the predefined ExpectedErr if set,
+// and marks the method as called for test verification.
+func (g *GASPMock) Sync(ctx context.Context) error {
+	g.Called = true
+
+	if g.ExpectedErr != nil {
+		return g.ExpectedErr
+	}
+	return nil
+}
+
+// AssertCalled verifies that the Sync method was called.
+// It should be used in tests to ensure expectations were met.
+func (g *GASPMock) AssertCalled(t *testing.T) {
+	t.Helper()
+	require.Equal(t, g.ExpectedCall, g.Called, "Sync call mismatch")
+}
+
+// LookupResolverMock is a test double for the LookupResolver interface.
+// It simulates resolver behavior and captures input/output for assertions.
+type LookupResolverMock struct {
+	// Expected outputs
+	ExpectedAnswer *lookup.LookupAnswer
+	ExpectedError  error
+
+	// Expectations
+	ExpectQueryCall       bool
+	ExpectSetTrackersCall bool
+	ExpectTrackersAccess  bool
+	ExpectedTrackers      []string
+
+	// Captured state
+	QueryCalled       bool
+	SetTrackersCalled bool
+	TrackersCalled    bool
+	ReceivedTrackers  []string
+	ReceivedQuestion  *lookup.LookupQuestion
+}
+
+// SLAPTrackers simulates retrieving trackers and captures the call.
+func (m *LookupResolverMock) SLAPTrackers() []string {
+	m.TrackersCalled = true
+	return m.ReceivedTrackers
+}
+
+// SetSLAPTrackers captures the trackers provided in the test.
+func (m *LookupResolverMock) SetSLAPTrackers(trackers []string) {
+	m.SetTrackersCalled = true
+	m.ReceivedTrackers = trackers
+}
+
+// Query simulates a resolver query and captures the input question.
+func (m *LookupResolverMock) Query(ctx context.Context, question *lookup.LookupQuestion, timeout time.Duration) (*lookup.LookupAnswer, error) {
+	m.QueryCalled = true
+	m.ReceivedQuestion = question
+
+	if m.ExpectedError != nil {
+		return nil, m.ExpectedError
+	}
+	return m.ExpectedAnswer, nil
+}
+
+// AssertCalled verifies that the mock was used correctly in the test.
+// It checks for expected method calls and captured input values.
+func (m *LookupResolverMock) AssertCalled(t *testing.T) {
+	t.Helper()
+
+	require.Equal(t, m.ExpectQueryCall, m.QueryCalled, "Query call mismatch")
+	require.Equal(t, m.ExpectSetTrackersCall, m.SetTrackersCalled, "SetSLAPTrackers call mismatch")
+	require.Equal(t, m.ExpectTrackersAccess, m.TrackersCalled, "SLAPTrackers access mismatch")
+
+	require.NotNil(t, m.ReceivedQuestion, "expected non-nil LookupQuestion")
+	require.Equal(t, m.ExpectedTrackers, m.ReceivedTrackers, "unexpected SLAP trackers")
 }
