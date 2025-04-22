@@ -59,6 +59,7 @@ func (r *OverlayGASPRemote) RequestNode(ctx context.Context, graphID *overlay.Ou
 		return nil, err
 	} else {
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-BSV-Topic", r.Topic)
 		if resp, err := r.HttpClient.Do(req); err != nil {
 			return nil, err
 		} else {
