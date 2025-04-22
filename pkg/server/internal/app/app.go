@@ -87,7 +87,7 @@ func initCommands(provider engine.OverlayEngineProvider, arcAPIKey string) (*Com
 		return nil, fmt.Errorf("LookupQuestionHandler: %w", err)
 	}
 
-	arcIngestHandler, err := commands.NewARCIngestHandler(arcAPIKey)
+	arcIngestHandler, err := commands.NewARCIngestHandler()
 	if err != nil {
 		return nil, fmt.Errorf("NewARCIngestHandler: %w", err)
 	}
