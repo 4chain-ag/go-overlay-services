@@ -38,10 +38,10 @@ var (
 
 	// ErrMerkleProofProcessingTimeout is returned when Merkle proof processing times out.
 	ErrMerkleProofProcessingTimeout = errors.New("Merkle proof processing timed out")
-	
+
 	// ErrMerkleProofProcessingCanceled is returned when Merkle proof processing is canceled.
 	ErrMerkleProofProcessingCanceled = errors.New("Merkle proof processing canceled")
-	
+
 	// ErrMerkleProofProcessingFailed is returned when Merkle proof processing fails for an unknown reason.
 	ErrMerkleProofProcessingFailed = errors.New("Internal server error occurred during processing")
 )
@@ -282,7 +282,7 @@ func NewArcIngestHandler(provider NewMerkleProofProvider, opts ...ArcIngestHandl
 // indicating that the transaction status has been successfully updated.
 func NewSuccessArcIngestHandlerResponse() ArcIngestHandlerResponse {
 	return ArcIngestHandlerResponse{
-		Status: "success",
+		Status:  "success",
 		Message: "Transaction status updated",
 	}
 }
