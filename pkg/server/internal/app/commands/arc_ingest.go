@@ -17,21 +17,21 @@ import (
 var (
 	// ErrInvalidTxIDFormat is returned when the transaction ID is not in a valid format (e.g., not hexadecimal).
 	ErrInvalidTxIDFormat = errors.New("invalid transaction ID format")
-	
+
 	// ErrInvalidTxIDLength is returned when the transaction ID does not match the expected length (typically 64 characters for a SHA-256 hash).
 	ErrInvalidTxIDLength = errors.New("invalid transaction ID length")
 
 	// ErrInvalidMerklePathFormat is returned when the Merkle path is malformed or does not conform to the expected structure.
 	ErrInvalidMerklePathFormat = errors.New("invalid Merkle path format")
-	
+
 	// ErrMissingRequiredRequestFieldsDefinition is returned when the request body is missing
 	// required fields, such as the transaction ID and Merkle path.
 	ErrMissingRequiredRequestFieldsDefinition = errors.New("missing required fields: txid, merkle path")
-	
+
 	// ErrMissingRequiredTxIDFieldDefinition is returned when the request body is missing
 	// the required transaction ID field.
 	ErrMissingRequiredTxIDFieldDefinition = errors.New("missing required field: txid")
-	
+
 	// ErrMissingRequiredMerklePathFieldDefinition is returned when the request body is missing
 	// the required Merkle path field.
 	ErrMissingRequiredMerklePathFieldDefinition = errors.New("missing required field: merkle path")
@@ -147,7 +147,7 @@ func (h *ArcIngestHandler) buildHandleNewMerkleProofArguments(body io.Reader) (c
 	if err != nil {
 		return chainhash.Hash{}, nil, err
 	}
-	
+
 	hash, err := chainhash.NewHashFromHex(dst.TxID)
 	if err != nil {
 		return chainhash.Hash{}, nil, errors.Join(err, ErrInvalidTxIDFormat)
@@ -156,8 +156,8 @@ func (h *ArcIngestHandler) buildHandleNewMerkleProofArguments(body io.Reader) (c
 	if len(dst.TxID) != chainhash.MaxHashStringSize {
 		return chainhash.Hash{}, nil, ErrInvalidTxIDLength
 	}
-	
-	merklePath, err := dst.MerklePathStruct() 
+
+	merklePath, err := dst.MerklePathStruct()
 	if err != nil {
 		return chainhash.Hash{}, nil, err
 	}
@@ -178,10 +178,10 @@ func (h *ArcIngestHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		h.handleMerkleProofArgumentError(w, err)
 		return
 	}
-	
+
 	ctx, cancel := context.WithTimeout(r.Context(), h.responseTimeout)
 	defer cancel()
-	
+
 	err = h.provider.HandleNewMerkleProof(ctx, &txIDHash, merklePath)
 	h.handleMerkleProofResult(w, err)
 }
@@ -216,19 +216,19 @@ func (h *ArcIngestHandler) handleMerkleProofArgumentError(w http.ResponseWriter,
 		errors.Is(err, jsonutil.JSONDecoderFailure):
 		slog.Error(fmt.Sprintf("[ArcIngest] Request body read/decode error: %v", err))
 		jsonutil.SendHTTPResponse(w, http.StatusInternalServerError, NewInternalFailureArcIngestHandlerResponse())
-	
+
 	case errors.Is(err, ErrInvalidMerklePathFormat):
 		slog.Error(fmt.Sprintf("[ArcIngest] Invalid Merkle path format: %v", err))
 		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(ErrInvalidMerklePathFormat.Error()))
-	
+
 	case errors.Is(err, ErrInvalidTxIDFormat):
 		slog.Error(fmt.Sprintf("[ArcIngest] Invalid transaction ID format: %v", err))
 		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(ErrInvalidTxIDFormat.Error()))
-	
+
 	case errors.Is(err, ErrInvalidTxIDLength):
 		slog.Error(fmt.Sprintf("[ArcIngest] Invalid transaction ID length: %v", err))
 		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(ErrInvalidTxIDLength.Error()))
-	
+
 	default:
 		slog.Error(fmt.Sprintf("[ArcIngest] Bad request error: %v", err))
 		jsonutil.SendHTTPResponse(w, http.StatusBadRequest, NewFailureArcIngestHandlerResponse(err.Error()))

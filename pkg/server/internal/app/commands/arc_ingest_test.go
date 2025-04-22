@@ -51,11 +51,11 @@ func Test_ArcIngestHandler_ShouldRespondsWith200AndCallsProvider(t *testing.T) {
 
 func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 	tests := map[string]struct {
-		method         string
-		payload        commands.ArcIngestRequest
-		setupRequest   func(*http.Request)
-		expectedResponse commands.ArcIngestHandlerResponse
-		expectedHTTPStatus  int
+		method             string
+		payload            commands.ArcIngestRequest
+		setupRequest       func(*http.Request)
+		expectedResponse   commands.ArcIngestHandlerResponse
+		expectedHTTPStatus int
 	}{
 		"should fail with 405 when HTTP method is GET": {
 			method: http.MethodGet,
@@ -64,8 +64,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  testutil.NewValidTestMerklePath(t),
 				BlockHeight: 848372,
 			},
-			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidHTTPMethod.Error()),
-			expectedHTTPStatus:  http.StatusMethodNotAllowed,
+			expectedResponse:   commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidHTTPMethod.Error()),
+			expectedHTTPStatus: http.StatusMethodNotAllowed,
 		},
 		"should fail with 400 when all required fields are missing": {
 			method: http.MethodPost,
@@ -74,8 +74,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  "",
 				BlockHeight: 0,
 			},
-			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrMissingRequiredRequestFieldsDefinition.Error()),
-			expectedHTTPStatus:  http.StatusBadRequest,
+			expectedResponse:   commands.NewFailureArcIngestHandlerResponse(commands.ErrMissingRequiredRequestFieldsDefinition.Error()),
+			expectedHTTPStatus: http.StatusBadRequest,
 		},
 		"should fail with 400 when TxID field is missing": {
 			method: http.MethodPost,
@@ -84,8 +84,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  testutil.NewValidTestMerklePath(t),
 				BlockHeight: 848372,
 			},
-			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrMissingRequiredTxIDFieldDefinition.Error()),
-			expectedHTTPStatus:  http.StatusBadRequest,
+			expectedResponse:   commands.NewFailureArcIngestHandlerResponse(commands.ErrMissingRequiredTxIDFieldDefinition.Error()),
+			expectedHTTPStatus: http.StatusBadRequest,
 		},
 		"should fail with 400 when MerklePath field is missing": {
 			method: http.MethodPost,
@@ -94,8 +94,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  "",
 				BlockHeight: 848372,
 			},
-			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrMissingRequiredMerklePathFieldDefinition.Error()),
-			expectedHTTPStatus:  http.StatusBadRequest,
+			expectedResponse:   commands.NewFailureArcIngestHandlerResponse(commands.ErrMissingRequiredMerklePathFieldDefinition.Error()),
+			expectedHTTPStatus: http.StatusBadRequest,
 		},
 		"should fail with 400 when TxID format is invalid": {
 			method: http.MethodPost,
@@ -104,8 +104,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  testutil.NewValidTestMerklePath(t),
 				BlockHeight: 848372,
 			},
-			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidTxIDFormat.Error()),
-			expectedHTTPStatus:  http.StatusBadRequest,
+			expectedResponse:   commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidTxIDFormat.Error()),
+			expectedHTTPStatus: http.StatusBadRequest,
 		},
 		"should fail with 400 when TxID length is invalid": {
 			method: http.MethodPost,
@@ -114,8 +114,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  testutil.NewValidTestMerklePath(t),
 				BlockHeight: 848372,
 			},
-			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidTxIDLength.Error()),
-			expectedHTTPStatus:  http.StatusBadRequest,
+			expectedResponse:   commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidTxIDLength.Error()),
+			expectedHTTPStatus: http.StatusBadRequest,
 		},
 		"should fail with 400 when MerklePath format is invalid": {
 			method: http.MethodPost,
@@ -124,8 +124,8 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 				MerklePath:  "invalid-merkle-path",
 				BlockHeight: 848372,
 			},
-			expectedResponse: commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidMerklePathFormat.Error()),
-			expectedHTTPStatus:  http.StatusBadRequest,
+			expectedResponse:   commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidMerklePathFormat.Error()),
+			expectedHTTPStatus: http.StatusBadRequest,
 		},
 	}
 
