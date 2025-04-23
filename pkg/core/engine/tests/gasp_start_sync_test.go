@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEngine_StartGASPSync_ShouldCallSyncWithoutFailure(t *testing.T) {
+func TestEngine_StartGASPSync_CallsSyncSuccessfully(t *testing.T) {
 	// given:
 	resolver := LookupResolverMock{
 		ExpectQueryCall:       true,
@@ -28,8 +29,101 @@ func TestEngine_StartGASPSync_ShouldCallSyncWithoutFailure(t *testing.T) {
 		},
 	}
 	gasp := GASPMock{
-		ExpectedErr:  nil,
-		ExpectedCall: true,
+		ExpectedErr:    nil,
+		ExpectSyncCall: true,
+	}
+
+	advertiser := fakeAdvertiser{
+		parseAdvertisement: func(script *script.Script) (*advertiser.Advertisement, error) {
+			return &advertiser.Advertisement{Protocol: "SHIP"}, nil
+		},
+	}
+
+	sut := engine.NewEngine(engine.Engine{
+		SyncConfiguration: map[string]engine.SyncConfiguration{"test-topic": {Type: engine.SyncConfigurationSHIP}},
+		Advertiser:        &advertiser,
+		HostingURL:        "http://localhost",
+		SHIPTrackers:      []string{"http://localhost"},
+		LookupResolver:    &resolver,
+		GASPProvider:      &gasp,
+	})
+
+	// when:
+	err := sut.StartGASPSync(context.Background())
+
+	// then:
+	require.NoError(t, err)
+
+	resolver.AssertCalled(t)
+	gasp.AssertCalled(t)
+}
+
+func TestEngine_StartGASPSync_ResolverQueryFails(t *testing.T) {
+	// given:
+	expectedQueryCallErr := errors.New("internal query call failure")
+	resolver := LookupResolverMock{
+		ExpectQueryCall:       true,
+		ExpectSetTrackersCall: true,
+		ExpectedError:         expectedQueryCallErr,
+		ExpectedAnswer: &lookup.LookupAnswer{
+			Type: lookup.AnswerTypeOutputList,
+			Outputs: []*lookup.OutputListItem{
+				{
+					Beef:        createDummyBEEF(t),
+					OutputIndex: 0,
+				},
+			},
+		},
+	}
+
+	gasp := GASPMock{
+		ExpectSyncCall: false,
+	}
+
+	advertiser := fakeAdvertiser{
+		parseAdvertisement: func(script *script.Script) (*advertiser.Advertisement, error) {
+			return &advertiser.Advertisement{Protocol: "SHIP"}, nil
+		},
+	}
+
+	sut := engine.NewEngine(engine.Engine{
+		SyncConfiguration: map[string]engine.SyncConfiguration{"test-topic": {Type: engine.SyncConfigurationSHIP}},
+		Advertiser:        &advertiser,
+		HostingURL:        "http://localhost",
+		SHIPTrackers:      []string{"http://localhost"},
+		LookupResolver:    &resolver,
+		GASPProvider:      &gasp,
+	})
+
+	// when:
+	err := sut.StartGASPSync(context.Background())
+
+	// then:
+	require.ErrorIs(t, err, expectedQueryCallErr)
+
+	resolver.AssertCalled(t)
+	gasp.AssertCalled(t)
+}
+
+func TestEngine_StartGASPSync_GaspSyncFails(t *testing.T) {
+	// given:
+	resolver := LookupResolverMock{
+		ExpectQueryCall:       true,
+		ExpectSetTrackersCall: true,
+		ExpectedAnswer: &lookup.LookupAnswer{
+			Type: lookup.AnswerTypeOutputList,
+			Outputs: []*lookup.OutputListItem{
+				{
+					Beef:        createDummyBEEF(t),
+					OutputIndex: 0,
+				},
+			},
+		},
+	}
+
+	gasp := GASPMock{
+		ExpectedErr:    nil,
+		ExpectSyncCall: true,
 	}
 
 	advertiser := fakeAdvertiser{
@@ -65,17 +159,17 @@ type GASPMock struct {
 	ExpectedErr error
 
 	// ExpectedCall indicates whether Sync is expected to be called.
-	ExpectedCall bool
+	ExpectSyncCall bool
 
-	// Called is true if Sync was called during the test.
-	Called bool
+	// SyncWasCalled is true if Sync was called during the test.
+	SyncWasCalled bool
 }
 
 // Sync simulates the synchronization process.
 // It returns the predefined ExpectedErr if set,
 // and marks the method as called for test verification.
 func (g *GASPMock) Sync(ctx context.Context) error {
-	g.Called = true
+	g.SyncWasCalled = true
 
 	if g.ExpectedErr != nil {
 		return g.ExpectedErr
@@ -87,7 +181,7 @@ func (g *GASPMock) Sync(ctx context.Context) error {
 // It should be used in tests to ensure expectations were met.
 func (g *GASPMock) AssertCalled(t *testing.T) {
 	t.Helper()
-	require.Equal(t, g.ExpectedCall, g.Called, "Sync call mismatch")
+	require.Equal(t, g.ExpectSyncCall, g.SyncWasCalled, "Sync call mismatch")
 }
 
 // LookupResolverMock is a test double for the LookupResolver interface.

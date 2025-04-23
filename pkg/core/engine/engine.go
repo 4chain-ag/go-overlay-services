@@ -135,8 +135,6 @@ var ErrInvalidTransaction = errors.New("invalid-transaction")
 var ErrMissingInput = errors.New("missing-input")
 var ErrInputSpent = errors.New("input-spent")
 
-var ErrNilSyncConfiguration = errors.New("sync configuration is missing or not set up for topical synchronization")
-
 func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode SumbitMode, onSteakReady OnSteakReady) (overlay.Steak, error) {
 	start := time.Now()
 	for _, topic := range taggedBEEF.Topics {
@@ -584,10 +582,6 @@ func (e *Engine) SyncAdvertisements(ctx context.Context) error {
 }
 
 func (e *Engine) StartGASPSync(ctx context.Context) error {
-	if e.SyncConfiguration == nil {
-		return ErrNilSyncConfiguration
-	}
-
 	for topic := range e.SyncConfiguration {
 		syncEndpoints, ok := e.SyncConfiguration[topic]
 		if !ok {
