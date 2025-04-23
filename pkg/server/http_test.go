@@ -184,7 +184,7 @@ func Test_HTTPServer_RegisterCustomRoute(t *testing.T) {
 		}{
 			Message: "Super transaction processed successfully",
 		}
-		
+
 		jsonutil.SendHTTPResponse(w, http.StatusOK, response)
 	}
 
@@ -213,19 +213,19 @@ func Test_HTTPServer_RegisterCustomRoute(t *testing.T) {
 	var result struct {
 		Message string `json:"message"`
 	}
-	
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	require.NoError(t, err, "Failed to read response body")
-	
+
 	err = json.Unmarshal(bodyBytes, &result)
 	require.NoError(t, err, "Failed to decode JSON response")
-	
+
 	expectedMessage := "Super transaction processed successfully"
 	require.Equal(t, expectedMessage, result.Message)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
-	
+
 	done := httpAPI.StartWithGracefulShutdown(ctx)
 	select {
 	case <-done:

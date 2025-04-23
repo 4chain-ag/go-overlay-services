@@ -136,7 +136,7 @@ func (h *HTTP) RegisterRoute(method, path string, handler http.HandlerFunc, isAd
 	if isAdmin {
 		router = h.AdminRouter
 	}
-	
+
 	router.Add(method, path, SafeHandler(handler))
 }
 
