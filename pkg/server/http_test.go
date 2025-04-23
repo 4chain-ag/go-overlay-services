@@ -2,6 +2,9 @@ package server_test
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +15,7 @@ import (
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server"
 	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
+	"github.com/4chain-ag/go-overlay-services/pkg/server/internal/app/jsonutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -162,4 +166,70 @@ func Test_HTTPServer_ShouldShutdownAfterContextTimeout(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func Test_HTTPServer_RegisterCustomRoute(t *testing.T) {
+	// Given
+	cfg := config.NewDefault()
+	opts := []server.HTTPOption{
+		server.WithConfig(&cfg.Server),
+	}
+
+	httpAPI, err := server.New(opts...)
+	require.NoError(t, err)
+
+	superTxHandler := func(w http.ResponseWriter, r *http.Request) {
+		response := struct {
+			Message string `json:"message"`
+		}{
+			Message: "Super transaction processed successfully",
+		}
+		
+		jsonutil.SendHTTPResponse(w, http.StatusOK, response)
+	}
+
+	httpAPI.RegisterRoute(http.MethodPost, "/super-tx", superTxHandler, false)
+
+	go func() {
+		err := httpAPI.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			t.Logf("server error: %v", err)
+		}
+	}()
+	time.Sleep(100 * time.Millisecond) // Delay to ensure the server is running
+
+	// When:
+	req, err := http.NewRequest(http.MethodPost, "http://"+httpAPI.SocketAddr()+"/api/v1/super-tx", nil)
+	require.NoError(t, err)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	// Then:
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result struct {
+		Message string `json:"message"`
+	}
+	
+	bodyBytes, err := io.ReadAll(resp.Body)
+	require.NoError(t, err, "Failed to read response body")
+	
+	err = json.Unmarshal(bodyBytes, &result)
+	require.NoError(t, err, "Failed to decode JSON response")
+	
+	expectedMessage := "Super transaction processed successfully"
+	require.Equal(t, expectedMessage, result.Message)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	
+	done := httpAPI.StartWithGracefulShutdown(ctx)
+	select {
+	case <-done:
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("Server didn't shut down in time")
+	}
 }

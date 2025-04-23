@@ -58,15 +58,7 @@ type HTTPOption func(*HTTP) error
 // The execution order depends on the sequence in which the middlewares are passed
 func WithMiddleware(f func(http.Handler) http.Handler) HTTPOption {
 	return func(h *HTTP) error {
-		h.middleware = append(h.middleware, adaptor.HTTPMiddleware(f))
-		return nil
-	}
-}
-
-// WithFiberMiddleware adds Fiber middleware to the HTTP server.
-func WithFiberMiddleware(f fiber.Handler) HTTPOption {
-	return func(h *HTTP) error {
-		h.middleware = append(h.middleware, f)
+		h.stdMiddleware = append(h.stdMiddleware, f)
 		return nil
 	}
 }
@@ -126,12 +118,32 @@ func SafeHandler(h http.HandlerFunc) fiber.Handler {
 // using idempotency to improve fault tolerance and mitigate duplicated requests.
 // It applies all configured options along with the list of middlewares.
 type HTTP struct {
-	middleware  []fiber.Handler
-	app         *fiber.App
-	cfg         *Config
-	api         *app.Application
-	Router      fiber.Router
-	AdminRouter fiber.Router
+	stdMiddleware []func(http.Handler) http.Handler // Standard HTTP middleware
+	app           *fiber.App
+	cfg           *Config
+	api           *app.Application
+	Router        fiber.Router
+	AdminRouter   fiber.Router
+}
+
+// RegisterRoute registers a route with the HTTP server using standard Go http.HandlerFunc
+// method: HTTP method (GET, POST, PUT, DELETE, etc.)
+// path: The route path
+// handler: Standard Go http.HandlerFunc to handle the request
+// isAdmin: Whether the route requires admin authentication
+func (h *HTTP) RegisterRoute(method, path string, handler http.HandlerFunc, isAdmin bool) {
+	router := h.Router
+	if isAdmin {
+		router = h.AdminRouter
+	}
+	
+	router.Add(method, path, SafeHandler(handler))
+}
+
+// RegisterMiddleware adds standard Go HTTP middleware to the HTTP server.
+// This allows external modules to add middleware without coupling to Fiber.
+func (h *HTTP) RegisterMiddleware(middleware func(http.Handler) http.Handler) {
+	h.app.Use(adaptor.HTTPMiddleware(middleware))
 }
 
 // New returns an instance of the HTTP server and applies all specified functional options before starting it.
@@ -144,15 +156,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 			ServerHeader:  "Overlay API",
 			AppName:       "Overlay API v0.0.0",
 		}),
-		middleware: []fiber.Handler{
-			idempotency.New(),
-			cors.New(),
-			recover.New(
-				recover.Config{
-					EnableStackTrace: true,
-				},
-			),
-		},
+		stdMiddleware: []func(http.Handler) http.Handler{},
 	}
 
 	for _, o := range opts {
@@ -161,9 +165,15 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 		}
 	}
 
-	for _, m := range http.middleware {
-		http.app.Use(m)
+	for _, m := range http.stdMiddleware {
+		http.app.Use(adaptor.HTTPMiddleware(m))
 	}
+
+	http.app.Use(idempotency.New())
+	http.app.Use(cors.New())
+	http.app.Use(recover.New(recover.Config{
+		EnableStackTrace: true,
+	}))
 
 	if http.api == nil {
 		overlayAPI, err := app.New(NewNoopEngineProvider())
