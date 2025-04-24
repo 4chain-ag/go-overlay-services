@@ -1,0 +1,97 @@
+openapi: 3.0.4
+info:
+  version: 1.0.0
+  title: Admin API
+  description: 'The admin-only portion of the API, which has its own separate OpenAPI spec'
+servers:
+  - url: 'http://localhost:3000'
+    description: 'Optional server description, e.g. Main (production) server'
+tags:
+  - name: admin
+    description: Admin API endpoints
+  - name: non-admin
+    description: Non Admin API endpointsa
+paths:
+  /api/v1/admin/syncAdvertisements:
+    post:
+      tags:
+        - admin
+      operationId: AdvertisementsSync
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Message:
+                    type: string
+                required:
+                  - Message
+  /api/v1/submit:
+    post:
+      tags:
+        - non-admin
+      operationId: SubmitTransaction
+      parameters:
+        - in: header
+          name: x-topics
+          schema:
+            type: array
+            items:
+              type: string
+          required: true
+          explode: true
+          style: simple
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Transaction:
+                  type: string
+                  format: byte
+              required:
+                - Transaction
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  STEAK:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        OutputsToAdmit:
+                          type: array
+                          items:
+                            type: integer
+                            format: uint32
+                        CoinsToRetain:
+                          type: array
+                          items:
+                            type: integer
+                            format: uint32
+                        CoinsRemoved:
+                          type: array
+                          items:
+                            type: integer
+                            format: uint32
+                        AncillaryTxIDs:
+                          type: array
+                          items:
+                            type: string
+                      required:
+                        - OutputsToAdmit
+                        - CoinsToRetain
+                        - CoinsRemoved
+                        - AncillaryTxIDs
+                required:
+                  - STEAK

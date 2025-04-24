@@ -1,0 +1,10 @@
+components:
+  schemas:
+    SubmitTransactionRequest:
+      type: object
+      properties:
+        Transaction:
+          type: string
+          format: byte
+      required:
+        - Transaction

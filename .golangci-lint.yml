@@ -103,6 +103,10 @@ issues:
         - wrapcheck
         - bodyclose
 
+    - path: /overlayhttp/
+      linters:
+        - wrapcheck 
+        
     - path: /core/
       linters:
         - wrapcheck

@@ -1,0 +1,58 @@
+openapi: 3.0.4
+info:
+  version: 1.0.0
+  title: Admin API
+  description: The admin-only portion of the API, which has its own separate OpenAPI spec
+
+servers:
+  - url: http://localhost:3000
+    description: Optional server description, e.g. Main (production) server
+
+tags:
+  - name: admin
+    description: Admin API endpoints
+  - name: non-admin
+    description: Non Admin API endpointsa
+
+paths:
+  /api/v1/admin/syncAdvertisements:
+    post:
+      tags:
+        - admin
+      operationId: AdvertisementsSync
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '../paths/admin/response-models.yaml#/components/schemas/AdvertisementsSyncResponse'
+                
+  /api/v1/submit:
+    post:
+      tags:
+        - non-admin
+      operationId: SubmitTransaction
+      parameters:
+        - in: header
+          name: x-topics
+          schema:
+            type: array
+            items:
+              type: string 
+          required: true
+          explode: true 
+          style: simple
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../paths/non_admin/request-models.yaml#/components/schemas/SubmitTransactionRequest'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '../paths/non_admin/response-models.yaml#/components/schemas/SubmitTransactionResponse'

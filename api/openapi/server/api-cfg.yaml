@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+package: openapi
+output: ../pkg/server2/internal/openapi/openapi_api.gen.go
+generate:
+  models: true
+  fiber-server: true
+  # strict-server: true
+output-options:
+  # to make sure that all types are generated
+  skip-prune: true
+import-mapping:
+  # for a given file/URL that is $ref'd, point `oapi-codegen` to the Go package that this spec is generated into, to perform Go package imports
+  ../paths/admin/response-models.yaml: "-"
+  ../paths/non_admin/response-models.yaml: "-"
+  ../paths/non_admin/request-models.yaml: "-"
