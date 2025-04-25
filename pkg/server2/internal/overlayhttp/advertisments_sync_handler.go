@@ -40,12 +40,17 @@ func NewAdvertisementsSyncHandler(provider SyncAdvertisementsProvider) *Advertis
 	return &AdvertisementsSyncHandler{provider: provider}
 }
 
+// NewAdvertisementsSyncSuccessResponse creates a successful response for advertisement synchronization.
+// It returns an instance of openapi.AdvertisementsSyncResponse with a predefined success message.
 func NewAdvertisementsSyncSuccessResponse() openapi.AdvertisementsSyncResponse {
 	return openapi.AdvertisementsSyncResponse{
 		Message: "Advertisement sync request successfully delegated to overlay engine.",
 	}
 }
 
+// NewSyncAdvertisementsProviderErrorResponse creates an error response for advertisement synchronization failures.
+// It returns an instance of openapi.InternalServerErrorResponse with a predefined error message
+// indicating an issue with the overlay engine during the sync process.
 func NewSyncAdvertisementsProviderErrorResponse() openapi.InternalServerErrorResponse {
 	return openapi.Error{Message: "Unable to process sync advertisements request due to issues with the overlay engine."}
 }

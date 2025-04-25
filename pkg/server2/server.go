@@ -108,8 +108,8 @@ func New(opts ...ServerOption) *Server {
 			cors.New(),
 			recover.New(recover.Config{EnableStackTrace: true}),
 			logger.New(logger.Config{
-				Format:     "${locals:requestid} ${status} - ${method} ${path}​\n",
-				TimeFormat: "02-Jan-2006",
+				Format:     "date=${time} request_id=${locals:requestid} status=${status} method=${method} path=${path}​\n",
+				TimeFormat: "02-Jan-2006 15:04:05",
 			}),
 		},
 	}
@@ -122,7 +122,7 @@ func New(opts ...ServerOption) *Server {
 		opt(srv)
 	}
 
-	openapi.RegisterHandlers(srv.app, overlayhttp.NewAPI(srv.overlayEngineProvider))
+	openapi.RegisterHandlers(srv.app, overlayhttp.NewServerHandlers(srv.cfg.AdminBearerToken, srv.overlayEngineProvider))
 	return srv
 }
 

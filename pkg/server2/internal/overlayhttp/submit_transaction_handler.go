@@ -149,6 +149,9 @@ func NewSubmitTransactionHandler(provider SubmitTransactionProvider, options ...
 	return &handler
 }
 
+// NewSubmitTransactionSuccessResponse creates a successful response for submitting a transaction.
+// It takes a pointer to an overlay.Steak and returns a pointer to openapi.SubmitTransactionResponse.
+// If the provided steak is nil, it returns a response with an empty STEAK field.
 func NewSubmitTransactionSuccessResponse(steak *overlay.Steak) *openapi.SubmitTransactionResponse {
 	if steak == nil {
 		return &openapi.SubmitTransactionResponse{
@@ -160,6 +163,7 @@ func NewSubmitTransactionSuccessResponse(steak *overlay.Steak) *openapi.SubmitTr
 		STEAK: make(openapi.STEAK, len(*steak)),
 	}
 
+	// Iterate over the steak to populate the response with the necessary ancillary transaction IDs and instructions.
 	for key, instructions := range *steak {
 		ancillaryIDs := make([]string, 0, len(instructions.AncillaryTxids))
 		for _, id := range instructions.AncillaryTxids {
@@ -176,12 +180,16 @@ func NewSubmitTransactionSuccessResponse(steak *overlay.Steak) *openapi.SubmitTr
 	return &response
 }
 
+// NewSubmitTransactionProviderErrorResponse creates an error response for transaction submission failures.
+// It returns an openapi.InternalServerErrorResponse with a predefined error message indicating issues with the overlay engine.
 func NewSubmitTransactionProviderErrorResponse() openapi.InternalServerErrorResponse {
 	return openapi.Error{
 		Message: "Unable to process submitted transaction octet-stream due to issues with the overlay engine.",
 	}
 }
 
+// NewInvalidRequestTopicsFormatResponse creates a bad request response for invalid topic headers.
+// It takes a list of topic strings and returns an openapi.BadRequestResponse indicating the invalid format.
 func NewInvalidRequestTopicsFormatResponse(topics ...string) openapi.BadRequestResponse {
 	return openapi.Error{
 		Details: &map[string]any{"topics": topics},
@@ -189,6 +197,8 @@ func NewInvalidRequestTopicsFormatResponse(topics ...string) openapi.BadRequestR
 	}
 }
 
+// NewTaggedBEEFCreationErrorResponse creates an error response for failures related to tagged BEEF creation.
+// It takes a list of topics and returns an openapi.InternalServerErrorResponse with an error message indicating issues with the request body.
 func NewTaggedBEEFCreationErrorResponse(topics ...string) openapi.InternalServerErrorResponse {
 	return openapi.Error{
 		Details: &map[string]any{"topics": topics},
