@@ -3,7 +3,7 @@
 @version = v1
 @host = {{hostname}}:{{port}}
 @contentType = application/json
-@token = ae5de9e6-def7-4a4e-a37b-3d9daae60d76
+@token = aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
 ###
 GET http://{{host}}/api/{{version}}/getDocumentationForLookupServiceProvider?lookupService=example HTTP/1.1
 
