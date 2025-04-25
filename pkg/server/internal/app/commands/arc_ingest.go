@@ -125,8 +125,6 @@ type ArcIngestHandler struct {
 	responseTimeout  time.Duration
 }
 
-// decode reads and decodes the request body into the provided destination
-// struct. It ensures the request body size is within the allowed limit.
 func (h *ArcIngestHandler) decode(body io.Reader, dst *ArcIngestRequest) error {
 	reader := jsonutil.LimitedBodyReader{
 		Body:      body,

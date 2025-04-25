@@ -1,6 +1,7 @@
 package commands_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -54,6 +55,7 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 		method             string
 		payload            commands.ArcIngestRequest
 		setupRequest       func(*http.Request)
+		mockError          error
 		expectedResponse   commands.ArcIngestHandlerResponse
 		expectedHTTPStatus int
 	}{
@@ -127,12 +129,34 @@ func Test_ArcIngestHandler_ValidationTests(t *testing.T) {
 			expectedResponse:   commands.NewFailureArcIngestHandlerResponse(commands.ErrInvalidMerklePathFormat.Error()),
 			expectedHTTPStatus: http.StatusBadRequest,
 		},
+		"should fail with 504 when context deadline exceeded": {
+			method: http.MethodPost,
+			payload: commands.ArcIngestRequest{
+				TxID:        testutil.ValidTxId,
+				MerklePath:  testutil.NewValidTestMerklePath(t),
+				BlockHeight: 848372,
+			},
+			mockError:          context.DeadlineExceeded,
+			expectedResponse:   commands.NewFailureArcIngestHandlerResponse(commands.ErrMerkleProofProcessingTimeout.Error()),
+			expectedHTTPStatus: http.StatusGatewayTimeout,
+		},
+		"should fail with 408 when context canceled": {
+			method: http.MethodPost,
+			payload: commands.ArcIngestRequest{
+				TxID:        testutil.ValidTxId,
+				MerklePath:  testutil.NewValidTestMerklePath(t),
+				BlockHeight: 848372,
+			},
+			mockError:          context.Canceled,
+			expectedResponse:   commands.NewFailureArcIngestHandlerResponse(commands.ErrMerkleProofProcessingCanceled.Error()),
+			expectedHTTPStatus: http.StatusRequestTimeout,
+		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			// given:
-			mock := testutil.NewMerkleProofProviderMock(nil, tc.payload.BlockHeight)
+			mock := testutil.NewMerkleProofProviderMock(tc.mockError, tc.payload.BlockHeight)
 			handler, err := commands.NewArcIngestHandler(mock)
 			require.NoError(t, err)
 
