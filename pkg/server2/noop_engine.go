@@ -8,11 +8,17 @@ import (
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
+	"github.com/bsv-blockchain/go-sdk/transaction"
 )
 
 // NoopEngineProvider is a custom test overlay engine implementation. This is only a temporary solution and will be removed
 // after migrating the engine code. Currently, it functions as mock for the overlay HTTP server.
 type NoopEngineProvider struct{}
+
+// HandleNewMerkleProof implements engine.OverlayEngineProvider.
+func (n *NoopEngineProvider) HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error {
+	panic("unimplemented")
+}
 
 // Submit is a no-op call that always returns an empty STEAK with nil error.
 func (*NoopEngineProvider) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {

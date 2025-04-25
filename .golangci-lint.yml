@@ -103,7 +103,7 @@ issues:
         - wrapcheck
         - bodyclose
 
-    - path: /api/
+    - path: /overlayhttp/
       linters:
         - wrapcheck 
         
