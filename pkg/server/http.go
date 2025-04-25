@@ -188,7 +188,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	http.Router = v1
 
 	// Non-Admin:
-	v1.Post("/arc-ingest", SafeHandler(http.api.Commands.ArcIngestHandler.Handle))
+	v1.Post("/arc-ingest", adaptor.HTTPMiddleware(middleware.ArcCallbackTokenMiddleware(http.cfg.ArcCallbackToken, http.cfg.ArcApiKey)), SafeHandler(http.api.Commands.ArcIngestHandler.Handle))
 	v1.Get("/getDocumentationForTopicManager", SafeHandler(http.api.Queries.TopicManagerDocumentationHandler.Handle))
 	v1.Get("/getDocumentationForLookupServiceProvider", SafeHandler(http.api.Queries.LookupServiceDocumentationHandler.Handle))
 	v1.Get("/listLookupServiceProviders", SafeHandler(http.api.Queries.LookupServicesListHandler.Handle))
@@ -198,7 +198,6 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	v1.Post("/lookup", SafeHandler(http.api.Commands.LookupQuestionHandler.Handle))
 	v1.Post("/requestSyncResponse", SafeHandler(http.api.Commands.RequestSyncResponseHandler.Handle))
 	v1.Post("/requestForeignGASPNode", SafeHandler(http.api.Commands.RequestForeignGASPNodeHandler.Handle))
-	v1.Post("/arc-ingest", adaptor.HTTPMiddleware(middleware.ARCCallbackTokenMiddleware(http.cfg.ArcCallbackToken, http.cfg.ArcApiKey)), SafeHandler(http.api.Commands.ARCIngestHandler.Handle))
 
 	// Admin:
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestARCCallbackTokenMiddleware(t *testing.T) {
+func TestArcCallbackTokenMiddleware(t *testing.T) {
 	tests := map[string]struct {
 		setupRequest          func(r *http.Request)
 		expectedStatus        int
@@ -91,7 +91,7 @@ func TestARCCallbackTokenMiddleware(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			// given:
-			handler := middleware.ARCCallbackTokenMiddleware(tc.expectedCallbackToken, tc.expectedArcApiKey)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler := middleware.ArcCallbackTokenMiddleware(tc.expectedCallbackToken, tc.expectedArcApiKey)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			}))
 
