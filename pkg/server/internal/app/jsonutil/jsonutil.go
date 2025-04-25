@@ -1,7 +1,9 @@
 package jsonutil
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -49,3 +51,19 @@ func DecodeRequestBody(r *http.Request, dst any) error {
 	}
 	return nil
 }
+
+// DecodeBytes deserializes JSON bytes into the provided destination object.
+// It uses a json.Decoder to parse the byte array and returns an error
+// joined with JSONDecoderFailure if the decoding process fails.
+func DecodeBytes(bb []byte, dst any) error {
+	dec := json.NewDecoder(bytes.NewBuffer(bb))
+	err := dec.Decode(dst)
+	if err != nil {
+		return errors.Join(err, JSONDecoderFailure)
+	}
+	return nil
+}
+
+// JSONDecoderFailure represents an error that occurs when the JSON decoder fails
+// to parse the input data into the expected structure.
+var JSONDecoderFailure = errors.New("failed to decode JSON payload")
