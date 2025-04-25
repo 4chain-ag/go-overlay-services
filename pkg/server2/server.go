@@ -117,13 +117,12 @@ func New(opts ...ServerOption) *Server {
 	for _, m := range srv.middleware {
 		srv.app.Use(m)
 	}
+
 	for _, opt := range opts {
 		opt(srv)
 	}
 
-	handler := overlayhttp.NewHTTPHandler(srv.overlayEngineProvider)
-	openapi.RegisterHandlers(srv.app, handler)
-
+	openapi.RegisterHandlers(srv.app, overlayhttp.NewAPI(srv.overlayEngineProvider))
 	return srv
 }
 

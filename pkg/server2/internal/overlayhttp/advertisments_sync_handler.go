@@ -25,9 +25,9 @@ type AdvertisementsSyncHandler struct {
 func (h *AdvertisementsSyncHandler) Handle(c *fiber.Ctx) error {
 	err := h.provider.SyncAdvertisements(c.Context())
 	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return c.Status(fiber.StatusInternalServerError).JSON(NewSyncAdvertisementsProviderErrorResponse())
 	}
-	return c.Status(fiber.StatusOK).JSON(openapi.AdvertisementsSyncResponse{Message: "OK"})
+	return c.Status(fiber.StatusOK).JSON(NewAdvertisementsSyncSuccessResponse())
 }
 
 // NewAdvertisementsSyncHandler returns an instance of a AdvertisementsSyncHandler,
@@ -38,4 +38,14 @@ func NewAdvertisementsSyncHandler(provider SyncAdvertisementsProvider) *Advertis
 	}
 
 	return &AdvertisementsSyncHandler{provider: provider}
+}
+
+func NewAdvertisementsSyncSuccessResponse() openapi.AdvertisementsSyncResponse {
+	return openapi.AdvertisementsSyncResponse{
+		Message: "Advertisement sync request successfully delegated to overlay engine.",
+	}
+}
+
+func NewSyncAdvertisementsProviderErrorResponse() openapi.InternalServerErrorResponse {
+	return openapi.Error{Message: "Unable to process sync advertisements request due to issues with the overlay engine."}
 }

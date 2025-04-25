@@ -1,0 +1,52 @@
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Optional additional error details
+
+  responses:
+    BadRequestResponse:
+      description: |
+        The server cannot process the request due to malformed syntax or invalid input. 
+        This error is typically caused by client-side issues, such as missing required parameters, 
+        invalid data formats, or incorrect request structures.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFoundResponse:
+      description: |
+        The requested resource could not be found. This error occurs when the client
+        requests an endpoint or resource that does not exist on the server or cannot be located.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerErrorResponse:
+      description: |
+        An unexpected condition was encountered on the server, causing the request to fail.
+        This error is typically caused by internal issues such as server misconfigurations, 
+        database failures, or unhandled exceptions.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    RequestTimeoutResponse:
+      description: |
+        The server did not receive a complete request within the time it was prepared to wait. 
+        This error can occur if the client’s request takes too long to process or there is network latency.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

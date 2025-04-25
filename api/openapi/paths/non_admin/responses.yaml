@@ -33,10 +33,19 @@ components:
       additionalProperties:
         $ref: "#/components/schemas/AdmittanceInstructions"
 
-    SubmitTransactionResponse:
+    SubmitTransaction:
       type: object
       properties:
         STEAK:
           $ref: "#/components/schemas/STEAK"
       required:
         - STEAK
+
+  responses:
+    SubmitTransactionResponse:
+      description: |
+         Overlay engine successfully processed the submitted transaction octet-stream with the specified topic headers.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SubmitTransaction'

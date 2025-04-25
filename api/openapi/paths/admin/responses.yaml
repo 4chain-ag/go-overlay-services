@@ -1,0 +1,18 @@
+components:
+  schemas:
+    AdvertisementsSync:
+      type: object
+      properties:
+        Message:
+          type: string
+      required:
+        - Message
+
+  responses:
+    AdvertisementsSyncResponse:
+      description: |
+         Advertisement sync request successfully delegated to overlay engine.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvertisementsSync'

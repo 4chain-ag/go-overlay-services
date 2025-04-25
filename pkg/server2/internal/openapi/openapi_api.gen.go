@@ -11,13 +11,14 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+const (
+	BearerAuthScopes = "bearerAuth.Scopes"
+)
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
-
-// SubmitTransactionJSONRequestBody defines body for SubmitTransaction for application/json ContentType.
-type SubmitTransactionJSONRequestBody = SubmitTransactionRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -38,6 +39,8 @@ type MiddlewareFunc fiber.Handler
 
 // AdvertisementsSync operation middleware
 func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{})
 
 	return siw.Handler.AdvertisementsSync(c)
 }

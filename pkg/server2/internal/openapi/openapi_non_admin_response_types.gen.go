@@ -14,7 +14,10 @@ type AdmittanceInstructions struct {
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
 
-// SubmitTransactionResponse defines model for SubmitTransactionResponse.
-type SubmitTransactionResponse struct {
+// SubmitTransaction defines model for SubmitTransaction.
+type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
+
+// SubmitTransactionResponse defines model for SubmitTransactionResponse.
+type SubmitTransactionResponse = SubmitTransaction

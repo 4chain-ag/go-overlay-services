@@ -1,9 +1,0 @@
-components:
-  schemas:
-    AdvertisementsSyncResponse:
-      type: object
-      properties:
-        Message:
-          type: string
-      required:
-        - Message

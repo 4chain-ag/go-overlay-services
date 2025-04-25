@@ -65,12 +65,15 @@ type SubmitTransactionHandler struct {
 // sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
 func (s *SubmitTransactionHandler) Handle(c *fiber.Ctx, params openapi.SubmitTransactionParams) error {
-	taggedBEEF, err := s.createTaggedBEEF(c.Request().Body(), params.XTopics)
+	bytesRead, taggedBEEF, err := s.createTaggedBEEF(c.Request().Body(), params.XTopics)
 	if errors.Is(err, ErrRequestBodyTooLarge) {
-		return c.Status(fiber.StatusRequestEntityTooLarge).JSON(fiber.StatusRequestEntityTooLarge)
+		return c.Status(fiber.StatusRequestEntityTooLarge).JSON(NewRequestBodyTooLargeResponse(bytesRead, s.requestBodyLimit))
+	}
+	if errors.Is(err, ErrInvalidXTopicsHeaderFormat) {
+		return c.Status(fiber.StatusBadRequest).JSON(NewInvalidRequestTopicsFormatResponse(params.XTopics...))
 	}
 	if err != nil {
-		return c.Status(fiber.StatusRequestEntityTooLarge).JSON(err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(NewTaggedBEEFCreationErrorResponse(params.XTopics...))
 	}
 
 	steakChan := make(chan *overlay.Steak, 1)
@@ -78,22 +81,22 @@ func (s *SubmitTransactionHandler) Handle(c *fiber.Ctx, params openapi.SubmitTra
 		steakChan <- steak
 	})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.ErrInternalServerError)
+		return c.Status(fiber.StatusInternalServerError).JSON(NewSubmitTransactionProviderErrorResponse())
 	}
 
 	select {
 	case steak := <-steakChan:
-		return c.Status(fiber.StatusOK).JSON(toOpenAPISubmitTransactionResponse(steak))
+		return c.Status(fiber.StatusOK).JSON(NewSubmitTransactionSuccessResponse(steak))
 	case <-time.After(s.responseTimeout):
-		return c.Status(fiber.StatusRequestTimeout).JSON(fiber.StatusRequestTimeout)
+		return c.Status(fiber.StatusRequestTimeout).JSON(NewRequestTimeoutResponse(s.responseTimeout))
 	}
 }
 
-func (s *SubmitTransactionHandler) createTaggedBEEF(body []byte, topics []string) (*overlay.TaggedBEEF, error) {
+func (s *SubmitTransactionHandler) createTaggedBEEF(body []byte, topics []string) (int64, *overlay.TaggedBEEF, error) {
 	for i, topic := range topics {
 		topics[i] = strings.TrimSpace(topic)
 		if topics[i] == "" {
-			return nil, ErrInvalidXTopicsHeaderFormat
+			return -1, nil, ErrInvalidXTopicsHeaderFormat
 		}
 	}
 
@@ -107,11 +110,11 @@ func (s *SubmitTransactionHandler) createTaggedBEEF(body []byte, topics []string
 		if n > 0 {
 			bytesRead += int64(n)
 			if bytesRead > s.requestBodyLimit {
-				return nil, ErrRequestBodyTooLarge
+				return bytesRead, nil, ErrRequestBodyTooLarge
 			}
 
 			if _, inner := dst.Write(buff[:n]); inner != nil {
-				return nil, ErrRequestBodyRead
+				return bytesRead, nil, errors.Join(inner, ErrRequestBodyRead)
 			}
 		}
 
@@ -119,11 +122,11 @@ func (s *SubmitTransactionHandler) createTaggedBEEF(body []byte, topics []string
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return nil, ErrRequestBodyRead
+			return bytesRead, nil, errors.Join(err, ErrRequestBodyRead)
 		}
 	}
 
-	return &overlay.TaggedBEEF{Beef: dst.Bytes(), Topics: topics}, nil
+	return bytesRead, &overlay.TaggedBEEF{Beef: dst.Bytes(), Topics: topics}, nil
 }
 
 // NewSubmitTransactionHandler returns an instance of a SubmitTransactionHandler, utilizing
@@ -146,7 +149,7 @@ func NewSubmitTransactionHandler(provider SubmitTransactionProvider, options ...
 	return &handler
 }
 
-func toOpenAPISubmitTransactionResponse(steak *overlay.Steak) *openapi.SubmitTransactionResponse {
+func NewSubmitTransactionSuccessResponse(steak *overlay.Steak) *openapi.SubmitTransactionResponse {
 	if steak == nil {
 		return &openapi.SubmitTransactionResponse{
 			STEAK: make(openapi.STEAK),
@@ -171,4 +174,24 @@ func toOpenAPISubmitTransactionResponse(steak *overlay.Steak) *openapi.SubmitTra
 		}
 	}
 	return &response
+}
+
+func NewSubmitTransactionProviderErrorResponse() openapi.InternalServerErrorResponse {
+	return openapi.Error{
+		Message: "Unable to process submitted transaction octet-stream due to issues with the overlay engine.",
+	}
+}
+
+func NewInvalidRequestTopicsFormatResponse(topics ...string) openapi.BadRequestResponse {
+	return openapi.Error{
+		Details: &map[string]any{"topics": topics},
+		Message: "One or more topic headers are in an invalid format. Empty string values are not allowed.",
+	}
+}
+
+func NewTaggedBEEFCreationErrorResponse(topics ...string) openapi.InternalServerErrorResponse {
+	return openapi.Error{
+		Details: &map[string]any{"topics": topics},
+		Message: "Unable to process submitted transaction octet-stream due to issues with the request body.",
+	}
 }

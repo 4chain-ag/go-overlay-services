@@ -1,8 +1,8 @@
 openapi: 3.0.4
 info:
   version: 1.0.0
-  title: Admin API
-  description: The admin-only portion of the API, which has its own separate OpenAPI spec
+  title: Overlay HTTP API
+  description: The overlay server API
 
 servers:
   - url: http://localhost:3000
@@ -20,14 +20,14 @@ paths:
       tags:
         - admin
       operationId: AdvertisementsSync
+      security:
+        - bearerAuth: []
       responses:
         200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '../paths/admin/response-models.yaml#/components/schemas/AdvertisementsSyncResponse'
-                
+          $ref: '../paths/admin/responses.yaml#/components/responses/AdvertisementsSyncResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
   /api/v1/submit:
     post:
       tags:
@@ -45,14 +45,19 @@ paths:
           style: simple
       requestBody:
         required: true
-        content:
-          application/json:
-            schema:
-              $ref: '../paths/non_admin/request-models.yaml#/components/schemas/SubmitTransactionRequest'
+        $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/SubmitTransactionBody'
       responses:
         200:
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '../paths/non_admin/response-models.yaml#/components/schemas/SubmitTransactionResponse'
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/SubmitTransactionResponse'
+        400:
+          $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+        409:
+          $ref: '../errors/responses.yaml#/components/responses/RequestTimeoutResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http 
+      scheme: bearer
