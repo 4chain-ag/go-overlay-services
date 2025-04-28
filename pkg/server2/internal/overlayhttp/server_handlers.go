@@ -1,10 +1,9 @@
 package overlayhttp
 
 import (
-	"strings"
-
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/openapi"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/overlayhttp/middleware"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -19,7 +18,7 @@ type ServerHandlers struct {
 // the Bearer token and delegating the request to the advertisementsSyncHandler.
 func (s *ServerHandlers) AdvertisementsSync(c *fiber.Ctx) error {
 	// Middleware to authorize requests using Bearer token authentication
-	return BearearTokenAuthorizationMiddleware(s.token, s.advertisementsSyncHandler.Handle)(c)
+	return middleware.BearerTokenAuthorizationMiddleware(s.token, s.advertisementsSyncHandler.Handle)(c)
 }
 
 // SubmitTransaction handles the submission of a transaction. It delegates the
@@ -43,36 +42,5 @@ func NewServerHandlers(token string, provider engine.OverlayEngineProvider) open
 		submitTransactionHandler: NewSubmitTransactionHandler(provider),
 		// Admin handlers:
 		advertisementsSyncHandler: NewAdvertisementsSyncHandler(provider),
-	}
-}
-
-// BearearTokenAuthorizationMiddleware is a middleware function that checks if the request
-// contains a valid Bearer token in the Authorization header. If the token is invalid or
-// missing, it responds with an appropriate error.
-func BearearTokenAuthorizationMiddleware(expectedToken string, next fiber.Handler) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		// Retrieve the Authorization header from the request
-		auth := c.Get("Authorization")
-
-		// Check if the Authorization header is missing
-		if auth == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(openapi.BadRequestResponse{Message: "Missing Authorization header in the request"})
-		}
-
-		// Check if the Authorization header does not start with 'Bearer '
-		if !strings.HasPrefix(auth, "Bearer ") {
-			return c.Status(fiber.StatusUnauthorized).JSON(openapi.BadRequestResponse{Message: "Missing Authorization header Bearer token value"})
-		}
-
-		// Extract the token from the Authorization header
-		token := strings.TrimPrefix(auth, "Bearer ")
-
-		// Check if the token does not match the expected token
-		if token != expectedToken {
-			return c.Status(fiber.StatusForbidden).JSON(openapi.BadRequestResponse{Message: "Invalid Bearer token value"})
-		}
-
-		// Proceed with the next handler if the token is valid
-		return next(c)
 	}
 }
