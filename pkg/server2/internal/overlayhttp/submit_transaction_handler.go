@@ -14,6 +14,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// XTopicsHeader defines the HTTP header key used for specifying transaction topics.
+const XTopicsHeader = "x-topics"
+
 // RequestBodyLimit1GB defines the maximum allowed size for request bodies (1GB).
 const RequestBodyLimit1GB = 1000 * 1024 * 1024
 
