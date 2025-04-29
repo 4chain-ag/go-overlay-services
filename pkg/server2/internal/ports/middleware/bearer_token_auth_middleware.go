@@ -3,14 +3,14 @@ package middleware
 import (
 	"strings"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/openapi"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 )
 
 // BearerTokenAuthorizationMiddleware is a middleware function that checks if the request
 // contains a valid Bearer token in the Authorization header. If the token is invalid or
 // missing, it responds with an appropriate error.
-func BearerTokenAuthorizationMiddleware(expectedToken string, next fiber.Handler) fiber.Handler {
+func BearerTokenAuthorizationMiddleware(expectedToken string) fiber.Handler {
 	const scheme = "Bearer "
 	return func(c *fiber.Ctx) error {
 		// Retrieve the Authorization header from the request
@@ -35,7 +35,7 @@ func BearerTokenAuthorizationMiddleware(expectedToken string, next fiber.Handler
 		}
 
 		// Proceed with the next handler if the token is valid
-		return next(c)
+		return c.Next()
 	}
 }
 

@@ -103,10 +103,14 @@ issues:
         - wrapcheck
         - bodyclose
 
-    - path: /overlayhttp/
+    - path: /ports/
       linters:
         - wrapcheck 
-        
+
+    - path: /server2/
+      linters:
+        - wrapcheck 
+
     - path: /core/
       linters:
         - wrapcheck

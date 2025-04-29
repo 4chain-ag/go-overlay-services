@@ -15,6 +15,7 @@ import (
 type SubmitTransactionProviderMock struct {
 	t               *testing.T
 	triggerCallback bool
+	callSubmit      bool
 
 	// expected state:
 	expectedSteak *overlay.Steak
@@ -37,7 +38,10 @@ func (s *SubmitTransactionProviderMock) Submit(ctx context.Context, taggedBEEF o
 		onSteakReady(s.expectedSteak)
 	}
 
-	s.called = true
+	if s.callSubmit {
+		s.called = true
+	}
+
 	s.calledTaggedBEEF = taggedBEEF
 	s.calledSubmitMode = mode
 	return nil, s.expectedError
@@ -48,7 +52,7 @@ func (s *SubmitTransactionProviderMock) AssertCalled() {
 	s.t.Helper()
 
 	require.Equal(s.t, s.triggerCallback, s.callbackTriggered, "Discrepancy between expected and actual callback triggering")
-	require.True(s.t, s.called, "Submit was not called")
+	require.Equal(s.t, s.callSubmit, s.called, "Discrepancy between expected and actual Submit call")
 }
 
 // SubmitTransactionProviderMockOption is a functional option type for configuring a SubmitTransactionProviderMock.
@@ -56,22 +60,24 @@ type SubmitTransactionProviderMockOption func(*SubmitTransactionProviderMock)
 
 // SubmitTransactionProviderMockWithSTEAK allows setting a custom steak for the mock.
 func SubmitTransactionProviderMockWithSTEAK(steak *overlay.Steak) SubmitTransactionProviderMockOption {
-	return func(stpm *SubmitTransactionProviderMock) {
-		stpm.expectedSteak = steak
+	return func(mock *SubmitTransactionProviderMock) {
+		mock.expectedSteak = steak
+		mock.callSubmit = true
 	}
 }
 
 // SubmitTransactionProviderMockWithError allows setting a custom error for the mock to return when Submit is called.
 func SubmitTransactionProviderMockWithError(err error) SubmitTransactionProviderMockOption {
-	return func(stpm *SubmitTransactionProviderMock) {
-		stpm.expectedError = err
+	return func(mock *SubmitTransactionProviderMock) {
+		mock.expectedError = err
 	}
 }
 
 // SubmitTransactionProviderMockWithTriggeredCallback configures the mock to trigger the callback when Submit is called.
 func SubmitTransactionProviderMockWithTriggeredCallback() SubmitTransactionProviderMockOption {
-	return func(stpm *SubmitTransactionProviderMock) {
-		stpm.triggerCallback = true
+	return func(mock *SubmitTransactionProviderMock) {
+		mock.triggerCallback = true
+		mock.callSubmit = true
 	}
 }
 

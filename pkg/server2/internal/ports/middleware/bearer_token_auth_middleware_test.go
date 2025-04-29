@@ -2,25 +2,35 @@ package middleware_test
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/openapi"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/overlayhttp"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/overlayhttp/middleware"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/overlayhttp/testabilities"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_BearearTokenAuthorizationMiddleware(t *testing.T) {
 	// given:
-	expectedToken := "valid_admin_token"
-	serverAPI := &openapi.ServerInterfaceWrapper{Handler: overlayhttp.NewServerHandlers(expectedToken, testabilities.NewTestOverlayEngineStub(t))}
+	const bearerToken = "valid_admin_token"
 
-	httpHandlers := []http.Handler{
-		adaptor.FiberHandler(serverAPI.AdvertisementsSync), // TODO: Add the missing handlers that require auth check during access.
+	mock := testabilities.NewSubmitTransactionProviderMock(t)
+	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(mock))
+	serverAPI := server2.NewServerTestAdapter(
+		server2.WithAdminBearerToken(bearerToken),
+		server2.WithEngine(engine),
+	)
+
+	testPaths := []struct {
+		endpoint string
+		method   string
+	}{
+		{
+			endpoint: "/api/v1/admin/syncAdvertisements",
+			method:   fiber.MethodPost,
+		},
 	}
 
 	tests := map[string]struct {
@@ -32,7 +42,7 @@ func Test_BearearTokenAuthorizationMiddleware(t *testing.T) {
 			expectedStatus: fiber.StatusOK,
 			header: bearerTokenAuthorizationMiddlewareHeader{
 				headerKey:   fiber.HeaderAuthorization,
-				headerValue: "Bearer " + expectedToken,
+				headerValue: "Bearer " + bearerToken,
 			},
 		},
 		"Authorization header with ivalid HTTP server token": {
@@ -48,7 +58,7 @@ func Test_BearearTokenAuthorizationMiddleware(t *testing.T) {
 			expectedResponse: middleware.MissingAuthorizationHeaderResponse,
 			header: bearerTokenAuthorizationMiddlewareHeader{
 				headerKey:   "RandomHeader",
-				headerValue: "Bearer " + expectedToken,
+				headerValue: "Bearer " + bearerToken,
 			},
 		},
 		"Missing Authorization header value in the HTTP request": {
@@ -64,27 +74,26 @@ func Test_BearearTokenAuthorizationMiddleware(t *testing.T) {
 			expectedResponse: middleware.MissingAuthorizationHeaderBearerTokenValueResponse,
 			header: bearerTokenAuthorizationMiddlewareHeader{
 				headerKey:   fiber.HeaderAuthorization,
-				headerValue: "InvalidScheme " + expectedToken,
+				headerValue: "InvalidScheme " + bearerToken,
 			},
 		},
 	}
 
-	for _, handler := range httpHandlers {
-		ts := httptest.NewServer(handler)
-		defer ts.Close()
-
+	for _, path := range testPaths {
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
-				// when:
-				req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+				// given:
+				req, err := http.NewRequest(path.method, path.endpoint, nil)
 				require.NoError(t, err, "failed to create a new HTTP request")
 				req.Header.Set(tc.header.headerKey, tc.header.headerValue)
 
-				res, err := ts.Client().Do(req)
+				// when:
+				res, err := serverAPI.TestRequest(req, -1)
 
 				// then:
 				require.NoError(t, err)
 				require.Equal(t, tc.expectedStatus, res.StatusCode)
+
 				assertBearerTokenAuthorizationMiddlewareResponse(t, res, tc.expectedResponse)
 			})
 		}
