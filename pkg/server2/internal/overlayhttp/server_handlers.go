@@ -9,9 +9,9 @@ import (
 
 // ServerHandlers is a struct that holds handlers for different server routes.
 type ServerHandlers struct {
-	token                           string                           // token used for Bearer token authentication
-	submitTransactionHandler        *SubmitTransactionHandler        // handler for submitting transactions
-	advertisementsSyncHandler       *AdvertisementsSyncHandler       // handler for synchronizing advertisements
+	token                             string                             // token used for Bearer token authentication
+	submitTransactionHandler          *SubmitTransactionHandler          // handler for submitting transactions
+	advertisementsSyncHandler         *AdvertisementsSyncHandler         // handler for synchronizing advertisements
 	lookupServiceDocumentationHandler *LookupServiceDocumentationHandler // handler for lookup service documentation
 	topicManagerDocumentationHandler  *TopicManagerDocumentationHandler  // handler for topic manager documentation
 	topicManagersListHandler          *TopicManagersListHandler          // handler for listing topic managers
@@ -71,11 +71,11 @@ func NewServerHandlers(token string, provider engine.OverlayEngineProvider) open
 	return &ServerHandlers{
 		token: token,
 		// Non-admin handlers:
-		submitTransactionHandler: NewSubmitTransactionHandler(provider),
+		submitTransactionHandler:          NewSubmitTransactionHandler(provider),
 		lookupServiceDocumentationHandler: NewLookupServiceDocumentationHandler(provider),
-		topicManagerDocumentationHandler: NewTopicManagerDocumentationHandler(provider),
-		topicManagersListHandler: NewTopicManagersListHandler(provider),
-		lookupServicesListHandler: NewLookupServicesListHandler(provider),
+		topicManagerDocumentationHandler:  NewTopicManagerDocumentationHandler(provider),
+		topicManagersListHandler:          NewTopicManagersListHandler(provider),
+		lookupServicesListHandler:         NewLookupServicesListHandler(provider),
 		// Admin handlers:
 		advertisementsSyncHandler: NewAdvertisementsSyncHandler(provider),
 	}

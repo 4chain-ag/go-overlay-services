@@ -53,4 +53,4 @@ func NewLookupServiceDocumentationErrorResponse() openapi.InternalServerErrorRes
 	return openapi.Error{
 		Message: "Unable to retrieve documentation for the specified lookup service provider.",
 	}
-} 
+}

@@ -43,7 +43,7 @@ func TestLookupServicesListHandler_Handle_EmptyList(t *testing.T) {
 	// Given:
 	handler := NewLookupServicesListHandler(&LookupListProviderAlwaysEmpty{})
 	app := fiber.New()
-	
+
 	app.Get("/test", handler.Handle)
 
 	// When:
@@ -64,7 +64,7 @@ func TestLookupServicesListHandler_Handle_WithProviders(t *testing.T) {
 	// Given:
 	handler := NewLookupServicesListHandler(&LookupListProviderAlwaysSuccess{})
 	app := fiber.New()
-	
+
 	app.Get("/test", handler.Handle)
 
 	// When:
@@ -80,7 +80,7 @@ func TestLookupServicesListHandler_Handle_WithProviders(t *testing.T) {
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(body, &actual))
-	
+
 	expected := map[string]openapi.LookupMetadata{
 		"provider1": {
 			Name:             "provider1",
@@ -97,12 +97,12 @@ func TestLookupServicesListHandler_Handle_WithProviders(t *testing.T) {
 			InformationURL:   ptr.To("https://example.com/info2"),
 		},
 	}
-	
+
 	require.Equal(t, len(expected), len(actual))
 	for provider, expectedMetadata := range expected {
 		actualMetadata, exists := actual[provider]
 		require.True(t, exists, "Provider %s missing from response", provider)
-		
+
 		assert.Equal(t, expectedMetadata.Name, actualMetadata.Name)
 		assert.Equal(t, expectedMetadata.ShortDescription, actualMetadata.ShortDescription)
 		assert.Equal(t, expectedMetadata.IconURL, actualMetadata.IconURL)
@@ -119,4 +119,4 @@ func TestNewLookupServicesListHandler_WithNilProvider(t *testing.T) {
 	assert.Panics(t, func() {
 		NewLookupServicesListHandler(provider)
 	})
-} 
+}

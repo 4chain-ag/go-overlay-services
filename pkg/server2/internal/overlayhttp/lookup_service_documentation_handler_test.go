@@ -29,7 +29,7 @@ func TestLookupServiceDocumentationHandler_Handle_SuccessfulRetrieval(t *testing
 	// Given:
 	handler := NewLookupServiceDocumentationHandler(&LookupDocumentationProviderAlwaysSuccess{})
 	app := fiber.New()
-	
+
 	app.Get("/test", func(c *fiber.Ctx) error {
 		params := openapi.LookupServiceDocumentationParams{
 			LookupService: "example",
@@ -49,11 +49,11 @@ func TestLookupServiceDocumentationHandler_Handle_SuccessfulRetrieval(t *testing
 	var responseBody []byte
 	responseBody, err = io.ReadAll(resp.Body)
 	require.NoError(t, err)
-	
+
 	var result map[string]string
 	err = json.Unmarshal(responseBody, &result)
 	require.NoError(t, err)
-	
+
 	const expected = "# Test Documentation\nThis is a test markdown document."
 	assert.Equal(t, expected, result["documentation"])
 }
@@ -62,7 +62,7 @@ func TestLookupDocumentationHandler_Handle_ProviderError(t *testing.T) {
 	// Given:
 	handler := NewLookupServiceDocumentationHandler(&LookupDocumentationProviderAlwaysFailure{})
 	app := fiber.New()
-	
+
 	app.Get("/test", func(c *fiber.Ctx) error {
 		params := openapi.LookupServiceDocumentationParams{
 			LookupService: "example",
@@ -83,7 +83,7 @@ func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testin
 	// Given:
 	handler := NewLookupServiceDocumentationHandler(&LookupDocumentationProviderAlwaysSuccess{})
 	app := fiber.New()
-	
+
 	app.Get("/test", func(c *fiber.Ctx) error {
 		params := openapi.LookupServiceDocumentationParams{
 			LookupService: "",
@@ -98,7 +98,7 @@ func TestLookupDocumentationHandler_Handle_EmptyLookupServiceParameter(t *testin
 	// Then:
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	
+
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t, "lookupService query parameter is required", string(body))
