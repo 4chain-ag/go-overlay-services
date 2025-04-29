@@ -56,6 +56,68 @@ paths:
         409:
           $ref: '../errors/responses.yaml#/components/responses/RequestTimeoutResponse'
 
+  /api/v1/getDocumentationForLookupServiceProvider:
+    get:
+      tags:
+        - non-admin
+      operationId: LookupServiceDocumentation
+      parameters:
+        - in: query
+          name: lookupService
+          schema:
+            type: string
+          required: true
+          description: The lookup service name for which to retrieve documentation
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupServiceDocumentationResponse'
+        400:
+          $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
+  /api/v1/getDocumentationForTopicManager:
+    get:
+      tags:
+        - non-admin
+      operationId: TopicManagerDocumentation
+      parameters:
+        - in: query
+          name: topicManager
+          schema:
+            type: string
+          required: true
+          description: The topic manager name for which to retrieve documentation
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/TopicManagerDocumentationResponse'
+        400:
+          $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+          
+  /api/v1/listTopicManagers:
+    get:
+      tags:
+        - non-admin
+      operationId: TopicManagersList
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/TopicManagersListResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
+  /api/v1/listLookupServiceProviders:
+    get:
+      tags:
+        - non-admin
+      operationId: LookupServicesList
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupServicesListResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:

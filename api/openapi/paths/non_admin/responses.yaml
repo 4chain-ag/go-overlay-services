@@ -41,6 +41,68 @@ components:
       required:
         - STEAK
 
+    LookupServiceDocumentation:
+      type: object
+      properties:
+        documentation:
+          type: string
+          description: Markdown-formatted documentation string
+      required:
+        - documentation
+
+    TopicManagerDocumentation:
+      type: object
+      properties:
+        documentation:
+          type: string
+          description: Markdown-formatted documentation string for the topic manager
+      required:
+        - documentation
+
+    TopicManagerMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the topic manager
+        description:
+          type: string
+          description: Description of the topic manager
+        iconURL:
+          type: string
+          description: URL to the icon for the topic manager
+        version:
+          type: string
+          description: Version of the topic manager
+        informationURL:
+          type: string
+          description: URL to additional information about the topic manager
+      required:
+        - name
+        - description
+
+    LookupMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the lookup service provider
+        shortDescription:
+          type: string
+          description: Short description of the lookup service provider
+        iconURL:
+          type: string
+          description: URL to the icon for the lookup service provider
+        version:
+          type: string
+          description: Version of the lookup service provider
+        informationURL:
+          type: string
+          description: URL to additional information about the lookup service provider
+      required:
+        - name
+        - shortDescription
+
   responses:
     SubmitTransactionResponse:
       description: |
@@ -49,3 +111,39 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+            
+    LookupServiceDocumentationResponse:
+      description: |
+         Returns documentation for the specified lookup service.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LookupServiceDocumentation'
+            
+    TopicManagerDocumentationResponse:
+      description: |
+         Returns documentation for the specified topic manager.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TopicManagerDocumentation'
+            
+    TopicManagersListResponse:
+      description: |
+         Returns a list of available topic managers and their metadata.
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/TopicManagerMetadata'
+              
+    LookupServicesListResponse:
+      description: |
+         Returns a list of available lookup service providers and their metadata.
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/LookupMetadata'

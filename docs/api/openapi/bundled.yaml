@@ -137,6 +137,138 @@ paths:
             application/json:
               schema:
                 $ref: '#/paths/~1api~1v1~1submit/post/responses/400/content/application~1json/schema'
+  /api/v1/getDocumentationForLookupServiceProvider:
+    get:
+      tags:
+        - non-admin
+      operationId: LookupServiceDocumentation
+      parameters:
+        - in: query
+          name: lookupService
+          schema:
+            type: string
+          required: true
+          description: The lookup service name for which to retrieve documentation
+      responses:
+        '200':
+          description: |
+            Returns documentation for the specified lookup service.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documentation:
+                    type: string
+                    description: Markdown-formatted documentation string
+                required:
+                  - documentation
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/getDocumentationForTopicManager:
+    get:
+      tags:
+        - non-admin
+      operationId: TopicManagerDocumentation
+      parameters:
+        - in: query
+          name: topicManager
+          schema:
+            type: string
+          required: true
+          description: The topic manager name for which to retrieve documentation
+      responses:
+        '200':
+          description: |
+            Returns documentation for the specified topic manager.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documentation:
+                    type: string
+                    description: Markdown-formatted documentation string for the topic manager
+                required:
+                  - documentation
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/listTopicManagers:
+    get:
+      tags:
+        - non-admin
+      operationId: TopicManagersList
+      responses:
+        '200':
+          description: |
+            Returns a list of available topic managers and their metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: Name of the topic manager
+                    description:
+                      type: string
+                      description: Description of the topic manager
+                    iconURL:
+                      type: string
+                      description: URL to the icon for the topic manager
+                    version:
+                      type: string
+                      description: Version of the topic manager
+                    informationURL:
+                      type: string
+                      description: URL to additional information about the topic manager
+                  required:
+                    - name
+                    - description
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/listLookupServiceProviders:
+    get:
+      tags:
+        - non-admin
+      operationId: LookupServicesList
+      responses:
+        '200':
+          description: |
+            Returns a list of available lookup service providers and their metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: Name of the lookup service provider
+                    shortDescription:
+                      type: string
+                      description: Short description of the lookup service provider
+                    iconURL:
+                      type: string
+                      description: URL to the icon for the lookup service provider
+                    version:
+                      type: string
+                      description: Version of the lookup service provider
+                    informationURL:
+                      type: string
+                      description: URL to additional information about the lookup service provider
+                  required:
+                    - name
+                    - shortDescription
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
 components:
   securitySchemes:
     bearerAuth:
