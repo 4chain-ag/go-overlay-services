@@ -12,7 +12,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gookit/slog v0.5.8
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/oapi-codegen/runtime v1.1.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561
@@ -22,7 +21,6 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
-	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/gookit/color v1.5.4 // indirect
