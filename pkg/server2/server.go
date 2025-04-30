@@ -167,10 +167,8 @@ func New(opts ...ServerOption) *ServerHTTP {
 			StrictRouting: true,
 			ServerHeader:  "Overlay API",
 			AppName:       "Overlay API v0.0.0",
-			ErrorHandler:  middleware.ErrorMiddleware,
 		}),
 		middleware: []fiber.Handler{
-			//middleware.RequestMethodCheckMiddleware(),
 			requestid.New(),
 			idempotency.New(),
 			cors.New(),

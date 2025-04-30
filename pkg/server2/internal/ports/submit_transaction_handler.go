@@ -88,7 +88,7 @@ func NewSubmitTransactionHandler(provider app.SubmitTransactionProvider, options
 	handler := SubmitTransactionHandler{
 		service:          app.NewSubmitTransactionService(provider),
 		requestBodyLimit: RequestBodyLimit1GB,
-		responseTimeout:  10 * time.Second,
+		responseTimeout:  RequestTimeout,
 	}
 
 	for _, opt := range options {
