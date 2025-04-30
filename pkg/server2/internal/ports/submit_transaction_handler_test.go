@@ -3,8 +3,10 @@ package ports_test
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
@@ -15,42 +17,83 @@ import (
 
 func TestSubmitTransactionHandler_Handle_ShouldReturnBadRequestResponse(t *testing.T) {
 	tests := map[string]struct {
-		expectedStatusCode int
-		expectedResponse   openapi.Error
-		request            *http.Request
-		opts               []testabilities.SubmitTransactionProviderMockOption
+		expectedStatusCode        int
+		expectedResponse          openapi.Error
+		headers                   map[string]string
+		body                      string
+		submitTransactionMockOpts []testabilities.SubmitTransactionProviderMockOption
 	}{
+		"Submit transaction service fails to handle the transaction submission request - internal error": {
+			expectedStatusCode: fiber.StatusInternalServerError,
+			body:               "test transaction body",
+			headers: map[string]string{
+				"Content-Type":      "application/octet-stream",
+				ports.XTopicsHeader: "topics1,topics2",
+			},
+			expectedResponse: ports.NewSubmitTransactionProviderErrorResponse(),
+			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
+				testabilities.SubmitTransactionProviderMockWithError(app.ErrSubmitTransactionProvider),
+			},
+		},
+		"Submit transaction service fails to handle the transaction submission request - timeout error": {
+			expectedStatusCode: fiber.StatusRequestTimeout,
+			body:               "test transaction body",
+			headers: map[string]string{
+				"Content-Type":      "application/octet-stream",
+				ports.XTopicsHeader: "topics1,topics2",
+			},
+			expectedResponse: ports.NewRequestTimeoutResponse(ports.RequestTimeout),
+			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
+				testabilities.SubmitTransactionProviderMockWithError(app.ErrSubmitTransactionProviderTimeout),
+				testabilities.SubmitTransactionProviderMockWithSTEAK(&overlay.Steak{}, 2*time.Second),
+			},
+		},
 		"Missing x-topics header in the HTTP request": {
 			expectedStatusCode: fiber.StatusBadRequest,
-			request:            newSubmitTransactionRequestWithoutHeader(t),
-			expectedResponse:   ports.NewRequestMissingHeaderResponse(ports.XTopicsHeader),
+			body:               "test transaction body",
+			headers: map[string]string{
+				"Content-Type": "application/octet-stream",
+			},
+			expectedResponse: ports.NewRequestMissingHeaderResponse(ports.XTopicsHeader),
+			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
+				testabilities.SubmitTransactionProviderMockNotCalled(),
+			},
 		},
 		"Empty topics in the x-topics header in the HTTP request": {
 			expectedStatusCode: fiber.StatusBadRequest,
-			request:            newSubmitTransactionRequest(t, ""),
-			expectedResponse:   ports.NewInvalidRequestTopicsFormatResponse(),
+			body:               "test transaction body",
+			headers: map[string]string{
+				"Content-Type":      "application/octet-stream",
+				ports.XTopicsHeader: "",
+			},
+			expectedResponse: ports.NewInvalidRequestTopicsFormatResponse(),
+			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
+				testabilities.SubmitTransactionProviderMockNotCalled(),
+			},
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			// given:
-			mock := testabilities.NewSubmitTransactionProviderMock(t, tc.opts...)
+			mock := testabilities.NewSubmitTransactionProviderMock(t, tc.submitTransactionMockOpts...)
 			engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(mock))
-			serverAPI := server2.NewServerTestAdapter(server2.WithEngine(engine))
+			fixture := server2.NewTestFixture(t, server2.WithEngine(engine))
 
 			// when:
-			res, err := serverAPI.TestRequest(tc.request, -1)
-			require.NoError(t, err)
-			defer res.Body.Close()
+			var actualResponse openapi.BadRequestResponse
+
+			res, _ := fixture.Client().
+				R().
+				SetHeaders(tc.headers).
+				SetBody(tc.body).
+				SetError(&actualResponse).SetDebug(true).
+				Post("/api/v1/submit")
 
 			// then:
-			require.Equal(t, tc.expectedStatusCode, res.StatusCode)
-
-			var actualResponse openapi.BadRequestResponse
-			testabilities.DecodeResponseBody(t, res, &actualResponse)
-
+			require.Equal(t, tc.expectedStatusCode, res.StatusCode())
 			require.Equal(t, &tc.expectedResponse, &actualResponse)
+
 			mock.AssertCalled()
 		})
 	}
@@ -64,53 +107,29 @@ func TestSubmitTransactionHandler_Handle_ShouldReturnSubmitTransactionSuccessRes
 		},
 	}
 
-	mock := testabilities.NewSubmitTransactionProviderMock(t,
-		testabilities.SubmitTransactionProviderMockWithSTEAK(&steak),
-		testabilities.SubmitTransactionProviderMockWithTriggeredCallback(),
-	)
-	overlayEngineStub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(mock))
-	serverAPI := server2.NewServerTestAdapter(server2.WithEngine(overlayEngineStub))
+	mock := testabilities.NewSubmitTransactionProviderMock(t, testabilities.SubmitTransactionProviderMockWithSTEAK(&steak, time.Microsecond))
+	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(mock))
+	fixture := server2.NewTestFixture(t, server2.WithEngine(engine))
+
+	headers := map[string]string{
+		"Content-Type":      "application/octet-stream",
+		ports.XTopicsHeader: "topic1,topic2",
+	}
 
 	// when:
-	res, err := serverAPI.TestRequest(newSubmitTransactionRequest(t, "topic1,topic2"), -1)
+	var actualResponse openapi.SubmitTransactionResponse
+
+	res, _ := fixture.Client().
+		R().
+		SetHeaders(headers).
+		SetBody("test transaction body").
+		SetResult(&actualResponse).
+		Post("/api/v1/submit")
 
 	// then:
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, res.StatusCode)
-
-	defer res.Body.Close()
-
 	expectedResponse := ports.NewSubmitTransactionSuccessResponse(&steak)
 
-	var actualResponse openapi.SubmitTransactionResponse
-	testabilities.DecodeResponseBody(t, res, &actualResponse)
-
+	require.Equal(t, http.StatusOK, res.StatusCode())
 	require.Equal(t, expectedResponse, &actualResponse)
 	mock.AssertCalled()
-}
-
-// newSubmitTransactionRequest creates a new HTTP POST request to the /api/v1/submit endpoint
-// with a test transaction body and sets the required headers.
-// It sets the Content-Type to application/json and includes the provided topics in the X-Topics header.
-// This helper is used in tests to simulate a valid transaction submission request.
-func newSubmitTransactionRequest(t *testing.T, topics string) *http.Request {
-	t.Helper()
-
-	req, err := http.NewRequest(fiber.MethodPost, "/api/v1/submit", testabilities.RequestBody(t, "test transaction body"))
-	require.NoError(t, err, "failed to create new HTTP request")
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(ports.XTopicsHeader, topics)
-	return req
-}
-
-// newSubmitTransactionRequestWithoutHeader creates a new HTTP POST request for the transaction submission endpoint,
-// but without any headers. It is primarily used for testing purposes.
-// The request body contains a test transaction, and any error in the request creation
-// is handled with a failure in the test using require.NoError.
-func newSubmitTransactionRequestWithoutHeader(t *testing.T) *http.Request {
-	t.Helper()
-
-	req, err := http.NewRequest(fiber.MethodPost, "/api/v1/submit", testabilities.RequestBody(t, "test transaction body"))
-	require.NoError(t, err, "failed to create new HTTP request")
-	return req
 }

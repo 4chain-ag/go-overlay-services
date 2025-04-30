@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) {
+func TestSubmitTransactionHandler_Handle_SuccessfulSubmission(t *testing.T) { // DONE
 	// Given:
 	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
@@ -86,7 +86,7 @@ func TestSubmitTransactionHandler_Handle_InvalidMethod(t *testing.T) {
 	require.Equal(t, commands.ErrInvalidHTTPMethod.Error()+"\n", string(body))
 }
 
-func TestSubmitTransactionHandler_Handle_MissingTopicsHeader(t *testing.T) {
+func TestSubmitTransactionHandler_Handle_MissingTopicsHeader(t *testing.T) { // DONE
 	// Given:
 	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
@@ -119,7 +119,7 @@ func TestSubmitTransactionHandler_Handle_MissingTopicsHeader(t *testing.T) {
 	require.Equal(t, commands.ErrMissingXTopicsHeader.Error()+"\n", string(body))
 }
 
-func TestSubmitTransactionHandler_Handle_InvalidTopicsFormat(t *testing.T) {
+func TestSubmitTransactionHandler_Handle_InvalidTopicsFormat(t *testing.T) { // DONE
 	// Given:
 	mock := testutil.NewSubmitTransactionProviderAlwaysSuccess(overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
@@ -153,7 +153,7 @@ func TestSubmitTransactionHandler_Handle_InvalidTopicsFormat(t *testing.T) {
 	require.Equal(t, commands.ErrInvalidXTopicsHeaderFormat.Error()+"\n", string(body))
 }
 
-func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) {
+func TestSubmitTransactionHandler_Handle_ProviderError(t *testing.T) { // DONE
 	// Given:
 	mock := testutil.NewSubmitTransactionProviderAlwaysFailure(errors.New("internal"))
 	handler, err := commands.NewSubmitTransactionCommandHandler(mock)

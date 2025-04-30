@@ -7,6 +7,9 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 )
 
+// RequestTimeout defines the default duration after which a request is considered timed out.
+const RequestTimeout = 5 * time.Second
+
 // RequestBodyLimit1GB defines the default maximum size for request bodies (1 GB).
 const RequestBodyLimit1GB = 1000 * 1024 * 1024
 
