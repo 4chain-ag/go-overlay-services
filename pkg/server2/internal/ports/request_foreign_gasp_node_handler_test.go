@@ -39,13 +39,13 @@ func TestRequestForeignGASPNodeHandler_Handle_Success(t *testing.T) {
 	mock := &mockRequestForeignGASPNodeProvider{shouldFail: false}
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithRequestForeignGASPNodeProvider(mock))
 	fixture := server2.NewTestFixture(t, server2.WithEngine(engine))
-	
+
 	payload := ports.RequestForeignGASPNodePayload{
 		GraphID:     "0000000000000000000000000000000000000000000000000000000000000000.1",
 		TxID:        "0000000000000000000000000000000000000000000000000000000000000000",
 		OutputIndex: 1,
 	}
-	
+
 	// When
 	var response core.GASPNode
 	res, _ := fixture.Client().
@@ -54,7 +54,7 @@ func TestRequestForeignGASPNodeHandler_Handle_Success(t *testing.T) {
 		SetBody(payload).
 		SetResult(&response).
 		Post("/api/v1/requestForeignGASPNode")
-	
+
 	// Then
 	require.Equal(t, http.StatusOK, res.StatusCode())
 	mock.AssertCalled(t)
@@ -65,13 +65,13 @@ func TestRequestForeignGASPNodeHandler_Handle_MissingTopic(t *testing.T) {
 	mock := &mockRequestForeignGASPNodeProvider{shouldFail: false}
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithRequestForeignGASPNodeProvider(mock))
 	fixture := server2.NewTestFixture(t, server2.WithEngine(engine))
-	
+
 	payload := ports.RequestForeignGASPNodePayload{
 		GraphID:     "0000000000000000000000000000000000000000000000000000000000000000.1",
 		TxID:        "0000000000000000000000000000000000000000000000000000000000000000",
 		OutputIndex: 1,
 	}
-	
+
 	// When - Missing X-BSV-Topic header
 	var errorResponse openapi.Error
 	res, _ := fixture.Client().
@@ -79,7 +79,7 @@ func TestRequestForeignGASPNodeHandler_Handle_MissingTopic(t *testing.T) {
 		SetBody(payload).
 		SetError(&errorResponse).
 		Post("/api/v1/requestForeignGASPNode")
-	
+
 	// Then
 	require.Equal(t, http.StatusBadRequest, res.StatusCode())
 	assert.Contains(t, errorResponse.Message, "Missing 'X-BSV-Topic' header")
@@ -90,7 +90,7 @@ func TestRequestForeignGASPNodeHandler_Handle_InvalidJSON(t *testing.T) {
 	mock := &mockRequestForeignGASPNodeProvider{shouldFail: false}
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithRequestForeignGASPNodeProvider(mock))
 	fixture := server2.NewTestFixture(t, server2.WithEngine(engine))
-	
+
 	// When
 	var errorResponse openapi.Error
 	res, _ := fixture.Client().
@@ -99,7 +99,7 @@ func TestRequestForeignGASPNodeHandler_Handle_InvalidJSON(t *testing.T) {
 		SetBody("invalid json").
 		SetError(&errorResponse).
 		Post("/api/v1/requestForeignGASPNode")
-	
+
 	// Then
 	require.Equal(t, http.StatusBadRequest, res.StatusCode())
 	assert.Contains(t, errorResponse.Message, "Invalid request body")
@@ -110,13 +110,13 @@ func TestRequestForeignGASPNodeHandler_Handle_InvalidTxID(t *testing.T) {
 	mock := &mockRequestForeignGASPNodeProvider{shouldFail: false}
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithRequestForeignGASPNodeProvider(mock))
 	fixture := server2.NewTestFixture(t, server2.WithEngine(engine))
-	
+
 	payload := ports.RequestForeignGASPNodePayload{
 		GraphID:     "0000000000000000000000000000000000000000000000000000000000000000.1",
 		TxID:        "invalid-txid",
 		OutputIndex: 1,
 	}
-	
+
 	// When
 	var errorResponse openapi.Error
 	res, _ := fixture.Client().
@@ -125,7 +125,7 @@ func TestRequestForeignGASPNodeHandler_Handle_InvalidTxID(t *testing.T) {
 		SetBody(payload).
 		SetError(&errorResponse).
 		Post("/api/v1/requestForeignGASPNode")
-	
+
 	// Then
 	require.Equal(t, http.StatusBadRequest, res.StatusCode())
 	assert.Contains(t, errorResponse.Message, "Invalid txID format")
@@ -136,13 +136,13 @@ func TestRequestForeignGASPNodeHandler_Handle_ServiceError(t *testing.T) {
 	mock := &mockRequestForeignGASPNodeProvider{shouldFail: true}
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithRequestForeignGASPNodeProvider(mock))
 	fixture := server2.NewTestFixture(t, server2.WithEngine(engine))
-	
+
 	payload := ports.RequestForeignGASPNodePayload{
 		GraphID:     "0000000000000000000000000000000000000000000000000000000000000000.1",
 		TxID:        "0000000000000000000000000000000000000000000000000000000000000000",
 		OutputIndex: 1,
 	}
-	
+
 	// When
 	var errorResponse openapi.Error
 	res, _ := fixture.Client().
@@ -151,9 +151,9 @@ func TestRequestForeignGASPNodeHandler_Handle_ServiceError(t *testing.T) {
 		SetBody(payload).
 		SetError(&errorResponse).
 		Post("/api/v1/requestForeignGASPNode")
-	
+
 	// Then
 	require.Equal(t, http.StatusInternalServerError, res.StatusCode())
 	assert.Contains(t, errorResponse.Message, "Unable to process foreign GASP node request")
 	mock.AssertCalled(t)
-} 
+}

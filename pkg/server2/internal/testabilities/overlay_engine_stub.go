@@ -61,11 +61,11 @@ func WithRequestForeignGASPNodeProvider(provider app.RequestForeignGASPNodeProvi
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
-	t                            *testing.T
-	syncAdvertisementsProvider   app.SyncAdvertisementsProvider
-	submitTransactionProvider    app.SubmitTransactionProvider
-	startGASPSyncProvider        app.StartGASPSyncProvider
-	requestSyncResponseProvider  app.RequestSyncResponseProvider
+	t                              *testing.T
+	syncAdvertisementsProvider     app.SyncAdvertisementsProvider
+	submitTransactionProvider      app.SubmitTransactionProvider
+	startGASPSyncProvider          app.StartGASPSyncProvider
+	requestSyncResponseProvider    app.RequestSyncResponseProvider
 	requestForeignGASPNodeProvider app.RequestForeignGASPNodeProvider
 }
 
@@ -115,7 +115,7 @@ func (t TestOverlayEngineStub) Lookup(ctx context.Context, question *lookup.Look
 // It delegates to the requestForeignGASPNodeProvider if one is configured.
 func (t TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error) {
 	t.t.Helper()
-	
+
 	return t.requestForeignGASPNodeProvider.ProvideForeignGASPNode(ctx, graphId, outpoint, topic)
 }
 
@@ -123,7 +123,7 @@ func (t TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graph
 // It delegates to the requestSyncResponseProvider if one is configured.
 func (t TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, initialRequest *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
 	t.t.Helper()
-	
+
 	return t.requestSyncResponseProvider.ProvideForeignSyncResponse(ctx, initialRequest, topic)
 }
 
@@ -131,7 +131,7 @@ func (t TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, i
 // It delegates to the startGASPSyncProvider if one is configured.
 func (t TestOverlayEngineStub) StartGASPSync(ctx context.Context) error {
 	t.t.Helper()
-	
+
 	return t.startGASPSyncProvider.StartGASPSync(ctx)
 }
 
@@ -155,11 +155,11 @@ func (t TestOverlayEngineStub) SyncAdvertisements(ctx context.Context) error {
 // The options allow for configuring custom providers for transaction submission and advertisement synchronization.
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) engine.OverlayEngineProvider {
 	engine := TestOverlayEngineStub{
-		t:                          t,
-		submitTransactionProvider:  submitTransactionProviderAlwaysSuccessStub{},
-		syncAdvertisementsProvider: syncAdvertisementsProviderAlwaysSuccessStub{},
-		startGASPSyncProvider:      startGASPSyncProviderAlwaysSuccessStub{},
-		requestSyncResponseProvider: requestSyncResponseProviderAlwaysSuccessStub{},
+		t:                              t,
+		submitTransactionProvider:      submitTransactionProviderAlwaysSuccessStub{},
+		syncAdvertisementsProvider:     syncAdvertisementsProviderAlwaysSuccessStub{},
+		startGASPSyncProvider:          startGASPSyncProviderAlwaysSuccessStub{},
+		requestSyncResponseProvider:    requestSyncResponseProviderAlwaysSuccessStub{},
 		requestForeignGASPNodeProvider: requestForeignGASPNodeProviderAlwaysSuccessStub{},
 	}
 

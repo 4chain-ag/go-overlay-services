@@ -37,7 +37,7 @@ func TestStartGASPSyncHandler_Handle_Success(t *testing.T) {
 	adminToken := uuid.NewString()
 	mock := &mockStartGASPSyncProvider{shouldFail: false}
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithStartGASPSyncProvider(mock))
-	fixture := server2.NewTestFixture(t, 
+	fixture := server2.NewTestFixture(t,
 		server2.WithEngine(engine),
 		server2.WithAdminBearerToken(adminToken),
 	)
@@ -61,7 +61,7 @@ func TestStartGASPSyncHandler_Handle_Error(t *testing.T) {
 	adminToken := uuid.NewString()
 	mock := &mockStartGASPSyncProvider{shouldFail: true}
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithStartGASPSyncProvider(mock))
-	fixture := server2.NewTestFixture(t, 
+	fixture := server2.NewTestFixture(t,
 		server2.WithEngine(engine),
 		server2.WithAdminBearerToken(adminToken),
 	)
