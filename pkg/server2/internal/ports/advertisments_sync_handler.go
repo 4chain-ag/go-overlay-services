@@ -1,29 +1,29 @@
-package overlayhttp
+package ports
 
 import (
 	"context"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/openapi"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 )
 
-// SyncAdvertisementsProvider defines the contract that must be fulfilled
-// to send synchronize advertisements request to the overlay engine for further processing.
-type SyncAdvertisementsProvider interface {
+// AdvertisementsSyncService abstracts the logic for handling transaction submissions.
+type AdvertisementsSyncService interface {
 	SyncAdvertisements(ctx context.Context) error
 }
 
 // AdvertisementsSyncHandler orchestrates the processing flow of a synchronize advertisements
 // request and applies any necessary logic before invoking the engine.
 type AdvertisementsSyncHandler struct {
-	provider SyncAdvertisementsProvider
+	service AdvertisementsSyncService
 }
 
 // Handle orchestrates the processing flow of a synchronize advertisements request.
 // It prepares and sends a JSON response after invoking the engine and returns an HTTP response
 // with the appropriate status code based on the engine's response.
 func (h *AdvertisementsSyncHandler) Handle(c *fiber.Ctx) error {
-	err := h.provider.SyncAdvertisements(c.Context())
+	err := h.service.SyncAdvertisements(c.Context())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(NewSyncAdvertisementsProviderErrorResponse())
 	}
@@ -32,12 +32,12 @@ func (h *AdvertisementsSyncHandler) Handle(c *fiber.Ctx) error {
 
 // NewAdvertisementsSyncHandler returns an instance of a AdvertisementsSyncHandler,
 // utilizing an implementation of SyncAdvertisementsProvider. If the provided argument is nil, it triggers a panic.
-func NewAdvertisementsSyncHandler(provider SyncAdvertisementsProvider) *AdvertisementsSyncHandler {
+func NewAdvertisementsSyncHandler(provider app.SyncAdvertisementsProvider) *AdvertisementsSyncHandler {
 	if provider == nil {
 		panic("sync advertisements provider is nil")
 	}
 
-	return &AdvertisementsSyncHandler{provider: provider}
+	return &AdvertisementsSyncHandler{service: app.NewAdvertisementsSyncServcie(provider)}
 }
 
 // NewAdvertisementsSyncSuccessResponse creates a successful response for advertisement synchronization.

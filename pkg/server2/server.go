@@ -12,12 +12,13 @@ import (
 	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/openapi"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/overlayhttp"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/idempotency"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/google/uuid"
@@ -52,18 +53,39 @@ var DefaultConfig = Config{
 
 // ServerOption defines a functional option for configuring an HTTP server.
 // These options allow for flexible setup of middlewares and configurations.
-type ServerOption func(*Server)
+type ServerOption func(*ServerHTTP)
 
-// WithMiddleware adds Fiber middleware to the HTTP server.
+// WithMiddleware adds a Fiber middleware handler to the HTTP server configuration.
+// It returns a ServerOption that appends the given middleware to the server's middleware stack.
 func WithMiddleware(f fiber.Handler) ServerOption {
-	return func(s *Server) {
+	return func(s *ServerHTTP) {
 		s.middleware = append(s.middleware, f)
 	}
 }
 
-// WithConfig sets the configuration for the HTTP server.
+// WithEngine sets the overlay engine provider for the HTTP server.
+// It configures the ServerHTTP handlers to use the provided engine implementation.
+func WithEngine(e engine.OverlayEngineProvider) ServerOption {
+	return func(s *ServerHTTP) {
+		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(e)
+		s.advertisementsSyncHandler = ports.NewAdvertisementsSyncHandler(e)
+	}
+}
+
+// WithAdminBearerToken sets the admin bearer token used for authenticating
+// admin routes on the HTTP server.
+// It returns a ServerOption that applies this configuration to ServerHTTP.
+func WithAdminBearerToken(token string) ServerOption {
+	return func(s *ServerHTTP) {
+		s.cfg.AdminBearerToken = token
+	}
+}
+
+// WithConfig sets the configuration for the HTTP server using the provided Config.
+// It initializes a new Fiber application with the specified server settings.
+// Returns a ServerOption to apply during server setup.
 func WithConfig(cfg *Config) ServerOption {
-	return func(s *Server) {
+	return func(s *ServerHTTP) {
 		s.cfg = cfg
 		s.app = fiber.New(fiber.Config{
 			CaseSensitive: true,
@@ -74,66 +96,26 @@ func WithConfig(cfg *Config) ServerOption {
 	}
 }
 
-// WithEngine sets the overlay engine provider for the HTTP server.
-func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
-	return func(s *Server) {
-		s.overlayEngineProvider = provider
-	}
-}
+// ServerHTTP represents the HTTP server instance, including configuration,
+// Fiber app instance, middleware stack, and registered request handlers.
+type ServerHTTP struct {
+	cfg        *Config         // cfg holds the server configuration settings.
+	app        *fiber.App      // app is the Fiber application instance serving HTTP requests.
+	middleware []fiber.Handler // middleware is a list of Fiber middleware functions to be applied globally.
 
-// Server manages connections to the overlay server instance. It accepts and responds to client sockets,
-// using idempotency to improve fault tolerance and mitigate duplicated requests.
-// It applies all configured options along with the list of middlewares.
-type Server struct {
-	cfg                   *Config
-	app                   *fiber.App
-	middleware            []fiber.Handler
-	overlayEngineProvider engine.OverlayEngineProvider
-}
-
-// New returns an instance of the HTTP server and applies all specified functional options before starting it.
-func New(opts ...ServerOption) *Server {
-	srv := &Server{
-		cfg:                   &DefaultConfig,
-		overlayEngineProvider: NewNoopEngineProvider(),
-		app: fiber.New(fiber.Config{
-			CaseSensitive: true,
-			StrictRouting: true,
-			ServerHeader:  "Overlay API",
-			AppName:       "Overlay API v0.0.0",
-		}),
-		middleware: []fiber.Handler{
-			requestid.New(),
-			idempotency.New(),
-			cors.New(),
-			recover.New(recover.Config{EnableStackTrace: true}),
-			logger.New(logger.Config{
-				Format:     "date=${time} request_id=${locals:requestid} status=${status} method=${method} path=${path}​\n",
-				TimeFormat: "02-Jan-2006 15:04:05",
-			}),
-		},
-	}
-
-	for _, m := range srv.middleware {
-		srv.app.Use(m)
-	}
-
-	for _, opt := range opts {
-		opt(srv)
-	}
-
-	openapi.RegisterHandlers(srv.app, overlayhttp.NewServerHandlers(srv.cfg.AdminBearerToken, srv.overlayEngineProvider))
-	return srv
+	// Handlers for processing incoming HTTP requests:
+	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
+	advertisementsSyncHandler *ports.AdvertisementsSyncHandler // advertisementsSyncHandler handles advertisement sync requests.
 }
 
 // SocketAddr builds the address string for binding.
-func (s *Server) SocketAddr() string {
+func (s *ServerHTTP) SocketAddr() string {
 	return fmt.Sprintf("%s:%d", s.cfg.Addr, s.cfg.Port)
 }
 
 // ListenAndServe starts the HTTP server and listens for termination signals.
 // It returns a channel that will be closed once the shutdown is complete.
-func (s *Server) ListenAndServe(ctx context.Context) <-chan struct{} {
+func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
 	idleConnsClosed := make(chan struct{})
 
 	go func() {
@@ -166,4 +148,53 @@ func (s *Server) ListenAndServe(ctx context.Context) <-chan struct{} {
 	}()
 
 	return idleConnsClosed
+}
+
+// New creates and configures a new instance of ServerHTTP.
+// It initializes the application with default settings and middleware, registers OpenAPI handlers,
+// sets up transaction submission and advertisement synchronization handlers using the provided OverlayEngineProvider,
+// and applies any optional functional configuration options passed via opts.
+//
+// The returned ServerHTTP instance is ready to be started by calling .Listen(...) or integrated into tests.
+func New(opts ...ServerOption) *ServerHTTP {
+	noop := newNoopEngineProvider()
+	srv := &ServerHTTP{
+		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop),
+		advertisementsSyncHandler: ports.NewAdvertisementsSyncHandler(noop),
+		cfg:                       &DefaultConfig,
+		app: fiber.New(fiber.Config{
+			CaseSensitive: true,
+			StrictRouting: true,
+			ServerHeader:  "Overlay API",
+			AppName:       "Overlay API v0.0.0",
+		}),
+		middleware: []fiber.Handler{
+			requestid.New(),
+			idempotency.New(),
+			cors.New(),
+			recover.New(recover.Config{EnableStackTrace: true}), // TODO: stack trace should be disabled after releasing to the prod.
+			logger.New(logger.Config{
+				Format:     "date=${time} request_id=${locals:requestid} status=${status} method=${method} path=${path}​\n",
+				TimeFormat: "02-Jan-2006 15:04:05",
+			}),
+			pprof.New(pprof.Config{Prefix: "/api/v1"}),
+		},
+	}
+
+	for _, m := range srv.middleware {
+		srv.app.Use(m)
+	}
+
+	for _, opt := range opts {
+		opt(srv)
+	}
+
+	api := srv.app.Group("/api")
+	v1 := api.Group("/v1")
+	v1.Post("/submit", srv.submitTransactionHandler.SubmitTransaction)
+
+	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(srv.cfg.AdminBearerToken))
+	admin.Post("/syncAdvertisements", srv.advertisementsSyncHandler.Handle)
+
+	return srv
 }

@@ -6,7 +6,7 @@ import (
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/overlayhttp"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
@@ -19,17 +19,17 @@ type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
 
 // WithSyncAdvertisementsProvider allows setting a custom SyncAdvertisementsProvider in a TestOverlayEngineStub.
 // This can be used to mock advertisement synchronization behavior during tests.
-func WithSyncAdvertisementsProvider(provider overlayhttp.SyncAdvertisementsProvider) TestOverlayEngineStubOption {
-	return func(engine *TestOverlayEngineStub) {
-		engine.syncAdvertisementsProvider = provider
+func WithSyncAdvertisementsProvider(provider app.SyncAdvertisementsProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.syncAdvertisementsProvider = provider
 	}
 }
 
 // WithSubmitTransactionProvider allows setting a custom SubmitTransactionProvider in a TestOverlayEngineStub.
 // This can be used to mock transaction submission behavior during tests.
-func WithSubmitTransactionProvider(provider overlayhttp.SubmitTransactionProvider) TestOverlayEngineStubOption {
-	return func(engine *TestOverlayEngineStub) {
-		engine.submitTransactionProvider = provider
+func WithSubmitTransactionProvider(provider app.SubmitTransactionProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.submitTransactionProvider = provider
 	}
 }
 
@@ -38,8 +38,8 @@ func WithSubmitTransactionProvider(provider overlayhttp.SubmitTransactionProvide
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
 	t                          *testing.T
-	syncAdvertisementsProvider overlayhttp.SyncAdvertisementsProvider
-	submitTransactionProvider  overlayhttp.SubmitTransactionProvider
+	syncAdvertisementsProvider app.SyncAdvertisementsProvider
+	submitTransactionProvider  app.SubmitTransactionProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
