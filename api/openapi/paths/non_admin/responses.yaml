@@ -1,0 +1,101 @@
+components:
+  schemas:
+    AdmittanceInstructions:
+      type: object
+      properties:
+        OutputsToAdmit:
+          type: array
+          items:
+            type: integer
+            format: uint32
+        CoinsToRetain:
+          type: array
+          items:
+            type: integer
+            format: uint32
+        CoinsRemoved:
+          type: array
+          items:
+            type: integer
+            format: uint32 
+        AncillaryTxIDs:
+          type: array
+          items:
+            type: string 
+      required:
+        - OutputsToAdmit
+        - CoinsToRetain
+        - CoinsRemoved
+        - AncillaryTxIDs
+
+    STEAK:
+      type: object 
+      additionalProperties:
+        $ref: "#/components/schemas/AdmittanceInstructions"
+
+    SubmitTransaction:
+      type: object
+      properties:
+        STEAK:
+          $ref: "#/components/schemas/STEAK"
+      required:
+        - STEAK
+        
+    GASPInitialResponse:
+      type: object
+      properties:
+        utxoList:
+          type: array
+          items:
+            $ref: '#/components/schemas/Outpoint'
+          description: List of UTXOs
+        since:
+          type: integer
+          format: uint64
+          description: Timestamp for incremental sync
+      required:
+        - utxoList
+        - since
+        
+    Outpoint:
+      type: object
+      properties:
+        txid:
+          type: string
+          description: Transaction ID
+        outputIndex:
+          type: integer
+          format: uint32
+          description: Output index
+      required:
+        - txid
+        - outputIndex
+        
+    GASPNode:
+      type: object
+      description: GASP node data structure
+
+  responses:
+    SubmitTransactionResponse:
+      description: |
+         Overlay engine successfully processed the submitted transaction octet-stream with the specified topic headers.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SubmitTransaction'
+            
+    RequestForeignGASPNodeResponse:
+      description: |
+        Foreign GASP node data.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GASPNode'
+            
+    RequestSyncResponseResponse:
+      description: |
+        Foreign GASP sync response.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GASPInitialResponse'

@@ -1,0 +1,34 @@
+components:
+  schemas:
+    AdvertisementsSync:
+      type: object
+      properties:
+        Message:
+          type: string
+      required:
+        - Message
+    
+    StartGASPSync:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+  responses:
+    AdvertisementsSyncResponse:
+      description: |
+         Advertisement sync request successfully delegated to overlay engine.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvertisementsSync'
+            
+    StartGASPSyncResponse:
+      description: |
+        GASP sync request successfully delegated to overlay engine.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StartGASPSync'
