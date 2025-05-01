@@ -34,6 +34,141 @@ paths:
                   - Message
         '500':
           $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/admin/startGASPSync:
+    post:
+      tags:
+        - admin
+      operationId: StartGASPSync
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: |
+            GASP sync request successfully delegated to overlay engine.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/requestForeignGASPNode:
+    post:
+      tags:
+        - non-admin
+      operationId: RequestForeignGASPNode
+      parameters:
+        - in: header
+          name: X-BSV-Topic
+          schema:
+            type: string
+          required: true
+          description: BSV topic for the GASP node
+      requestBody:
+        description: Request body for the foreign GASP node endpoint
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                graphID:
+                  type: string
+                  description: The graph ID as an outpoint string
+                txID:
+                  type: string
+                  description: The transaction ID
+                outputIndex:
+                  type: integer
+                  format: uint32
+                  description: The output index
+              required:
+                - graphID
+                - txID
+                - outputIndex
+      responses:
+        '200':
+          description: |
+            Foreign GASP node data.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: GASP node data structure
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/requestSyncResponse:
+    post:
+      tags:
+        - non-admin
+      operationId: RequestSyncResponse
+      parameters:
+        - in: header
+          name: X-BSV-Topic
+          schema:
+            type: string
+          required: true
+          description: BSV topic for sync response
+      requestBody:
+        description: Request body for the sync response endpoint
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version:
+                  type: integer
+                  description: Version of the GASP protocol
+                since:
+                  type: integer
+                  format: uint64
+                  description: Timestamp for incremental sync
+              required:
+                - version
+                - since
+      responses:
+        '200':
+          description: |
+            Foreign GASP sync response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  utxoList:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        txid:
+                          type: string
+                          description: Transaction ID
+                        outputIndex:
+                          type: integer
+                          format: uint32
+                          description: Output index
+                      required:
+                        - txid
+                        - outputIndex
+                    description: List of UTXOs
+                  since:
+                    type: integer
+                    format: uint64
+                    description: Timestamp for incremental sync
+                required:
+                  - utxoList
+                  - since
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
   /api/v1/submit:
     post:
       tags:

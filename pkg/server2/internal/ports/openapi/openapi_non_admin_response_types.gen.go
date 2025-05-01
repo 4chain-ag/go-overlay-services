@@ -11,6 +11,27 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"OutputsToAdmit"`
 }
 
+// GASPInitialResponse defines model for GASPInitialResponse.
+type GASPInitialResponse struct {
+	// Since Timestamp for incremental sync
+	Since uint64 `json:"since"`
+
+	// UtxoList List of UTXOs
+	UtxoList []Outpoint `json:"utxoList"`
+}
+
+// GASPNode GASP node data structure
+type GASPNode = map[string]interface{}
+
+// Outpoint defines model for Outpoint.
+type Outpoint struct {
+	// OutputIndex Output index
+	OutputIndex uint32 `json:"outputIndex"`
+
+	// Txid Transaction ID
+	Txid string `json:"txid"`
+}
+
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
 
@@ -18,6 +39,12 @@ type STEAK map[string]AdmittanceInstructions
 type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
+
+// RequestForeignGASPNodeResponse GASP node data structure
+type RequestForeignGASPNodeResponse = GASPNode
+
+// RequestSyncResponseResponse defines model for RequestSyncResponseResponse.
+type RequestSyncResponseResponse = GASPInitialResponse
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction

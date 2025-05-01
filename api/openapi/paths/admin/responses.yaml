@@ -7,6 +7,14 @@ components:
           type: string
       required:
         - Message
+    
+    StartGASPSync:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
 
   responses:
     AdvertisementsSyncResponse:
@@ -16,3 +24,11 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/AdvertisementsSync'
+            
+    StartGASPSyncResponse:
+      description: |
+        GASP sync request successfully delegated to overlay engine.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StartGASPSync'

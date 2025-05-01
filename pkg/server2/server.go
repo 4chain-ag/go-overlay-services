@@ -69,6 +69,9 @@ func WithEngine(e engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(e)
 		s.advertisementsSyncHandler = ports.NewAdvertisementsSyncHandler(e)
+		s.startGASPSyncHandler = ports.NewStartGASPSyncHandler(e)
+		s.requestForeignGASPNodeHandler = ports.NewRequestForeignGASPNodeHandler(e)
+		s.requestSyncResponseHandler = ports.NewRequestSyncResponseHandler(e)
 	}
 }
 
@@ -104,8 +107,11 @@ type ServerHTTP struct {
 	middleware []fiber.Handler // middleware is a list of Fiber middleware functions to be applied globally.
 
 	// Handlers for processing incoming HTTP requests:
-	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
-	advertisementsSyncHandler *ports.AdvertisementsSyncHandler // advertisementsSyncHandler handles advertisement sync requests.
+	submitTransactionHandler      *ports.SubmitTransactionHandler      // submitTransactionHandler handles transaction submission requests.
+	advertisementsSyncHandler     *ports.AdvertisementsSyncHandler     // advertisementsSyncHandler handles advertisement sync requests.
+	startGASPSyncHandler          *ports.StartGASPSyncHandler          // startGASPSyncHandler handles GASP sync requests.
+	requestForeignGASPNodeHandler *ports.RequestForeignGASPNodeHandler // requestForeignGASPNodeHandler handles foreign GASP node requests.
+	requestSyncResponseHandler    *ports.RequestSyncResponseHandler    // requestSyncResponseHandler handles sync response requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -159,9 +165,12 @@ func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
 func New(opts ...ServerOption) *ServerHTTP {
 	noop := newNoopEngineProvider()
 	srv := &ServerHTTP{
-		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop),
-		advertisementsSyncHandler: ports.NewAdvertisementsSyncHandler(noop),
-		cfg:                       &DefaultConfig,
+		submitTransactionHandler:      ports.NewSubmitTransactionHandler(noop),
+		advertisementsSyncHandler:     ports.NewAdvertisementsSyncHandler(noop),
+		startGASPSyncHandler:          ports.NewStartGASPSyncHandler(noop),
+		requestForeignGASPNodeHandler: ports.NewRequestForeignGASPNodeHandler(noop),
+		requestSyncResponseHandler:    ports.NewRequestSyncResponseHandler(noop),
+		cfg:                           &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
 			StrictRouting: true,
@@ -192,9 +201,12 @@ func New(opts ...ServerOption) *ServerHTTP {
 	api := srv.app.Group("/api")
 	v1 := api.Group("/v1")
 	v1.Post("/submit", srv.submitTransactionHandler.SubmitTransaction)
+	v1.Post("/requestForeignGASPNode", srv.requestForeignGASPNodeHandler.Handle)
+	v1.Post("/requestSyncResponse", srv.requestSyncResponseHandler.Handle)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(srv.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", srv.advertisementsSyncHandler.Handle)
+	admin.Post("/startGASPSync", srv.startGASPSyncHandler.Handle)
 
 	return srv
 }

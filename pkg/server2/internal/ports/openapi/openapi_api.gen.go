@@ -7,7 +7,46 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// RequestForeignGASPNodeJSONBody defines parameters for RequestForeignGASPNode.
+type RequestForeignGASPNodeJSONBody struct {
+	// GraphID The graph ID as an outpoint string
+	GraphID string `json:"graphID"`
+
+	// OutputIndex The output index
+	OutputIndex uint32 `json:"outputIndex"`
+
+	// TxID The transaction ID
+	TxID string `json:"txID"`
+}
+
+// RequestForeignGASPNodeParams defines parameters for RequestForeignGASPNode.
+type RequestForeignGASPNodeParams struct {
+	// XBSVTopic BSV topic for the GASP node
+	XBSVTopic string `json:"X-BSV-Topic"`
+}
+
+// RequestSyncResponseJSONBody defines parameters for RequestSyncResponse.
+type RequestSyncResponseJSONBody struct {
+	// Since Timestamp for incremental sync
+	Since uint64 `json:"since"`
+
+	// Version Version of the GASP protocol
+	Version int `json:"version"`
+}
+
+// RequestSyncResponseParams defines parameters for RequestSyncResponse.
+type RequestSyncResponseParams struct {
+	// XBSVTopic BSV topic for sync response
+	XBSVTopic string `json:"X-BSV-Topic"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
+
+// RequestForeignGASPNodeJSONRequestBody defines body for RequestForeignGASPNode for application/json ContentType.
+type RequestForeignGASPNodeJSONRequestBody RequestForeignGASPNodeJSONBody
+
+// RequestSyncResponseJSONRequestBody defines body for RequestSyncResponse for application/json ContentType.
+type RequestSyncResponseJSONRequestBody RequestSyncResponseJSONBody

@@ -12,3 +12,45 @@ components:
                 description: 'Serialized transaction data (e.g., a binary format such as Protobuf or other)'
             required:
               - Transaction
+
+    RequestSyncResponseBody:
+      description: Request body for the sync response endpoint
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              version:
+                type: integer
+                description: Version of the GASP protocol
+              since:
+                type: integer
+                format: uint64
+                description: Timestamp for incremental sync
+            required:
+              - version
+              - since
+
+    RequestForeignGASPNodeBody:
+      description: Request body for the foreign GASP node endpoint
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              graphID:
+                type: string
+                description: The graph ID as an outpoint string
+              txID:
+                type: string
+                description: The transaction ID
+              outputIndex:
+                type: integer
+                format: uint32
+                description: The output index
+            required:
+              - graphID
+              - txID
+              - outputIndex

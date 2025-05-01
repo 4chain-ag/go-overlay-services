@@ -33,13 +33,40 @@ func WithSubmitTransactionProvider(provider app.SubmitTransactionProvider) TestO
 	}
 }
 
+// WithStartGASPSyncProvider allows setting a custom StartGASPSyncProvider in a TestOverlayEngineStub.
+// This can be used to mock GASP sync behavior during tests.
+func WithStartGASPSyncProvider(provider app.StartGASPSyncProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.startGASPSyncProvider = provider
+	}
+}
+
+// WithRequestSyncResponseProvider allows setting a custom RequestSyncResponseProvider in a TestOverlayEngineStub.
+// This can be used to mock request sync response behavior during tests.
+func WithRequestSyncResponseProvider(provider app.RequestSyncResponseProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.requestSyncResponseProvider = provider
+	}
+}
+
+// WithRequestForeignGASPNodeProvider allows setting a custom RequestForeignGASPNodeProvider in a TestOverlayEngineStub.
+// This can be used to mock foreign GASP node request behavior during tests.
+func WithRequestForeignGASPNodeProvider(provider app.RequestForeignGASPNodeProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.requestForeignGASPNodeProvider = provider
+	}
+}
+
 // TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
-	t                          *testing.T
-	syncAdvertisementsProvider app.SyncAdvertisementsProvider
-	submitTransactionProvider  app.SubmitTransactionProvider
+	t                            *testing.T
+	syncAdvertisementsProvider   app.SyncAdvertisementsProvider
+	submitTransactionProvider    app.SubmitTransactionProvider
+	startGASPSyncProvider        app.StartGASPSyncProvider
+	requestSyncResponseProvider  app.RequestSyncResponseProvider
+	requestForeignGASPNodeProvider app.RequestForeignGASPNodeProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
@@ -84,22 +111,28 @@ func (t TestOverlayEngineStub) Lookup(ctx context.Context, question *lookup.Look
 	panic("unimplemented")
 }
 
-// ProvideForeignGASPNode returns a foreign GASP node (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// ProvideForeignGASPNode returns a foreign GASP node.
+// It delegates to the requestForeignGASPNodeProvider if one is configured.
 func (t TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error) {
-	panic("unimplemented")
+	t.t.Helper()
+	
+	return t.requestForeignGASPNodeProvider.ProvideForeignGASPNode(ctx, graphId, outpoint, topic)
 }
 
-// ProvideForeignSyncResponse returns a foreign sync response (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// ProvideForeignSyncResponse returns a foreign sync response.
+// It delegates to the requestSyncResponseProvider if one is configured.
 func (t TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, initialRequest *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
-	panic("unimplemented")
+	t.t.Helper()
+	
+	return t.requestSyncResponseProvider.ProvideForeignSyncResponse(ctx, initialRequest, topic)
 }
 
-// StartGASPSync starts the GASP synchronization process (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// StartGASPSync starts the GASP synchronization process.
+// It delegates to the startGASPSyncProvider if one is configured.
 func (t TestOverlayEngineStub) StartGASPSync(ctx context.Context) error {
-	panic("unimplemented")
+	t.t.Helper()
+	
+	return t.startGASPSyncProvider.StartGASPSync(ctx)
 }
 
 // Submit processes a transaction submission and returns a steak or error based on the provided inputs.
@@ -125,6 +158,9 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		t:                          t,
 		submitTransactionProvider:  submitTransactionProviderAlwaysSuccessStub{},
 		syncAdvertisementsProvider: syncAdvertisementsProviderAlwaysSuccessStub{},
+		startGASPSyncProvider:      startGASPSyncProviderAlwaysSuccessStub{},
+		requestSyncResponseProvider: requestSyncResponseProviderAlwaysSuccessStub{},
+		requestForeignGASPNodeProvider: requestForeignGASPNodeProviderAlwaysSuccessStub{},
 	}
 
 	for _, opt := range opts {
@@ -151,4 +187,37 @@ type syncAdvertisementsProviderAlwaysSuccessStub struct{}
 // It always returns nil, indicating that the synchronization was successful.
 func (syncAdvertisementsProviderAlwaysSuccessStub) SyncAdvertisements(ctx context.Context) error {
 	return nil
+}
+
+// startGASPSyncProviderAlwaysSuccessStub is a mock implementation of StartGASPSyncProvider that always succeeds.
+// It is used as the default StartGASPSyncProvider in the TestOverlayEngineStub.
+type startGASPSyncProviderAlwaysSuccessStub struct{}
+
+// StartGASPSync simulates a successful GASP sync request call.
+// It always returns nil, indicating that the synchronization was successful.
+func (startGASPSyncProviderAlwaysSuccessStub) StartGASPSync(ctx context.Context) error {
+	return nil
+}
+
+// requestSyncResponseProviderAlwaysSuccessStub is a mock implementation of RequestSyncResponseProvider that always succeeds.
+// It is used as the default RequestSyncResponseProvider in the TestOverlayEngineStub.
+type requestSyncResponseProviderAlwaysSuccessStub struct{}
+
+// ProvideForeignSyncResponse simulates a successful foreign sync response request call.
+// It always returns an empty GASPInitialResponse, indicating that the request was successful.
+func (requestSyncResponseProviderAlwaysSuccessStub) ProvideForeignSyncResponse(ctx context.Context, initialRequest *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
+	return &core.GASPInitialResponse{
+		UTXOList: []*overlay.Outpoint{},
+		Since:    initialRequest.Since,
+	}, nil
+}
+
+// requestForeignGASPNodeProviderAlwaysSuccessStub is a mock implementation of RequestForeignGASPNodeProvider that always succeeds.
+// It is used as the default RequestForeignGASPNodeProvider in the TestOverlayEngineStub.
+type requestForeignGASPNodeProviderAlwaysSuccessStub struct{}
+
+// ProvideForeignGASPNode simulates a successful foreign GASP node request call.
+// It always returns an empty GASPNode, indicating that the request was successful.
+func (requestForeignGASPNodeProviderAlwaysSuccessStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error) {
+	return &core.GASPNode{}, nil
 }

@@ -203,7 +203,7 @@ func New(opts ...HTTPOption) (*HTTP, error) {
 	admin := v1.Group("/admin", adaptor.HTTPMiddleware(AdminAuth(http.cfg.AdminBearerToken)))
 	http.AdminRouter = admin
 	admin.Post("/advertisements-sync", SafeHandler(http.api.Commands.SyncAdvertismentsHandler.Handle))
-	admin.Post("/start-gasp-sync", SafeHandler(http.api.Commands.StartGASPSyncHandler.Handle))
+	admin.Post("/startGASPSync", SafeHandler(http.api.Commands.StartGASPSyncHandler.Handle))
 
 	return http, nil
 }

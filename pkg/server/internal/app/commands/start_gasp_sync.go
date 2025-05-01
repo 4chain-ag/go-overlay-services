@@ -13,7 +13,7 @@ type StartGASPSyncProvider interface {
 	StartGASPSync(ctx context.Context) error
 }
 
-// StartGASPSyncHandler handles the /admin/start-gasp-sync endpoint.
+// StartGASPSyncHandler handles the /admin/startGASPSync endpoint.
 type StartGASPSyncHandler struct {
 	provider StartGASPSyncProvider
 }

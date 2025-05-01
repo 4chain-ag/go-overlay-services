@@ -40,6 +40,40 @@ components:
           $ref: "#/components/schemas/STEAK"
       required:
         - STEAK
+        
+    GASPInitialResponse:
+      type: object
+      properties:
+        utxoList:
+          type: array
+          items:
+            $ref: '#/components/schemas/Outpoint'
+          description: List of UTXOs
+        since:
+          type: integer
+          format: uint64
+          description: Timestamp for incremental sync
+      required:
+        - utxoList
+        - since
+        
+    Outpoint:
+      type: object
+      properties:
+        txid:
+          type: string
+          description: Transaction ID
+        outputIndex:
+          type: integer
+          format: uint32
+          description: Output index
+      required:
+        - txid
+        - outputIndex
+        
+    GASPNode:
+      type: object
+      description: GASP node data structure
 
   responses:
     SubmitTransactionResponse:
@@ -49,3 +83,19 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+            
+    RequestForeignGASPNodeResponse:
+      description: |
+        Foreign GASP node data.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GASPNode'
+            
+    RequestSyncResponseResponse:
+      description: |
+        Foreign GASP sync response.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GASPInitialResponse'
