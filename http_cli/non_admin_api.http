@@ -16,7 +16,11 @@ GET http://{{host}}/api/{{version}}/listLookupServiceProviders HTTP/1.1
 ###
 POST http://{{host}}/api/{{version}}/submit HTTP/1.1
 x-topics: example1, example2 
+content-type: application/octet-stream
 
+test transaction body
+
+ 
 ###
 POST http://{{host}}/api/{{version}}/requestForeignGASPNode HTTP/1.1
 content-type: {{contentType}}

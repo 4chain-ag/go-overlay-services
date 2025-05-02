@@ -1,0 +1,125 @@
+openapi: 3.0.4
+info:
+  version: 1.0.0
+  title: Overlay HTTP API
+  description: The overlay server API
+
+servers:
+  - url: http://localhost:3000
+    description: Optional server description, e.g. Main (production) server
+
+tags:
+  - name: admin
+    description: Admin API endpoints
+  - name: non-admin
+    description: Non Admin API endpointsa
+
+paths:
+  /api/v1/admin/syncAdvertisements:
+    post:
+      tags:
+        - admin
+      operationId: AdvertisementsSync
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          $ref: '../paths/admin/responses.yaml#/components/responses/AdvertisementsSyncResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
+  /api/v1/getDocumentationForLookupServiceProvider:
+    get:
+      tags:
+        - non-admin
+      operationId: GetLookupServiceProviderDocumentation
+      parameters:
+        - in: query
+          name: lookupService
+          schema:
+            type: string
+          required: true
+          description: The name of the lookup service to retrieve documentation for
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupServiceDocumentationResponse'
+        400:
+          $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
+  /api/v1/getDocumentationForTopicManager:
+    get:
+      tags:
+        - non-admin
+      operationId: GetTopicManagerDocumentation
+      parameters:
+        - in: query
+          name: topicManager
+          schema:
+            type: string
+          required: true
+          description: The name of the topic manager to retrieve documentation for
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/TopicManagerDocumentationResponse'
+        400:
+          $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
+  /api/v1/listLookupServiceProviders:
+    get:
+      tags:
+        - non-admin
+      operationId: ListLookupServiceProviders
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupServicesListResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
+  /api/v1/listTopicManagers:
+    get:
+      tags:
+        - non-admin
+      operationId: ListTopicManagers
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/TopicManagersListResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
+  /api/v1/submit:
+    post:
+      tags:
+        - non-admin
+      operationId: SubmitTransaction
+      parameters:
+        - in: header
+          name: x-topics
+          schema:
+            type: array
+            items:
+              type: string 
+          required: true
+          explode: true 
+          style: simple
+      requestBody:
+        required: true
+        $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/SubmitTransactionBody'
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/SubmitTransactionResponse'
+        400:
+          $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+        409:
+          $ref: '../errors/responses.yaml#/components/responses/RequestTimeoutResponse'
+  
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http 
+      scheme: bearer
