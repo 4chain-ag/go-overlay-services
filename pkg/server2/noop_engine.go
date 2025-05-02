@@ -118,9 +118,10 @@ func (n *noopEngineProvider) GetDocumentationForLookupServiceProvider(provider s
 	return fmt.Sprintf("# Documentation for %s\n\nThis is a placeholder documentation for the lookup service provider.", provider), nil
 }
 
-// GetDocumentationForTopicManager is a no-op call that always returns an empty string with nil error.
-func (*noopEngineProvider) GetDocumentationForTopicManager(provider string) (string, error) {
-	return "noop_engine_topic_manager_doc", nil
+// GetDocumentationForTopicManager returns documentation for a topic manager.
+// This is a noop implementation that returns a placeholder documentation.
+func (n *noopEngineProvider) GetDocumentationForTopicManager(provider string) (string, error) {
+	return fmt.Sprintf("# Documentation for %s\n\nThis is a placeholder documentation for the topic manager.", provider), nil
 }
 
 // newNoopEngineProvider returns an OverlayEngineProvider implementation

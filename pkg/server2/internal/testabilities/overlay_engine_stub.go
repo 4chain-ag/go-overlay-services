@@ -41,6 +41,7 @@ type TestOverlayEngineStub struct {
 	syncAdvertisementsProvider         app.SyncAdvertisementsProvider
 	submitTransactionProvider          app.SubmitTransactionProvider
 	lookupServiceDocumentationProvider app.LookupServiceDocumentationProvider
+	topicManagerDocumentationProvider  app.TopicManagerDocumentationProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider based on the configured provider.
@@ -48,10 +49,9 @@ func (t TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider
 	return t.lookupServiceDocumentationProvider.GetDocumentationForLookupServiceProvider(provider)
 }
 
-// GetDocumentationForTopicManager returns documentation for a topic manager (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// GetDocumentationForTopicManager returns documentation for a topic manager based on the configured provider.
 func (t TestOverlayEngineStub) GetDocumentationForTopicManager(provider string) (string, error) {
-	panic("unimplemented")
+	return t.topicManagerDocumentationProvider.GetDocumentationForTopicManager(provider)
 }
 
 // GetUTXOHistory retrieves UTXO history for the given output (unimplemented).
@@ -128,6 +128,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		submitTransactionProvider:          submitTransactionProviderAlwaysSuccessStub{},
 		syncAdvertisementsProvider:         syncAdvertisementsProviderAlwaysSuccessStub{},
 		lookupServiceDocumentationProvider: &lookupServiceDocumentationProviderAlwaysSuccessStub{documentation: defaultDocumentation},
+		topicManagerDocumentationProvider:  &topicManagerDocumentationProviderAlwaysSuccessStub{documentation: defaultDocumentation},
 	}
 
 	for _, opt := range opts {
