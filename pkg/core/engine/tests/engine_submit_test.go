@@ -37,7 +37,7 @@ func TestEngine_Submit_Success(t *testing.T) {
 			doesAppliedTransactionExistFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
 				return false, nil
 			},
-			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, beef []byte) error {
 				return nil
 			},
 			insertOutputFunc: func(ctx context.Context, output *engine.Output) error {
@@ -126,7 +126,7 @@ func TestEngine_Submit_SPVFail_ShouldReturnError(t *testing.T) {
 					Script:   &script.Script{script.OpTRUE},
 				}, nil
 			},
-			findOutputsFunc: func(ctx context.Context, outpoints []*overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) ([]*engine.Output, error) {
+			findOutputsFunc: func(ctx context.Context, outpoints []*overlay.Outpoint, topic string, spent *bool, includeBEEF bool) ([]*engine.Output, error) {
 				return []*engine.Output{
 					{
 						Outpoint: *outpoints[0],
@@ -231,7 +231,7 @@ func TestEngine_Submit_BroadcastFails_ShouldReturnError(t *testing.T) {
 			doesAppliedTransactionExistFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
 				return false, nil
 			},
-			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, beef []byte) error {
 				return nil
 			},
 		},
@@ -298,7 +298,7 @@ func TestEngine_Submit_OutputInsertFails_ShouldReturnError(t *testing.T) {
 			doesAppliedTransactionExistFunc: func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error) {
 				return false, nil
 			},
-			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+			markUTXOAsSpentFunc: func(ctx context.Context, outpoint *overlay.Outpoint, topic string, beef []byte) error {
 				return nil
 			},
 			insertOutputFunc: func(ctx context.Context, output *engine.Output) error {

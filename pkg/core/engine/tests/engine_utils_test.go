@@ -18,10 +18,11 @@ import (
 
 type fakeStorage struct {
 	findOutputFunc                  func(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*engine.Output, error)
-	findOutputsFunc                 func(ctx context.Context, outpoints []*overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) ([]*engine.Output, error)
+	findOutputsFunc                 func(ctx context.Context, outpoints []*overlay.Outpoint, topic string, spent *bool, includeBEEF bool) ([]*engine.Output, error)
 	doesAppliedTransactionExistFunc func(ctx context.Context, tx *overlay.AppliedTransaction) (bool, error)
 	insertOutputFunc                func(ctx context.Context, utxo *engine.Output) error
-	markUTXOAsSpentFunc             func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
+	markUTXOAsSpentFunc             func(ctx context.Context, outpoint *overlay.Outpoint, topic string, beef []byte) error
+	markUTXOsAsSpentFunc            func(ctx context.Context, outpoints []*overlay.Outpoint, topic string, beef []byte) error
 	insertAppliedTransactionFunc    func(ctx context.Context, tx *overlay.AppliedTransaction) error
 	updateConsumedByFunc            func(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error
 	deleteOutputFunc                func(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
@@ -49,9 +50,9 @@ func (f fakeStorage) InsertOutput(ctx context.Context, utxo *engine.Output) erro
 	}
 	panic("func not defined")
 }
-func (f fakeStorage) MarkUTXOAsSpent(ctx context.Context, outpoint *overlay.Outpoint, topic string) error {
+func (f fakeStorage) MarkUTXOAsSpent(ctx context.Context, outpoint *overlay.Outpoint, topic string, beef []byte) error {
 	if f.markUTXOAsSpentFunc != nil {
-		return f.markUTXOAsSpentFunc(ctx, outpoint, topic)
+		return f.markUTXOAsSpentFunc(ctx, outpoint, topic, beef)
 	}
 	panic("func not defined")
 }
@@ -73,7 +74,7 @@ func (f fakeStorage) DeleteOutput(ctx context.Context, outpoint *overlay.Outpoin
 	}
 	panic("func not defined")
 }
-func (f fakeStorage) FindOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) ([]*engine.Output, error) {
+func (f fakeStorage) FindOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic string, spent *bool, includeBEEF bool) ([]*engine.Output, error) {
 	if f.findOutputsFunc != nil {
 		return f.findOutputsFunc(ctx, outpoints, topic, spent, includeBEEF)
 	}
@@ -101,9 +102,9 @@ func (f fakeStorage) DeleteOutputs(ctx context.Context, outpoints []*overlay.Out
 	panic("func not defined")
 }
 
-func (f fakeStorage) MarkUTXOsAsSpent(ctx context.Context, outpoints []*overlay.Outpoint, topic string) error {
-	if f.markUTXOAsSpentFunc != nil {
-		return f.MarkUTXOsAsSpent(ctx, outpoints, topic)
+func (f fakeStorage) MarkUTXOsAsSpent(ctx context.Context, outpoints []*overlay.Outpoint, topic string, beef []byte) error {
+	if f.markUTXOsAsSpentFunc != nil {
+		return f.MarkUTXOsAsSpent(ctx, outpoints, topic, beef)
 	}
 	panic("func not defined")
 }

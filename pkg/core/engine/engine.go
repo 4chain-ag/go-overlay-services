@@ -198,12 +198,17 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 		} else {
 			topicInputs[topic] = make(map[uint32]*Output, len(tx.Inputs))
 			previousCoins := make(map[uint32][]byte, len(tx.Inputs))
-			for vin, outpoint := range inpoints {
-				if output, err := e.Storage.FindOutput(ctx, outpoint, &topic, nil, true); err != nil {
-					return nil, err
-				} else if output != nil {
-					previousCoins[uint32(vin)] = output.Beef
-					topicInputs[topic][uint32(vin)] = output
+			if inputs, err := e.Storage.FindOutputs(ctx, inpoints, topic, nil, true); err != nil {
+				if e.PanicOnError {
+					log.Panicln(err)
+				}
+				return nil, err
+			} else {
+				for vin, output := range inputs {
+					if output != nil {
+						previousCoins[uint32(vin)] = output.Beef
+						topicInputs[topic][uint32(vin)] = output
+					}
 				}
 			}
 
@@ -246,21 +251,20 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 		if _, ok := dupeTopics[topic]; ok {
 			continue
 		}
-		for _, outpoint := range inpoints {
-			if err := e.Storage.MarkUTXOAsSpent(ctx, outpoint, topic); err != nil {
-				if e.PanicOnError {
-					log.Panicln(err)
-				}
-				return nil, err
-			} else {
-				for _, l := range e.LookupServices {
-					for _, inpoint := range inpoints {
-						if err := l.OutputSpent(ctx, inpoint, topic, taggedBEEF.Beef); err != nil {
-							if e.PanicOnError {
-								log.Panicln(err)
-							}
-							return nil, err
+
+		if err := e.Storage.MarkUTXOsAsSpent(ctx, inpoints, topic, taggedBEEF.Beef); err != nil {
+			if e.PanicOnError {
+				log.Panicln(err)
+			}
+			return nil, err
+		} else {
+			for _, l := range e.LookupServices {
+				for _, inpoint := range inpoints {
+					if err := l.OutputSpent(ctx, inpoint, topic, taggedBEEF.Beef); err != nil {
+						if e.PanicOnError {
+							log.Panicln(err)
 						}
+						return nil, err
 					}
 				}
 			}
