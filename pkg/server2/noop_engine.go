@@ -2,6 +2,7 @@ package server2
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
@@ -111,9 +112,10 @@ func (*noopEngineProvider) ListLookupServiceProviders() map[string]*overlay.Meta
 	}
 }
 
-// GetDocumentationForLookupServiceProvider is a no-op call that always returns an empty string with nil error.
-func (*noopEngineProvider) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
-	return "noop_engine_lookuo_service_provider_doc", nil
+// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider.
+// This is a noop implementation that returns a placeholder documentation.
+func (n *noopEngineProvider) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
+	return fmt.Sprintf("# Documentation for %s\n\nThis is a placeholder documentation for the lookup service provider.", provider), nil
 }
 
 // GetDocumentationForTopicManager is a no-op call that always returns an empty string with nil error.

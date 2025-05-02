@@ -34,6 +34,140 @@ paths:
                   - Message
         '500':
           $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/getDocumentationForLookupServiceProvider:
+    get:
+      tags:
+        - non-admin
+      operationId: GetLookupServiceProviderDocumentation
+      parameters:
+        - in: query
+          name: lookupService
+          schema:
+            type: string
+          required: true
+          description: The name of the lookup service to retrieve documentation for
+      responses:
+        '200':
+          description: Returns the documentation for the specified lookup service
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documentation:
+                    type: string
+                    description: Markdown-formatted documentation for the lookup service
+                required:
+                  - documentation
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/getDocumentationForTopicManager:
+    get:
+      tags:
+        - non-admin
+      operationId: GetTopicManagerDocumentation
+      parameters:
+        - in: query
+          name: topicManager
+          schema:
+            type: string
+          required: true
+          description: The name of the topic manager to retrieve documentation for
+      responses:
+        '200':
+          description: Returns the documentation for the specified topic manager
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documentation:
+                    type: string
+                    description: Markdown-formatted documentation for the topic manager
+                required:
+                  - documentation
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/listLookupServiceProviders:
+    get:
+      tags:
+        - non-admin
+      operationId: ListLookupServiceProviders
+      responses:
+        '200':
+          description: Returns a map of lookup service providers with their metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: The name of the lookup service provider
+                    shortDescription:
+                      type: string
+                      description: A brief description of the lookup service provider
+                    iconURL:
+                      type: string
+                      nullable: true
+                      description: URL to the icon image for the lookup service provider
+                    version:
+                      type: string
+                      nullable: true
+                      description: The version of the lookup service provider
+                    informationURL:
+                      type: string
+                      nullable: true
+                      description: URL to more information about the lookup service provider
+                  required:
+                    - name
+                    - shortDescription
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/listTopicManagers:
+    get:
+      tags:
+        - non-admin
+      operationId: ListTopicManagers
+      responses:
+        '200':
+          description: Returns a map of topic managers with their metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: The name of the topic manager
+                    shortDescription:
+                      type: string
+                      description: A brief description of the topic manager
+                    iconURL:
+                      type: string
+                      nullable: true
+                      description: URL to the icon image for the topic manager
+                    version:
+                      type: string
+                      nullable: true
+                      description: The version of the topic manager
+                    informationURL:
+                      type: string
+                      nullable: true
+                      description: URL to more information about the topic manager
+                  required:
+                    - name
+                    - shortDescription
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
   /api/v1/submit:
     post:
       tags:

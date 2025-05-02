@@ -37,15 +37,15 @@ func WithSubmitTransactionProvider(provider app.SubmitTransactionProvider) TestO
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
-	t                          *testing.T
-	syncAdvertisementsProvider app.SyncAdvertisementsProvider
-	submitTransactionProvider  app.SubmitTransactionProvider
+	t                                  *testing.T
+	syncAdvertisementsProvider         app.SyncAdvertisementsProvider
+	submitTransactionProvider          app.SubmitTransactionProvider
+	lookupServiceDocumentationProvider app.LookupServiceDocumentationProvider
 }
 
-// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider based on the configured provider.
 func (t TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
-	panic("unimplemented")
+	return t.lookupServiceDocumentationProvider.GetDocumentationForLookupServiceProvider(provider)
 }
 
 // GetDocumentationForTopicManager returns documentation for a topic manager (unimplemented).
@@ -121,10 +121,13 @@ func (t TestOverlayEngineStub) SyncAdvertisements(ctx context.Context) error {
 // NewTestOverlayEngineStub creates and returns a new instance of TestOverlayEngineStub with the provided options.
 // The options allow for configuring custom providers for transaction submission and advertisement synchronization.
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) engine.OverlayEngineProvider {
+	defaultDocumentation := "# Default Documentation\nThis is default documentation."
+
 	engine := TestOverlayEngineStub{
-		t:                          t,
-		submitTransactionProvider:  submitTransactionProviderAlwaysSuccessStub{},
-		syncAdvertisementsProvider: syncAdvertisementsProviderAlwaysSuccessStub{},
+		t:                                  t,
+		submitTransactionProvider:          submitTransactionProviderAlwaysSuccessStub{},
+		syncAdvertisementsProvider:         syncAdvertisementsProviderAlwaysSuccessStub{},
+		lookupServiceDocumentationProvider: &lookupServiceDocumentationProviderAlwaysSuccessStub{documentation: defaultDocumentation},
 	}
 
 	for _, opt := range opts {

@@ -11,6 +11,30 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"OutputsToAdmit"`
 }
 
+// LookupMetadata defines model for LookupMetadata.
+type LookupMetadata struct {
+	// IconURL URL to the icon image for the lookup service provider
+	IconURL *string `json:"iconURL"`
+
+	// InformationURL URL to more information about the lookup service provider
+	InformationURL *string `json:"informationURL"`
+
+	// Name The name of the lookup service provider
+	Name string `json:"name"`
+
+	// ShortDescription A brief description of the lookup service provider
+	ShortDescription string `json:"shortDescription"`
+
+	// Version The version of the lookup service provider
+	Version *string `json:"version"`
+}
+
+// LookupServiceDocumentation defines model for LookupServiceDocumentation.
+type LookupServiceDocumentation struct {
+	// Documentation Markdown-formatted documentation for the lookup service
+	Documentation string `json:"documentation"`
+}
+
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
 
@@ -19,5 +43,41 @@ type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
 
+// TopicManagerDocumentation defines model for TopicManagerDocumentation.
+type TopicManagerDocumentation struct {
+	// Documentation Markdown-formatted documentation for the topic manager
+	Documentation string `json:"documentation"`
+}
+
+// TopicManagerMetadata defines model for TopicManagerMetadata.
+type TopicManagerMetadata struct {
+	// IconURL URL to the icon image for the topic manager
+	IconURL *string `json:"iconURL"`
+
+	// InformationURL URL to more information about the topic manager
+	InformationURL *string `json:"informationURL"`
+
+	// Name The name of the topic manager
+	Name string `json:"name"`
+
+	// ShortDescription A brief description of the topic manager
+	ShortDescription string `json:"shortDescription"`
+
+	// Version The version of the topic manager
+	Version *string `json:"version"`
+}
+
+// LookupServiceDocumentationResponse defines model for LookupServiceDocumentationResponse.
+type LookupServiceDocumentationResponse = LookupServiceDocumentation
+
+// LookupServicesListResponse defines model for LookupServicesListResponse.
+type LookupServicesListResponse map[string]LookupMetadata
+
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction
+
+// TopicManagerDocumentationResponse defines model for TopicManagerDocumentationResponse.
+type TopicManagerDocumentationResponse = TopicManagerDocumentation
+
+// TopicManagersListResponse defines model for TopicManagersListResponse.
+type TopicManagersListResponse map[string]TopicManagerMetadata
