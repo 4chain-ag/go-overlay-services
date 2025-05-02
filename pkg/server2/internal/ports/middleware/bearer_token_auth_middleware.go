@@ -13,28 +13,20 @@ import (
 func BearerTokenAuthorizationMiddleware(expectedToken string) fiber.Handler {
 	const scheme = "Bearer "
 	return func(c *fiber.Ctx) error {
-		// Retrieve the Authorization header from the request
 		auth := c.Get(fiber.HeaderAuthorization)
-
-		// Check if the Authorization header is missing
 		if auth == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(MissingAuthorizationHeaderResponse)
 		}
 
-		// Check if the Authorization header does not start with 'Bearer '
 		if !strings.HasPrefix(auth, scheme) {
 			return c.Status(fiber.StatusUnauthorized).JSON(MissingAuthorizationHeaderBearerTokenValueResponse)
 		}
 
-		// Extract the token from the Authorization header
 		token := strings.TrimPrefix(auth, scheme)
-
-		// Check if the token does not match the expected token
 		if token != expectedToken {
 			return c.Status(fiber.StatusForbidden).JSON(InvalidBearerTokenValueResponse)
 		}
 
-		// Proceed with the next handler if the token is valid
 		return c.Next()
 	}
 }

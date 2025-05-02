@@ -117,9 +117,6 @@ paths:
                   message:
                     type: string
                     description: Human-readable error message
-                  details:
-                    type: object
-                    description: Optional additional error details
         '409':
           description: |
             The server did not receive a complete request within the time it was prepared to wait. 

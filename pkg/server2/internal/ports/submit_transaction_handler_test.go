@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSubmitTransactionHandler_Handle_ShouldReturnBadRequestResponse(t *testing.T) {
+func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
 		expectedStatusCode        int
 		expectedResponse          openapi.Error
@@ -27,10 +27,10 @@ func TestSubmitTransactionHandler_Handle_ShouldReturnBadRequestResponse(t *testi
 			expectedStatusCode: fiber.StatusInternalServerError,
 			body:               "test transaction body",
 			headers: map[string]string{
-				"Content-Type":      "application/octet-stream",
-				ports.XTopicsHeader: "topics1,topics2",
+				fiber.HeaderContentType: fiber.MIMEOctetStream,
+				ports.XTopicsHeader:     "topics1,topics2",
 			},
-			expectedResponse: ports.NewSubmitTransactionProviderErrorResponse(),
+			expectedResponse: ports.SubmitTransactionServiceInternalError,
 			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
 				testabilities.SubmitTransactionProviderMockWithError(app.ErrSubmitTransactionProvider),
 			},
@@ -39,8 +39,8 @@ func TestSubmitTransactionHandler_Handle_ShouldReturnBadRequestResponse(t *testi
 			expectedStatusCode: fiber.StatusRequestTimeout,
 			body:               "test transaction body",
 			headers: map[string]string{
-				"Content-Type":      "application/octet-stream",
-				ports.XTopicsHeader: "topics1,topics2",
+				fiber.HeaderContentType: fiber.MIMEOctetStream,
+				ports.XTopicsHeader:     "topics1,topics2",
 			},
 			expectedResponse: ports.NewRequestTimeoutResponse(ports.RequestTimeout),
 			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
@@ -52,7 +52,7 @@ func TestSubmitTransactionHandler_Handle_ShouldReturnBadRequestResponse(t *testi
 			expectedStatusCode: fiber.StatusBadRequest,
 			body:               "test transaction body",
 			headers: map[string]string{
-				"Content-Type": "application/octet-stream",
+				fiber.HeaderContentType: fiber.MIMEOctetStream,
 			},
 			expectedResponse: ports.NewRequestMissingHeaderResponse(ports.XTopicsHeader),
 			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
@@ -63,10 +63,10 @@ func TestSubmitTransactionHandler_Handle_ShouldReturnBadRequestResponse(t *testi
 			expectedStatusCode: fiber.StatusBadRequest,
 			body:               "test transaction body",
 			headers: map[string]string{
-				"Content-Type":      "application/octet-stream",
-				ports.XTopicsHeader: "",
+				fiber.HeaderContentType: fiber.MIMEOctetStream,
+				ports.XTopicsHeader:     "",
 			},
-			expectedResponse: ports.NewInvalidRequestTopicsFormatResponse(),
+			expectedResponse: ports.SubmitTransactionRequestInvalidTopicsHeaderFormat,
 			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
 				testabilities.SubmitTransactionProviderMockNotCalled(),
 			},
@@ -78,7 +78,7 @@ func TestSubmitTransactionHandler_Handle_ShouldReturnBadRequestResponse(t *testi
 			// given:
 			mock := testabilities.NewSubmitTransactionProviderMock(t, tc.submitTransactionMockOpts...)
 			engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(mock))
-			fixture := server2.NewTestFixture(t, server2.WithEngine(engine))
+			fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine))
 
 			// when:
 			var actualResponse openapi.BadRequestResponse
@@ -87,19 +87,18 @@ func TestSubmitTransactionHandler_Handle_ShouldReturnBadRequestResponse(t *testi
 				R().
 				SetHeaders(tc.headers).
 				SetBody(tc.body).
-				SetError(&actualResponse).SetDebug(true).
+				SetError(&actualResponse).
 				Post("/api/v1/submit")
 
 			// then:
 			require.Equal(t, tc.expectedStatusCode, res.StatusCode())
 			require.Equal(t, &tc.expectedResponse, &actualResponse)
-
 			mock.AssertCalled()
 		})
 	}
 }
 
-func TestSubmitTransactionHandler_Handle_ShouldReturnSubmitTransactionSuccessResponse(t *testing.T) {
+func TestSubmitTransactionHandler_ValidCase(t *testing.T) {
 	// given:
 	steak := overlay.Steak{
 		"test": &overlay.AdmittanceInstructions{
@@ -109,11 +108,11 @@ func TestSubmitTransactionHandler_Handle_ShouldReturnSubmitTransactionSuccessRes
 
 	mock := testabilities.NewSubmitTransactionProviderMock(t, testabilities.SubmitTransactionProviderMockWithSTEAK(&steak, time.Microsecond))
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(mock))
-	fixture := server2.NewTestFixture(t, server2.WithEngine(engine))
+	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine))
 
 	headers := map[string]string{
-		"Content-Type":      "application/octet-stream",
-		ports.XTopicsHeader: "topic1,topic2",
+		fiber.HeaderContentType: fiber.MIMEOctetStream,
+		ports.XTopicsHeader:     "topic1,topic2",
 	}
 
 	// when:

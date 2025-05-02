@@ -9,44 +9,34 @@ import (
 	"github.com/bsv-blockchain/go-sdk/overlay"
 )
 
-// SubmitTransactionProvider defines the contract that must be fulfilled
-// to send a transaction request to the overlay engine for further processing.
+const DefaultSubmitTransactionTimeout = 5 * time.Second
+
+// SubmitTransactionProvider defines the interface for sending a tagged transaction
+// to the overlay engine for processing.
 type SubmitTransactionProvider interface {
 	Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error)
 }
 
-// SubmitTransactionService provides functionality for validating and submitting transactions
-// with topic-based tagging and a size-limited request body.
+// SubmitTransactionService coordinates the transaction submission process
+// using a SubmitTransactionProvider with a configurable timeout for awaiting a response.
 type SubmitTransactionService struct {
-	engine            SubmitTransactionProvider
+	provider          SubmitTransactionProvider
 	submitCallTimeout time.Duration
 }
 
+// SubmitTransaction submits a transaction to the overlay engine using the configured provider.
+// It validates the provided topics, sends the transaction, and waits for a response (STEAK).
+// Returns a non-nil *overlay.Steak on success.An error if topics are missing, invalid, the provider fails, or a timeout occurs.
 func (s *SubmitTransactionService) SubmitTransaction(ctx context.Context, topics Topics, bytes ...byte) (*overlay.Steak, error) {
 	err := topics.Verify()
 	if err != nil {
 		return nil, err
 	}
 
-	reader := &LimitedBytesReader{
-		Bytes:     bytes,
-		ReadLimit: ReadBodyLimit1GB,
-	}
-
-	readBytes, err := reader.Read()
-	if err != nil {
-		if errors.Is(err, ErrReaderMissingBytes) {
-			return nil, ErrMissingTransactionBytes
-		}
-
-		if errors.Is(err, ErrReaderLimitExceeded) {
-			return nil, ErrReaderLimitExceeded
-		}
-		return nil, ErrReaderBytesRead
-	}
-
 	ch := make(chan *overlay.Steak, 1)
-	_, err = s.engine.Submit(ctx, overlay.TaggedBEEF{Beef: readBytes, Topics: topics}, engine.SubmitModeCurrent, func(steak *overlay.Steak) { ch <- steak })
+	_, err = s.provider.Submit(ctx, overlay.TaggedBEEF{Beef: bytes, Topics: topics}, engine.SubmitModeCurrent, func(steak *overlay.Steak) {
+		ch <- steak
+	})
 	if err != nil {
 		return nil, errors.Join(err, ErrSubmitTransactionProvider)
 	}
@@ -54,57 +44,55 @@ func (s *SubmitTransactionService) SubmitTransaction(ctx context.Context, topics
 	select {
 	case steak := <-ch:
 		return steak, nil
-
 	case <-time.After(s.submitCallTimeout):
 		return nil, ErrSubmitTransactionProviderTimeout
 	}
 }
 
-// NewSubmitTransactionService creates a new SubmitTransactionService instance using the given provider.
+// NewSubmitTransactionService creates a new SubmitTransactionService with the given provider and timeout.
 // Panics if the provider is nil.
-func NewSubmitTransactionService(provider SubmitTransactionProvider) *SubmitTransactionService {
+func NewSubmitTransactionService(provider SubmitTransactionProvider, timeout time.Duration) *SubmitTransactionService {
 	if provider == nil {
 		panic("submit transaction service provider is nil")
 	}
 
 	return &SubmitTransactionService{
-		engine:            provider,
-		submitCallTimeout: 5 * time.Second,
+		provider:          provider,
+		submitCallTimeout: timeout,
 	}
 }
 
-var (
-	// ErrSubmitTransactionProvider is returned when the SubmitTransactionProvider fails to handle the transaction submission request.
-	ErrSubmitTransactionProvider = errors.New("failed to submit transaction using provider")
-
-	// ErrSubmitTransactionProviderTimeout is returned when the transaction submission request times out.
-	ErrSubmitTransactionProviderTimeout = errors.New("submit transaction timeout occurred")
-
-	// ErrMissingTopics is returned when an empty topics slice is provided as an argument.
-	ErrMissingTopics = errors.New("provided topics cannot be an empty slice")
-
-	// ErrMissingTransactionBytes is returned when an empty tx bytes slice is provided as an argument.
-	ErrMissingTransactionBytes = errors.New("provided tx bytes data cannot be an empty slice")
-
-	// ErrInvalidTopicFormat is returned when the topic header has an invalid format.
-	ErrInvalidTopicFormat = errors.New("invalid topic header format")
-)
-
-// Topics represents a list of required topics for submitting a transaction.
+// Topics represents a list of topics that must be provided when submitting a transaction.
 type Topics []string
 
-// Verify validates the Topics slice.
-// It returns ErrMissingTopics if the slice is empty,
-// or ErrInvalidTopicFormat if any topic in the slice is an empty string.
+// Verify ensures the topic list is non-empty and that each topic is non-blank.
+// Returns ErrMissingTopics or ErrInvalidTopicFormat on failure.
 func (tt Topics) Verify() error {
 	if len(tt) == 0 {
 		return ErrMissingTopics
 	}
 
 	for _, t := range tt {
-		if len(t) == 0 {
+		if len(t) == 0 { // TODO: Add more robust topic format check.
 			return ErrInvalidTopicFormat
 		}
 	}
 	return nil
 }
+
+var (
+	// ErrSubmitTransactionProvider indicates a failure when submitting the transaction using the provider.
+	ErrSubmitTransactionProvider = errors.New("failed to submit transaction using provider")
+
+	// ErrSubmitTransactionProviderTimeout is returned if the provider does not respond within the configured timeout.
+	ErrSubmitTransactionProviderTimeout = errors.New("submit transaction timeout occurred")
+
+	// ErrMissingTopics is returned when no topics are provided.
+	ErrMissingTopics = errors.New("provided topics cannot be an empty slice")
+
+	// ErrMissingTransactionBytes is returned when the transaction data is empty.
+	ErrMissingTransactionBytes = errors.New("provided tx bytes data cannot be an empty slice")
+
+	// ErrInvalidTopicFormat is returned when a topic is empty or malformed.
+	ErrInvalidTopicFormat = errors.New("invalid topic header format")
+)

@@ -5,9 +5,6 @@ package openapi
 
 // Error defines model for Error.
 type Error struct {
-	// Details Optional additional error details
-	Details *map[string]interface{} `json:"details,omitempty"`
-
 	// Message Human-readable error message
 	Message string `json:"message"`
 }

@@ -92,6 +92,7 @@ func SubmitTransactionProviderMockNotCalled() SubmitTransactionProviderMockOptio
 	return func(mock *SubmitTransactionProviderMock) {
 		mock.expectedSubmitCall = false
 		mock.expectedCallbackTriggering = false
+		mock.expectedError = nil
 	}
 }
 

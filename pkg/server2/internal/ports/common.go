@@ -10,18 +10,6 @@ import (
 // RequestTimeout defines the default duration after which a request is considered timed out.
 const RequestTimeout = 5 * time.Second
 
-// RequestBodyLimit1GB defines the default maximum size for request bodies (1 GB).
-const RequestBodyLimit1GB = 1000 * 1024 * 1024
-
-// NewRequestBodyTooLargeResponse creates a bad request response when the submitted request body exceeds the allowed size.
-// It takes the maximum allowed size, and returns an openapi.BadRequestResponse with a message indicating that the request body is too large.
-func NewRequestBodyTooLargeResponse(limit int64) openapi.BadRequestResponse {
-	return openapi.BadRequestResponse{
-		Details: &map[string]any{"bytes_read_limit": limit},
-		Message: "The submitted octet-stream exceeds the maximum allowed size",
-	}
-}
-
 // NewRequestTimeoutResponse creates a timeout response when a request exceeds the allowed time limit.
 // It takes the timeout duration and returns an openapi.RequestTimeoutResponse with a message indicating that the request timed out.
 func NewRequestTimeoutResponse(limit time.Duration) openapi.RequestTimeoutResponse {

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/adapters"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
 	"github.com/gofiber/fiber/v2"
@@ -40,6 +41,10 @@ type Config struct {
 
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
+
+	// OctetStreamLimit  defines the maximum allowed bytes read size (in bytes).
+	// This limit by default is set to 1GB to protect against excessively large payloads.
+	OctetStreamLimit int64 `mapstructure:"octet_stream_limit"`
 }
 
 // DefaultConfig provides a default configuration with reasonable values for local development.
@@ -49,6 +54,7 @@ var DefaultConfig = Config{
 	Addr:             "localhost",
 	ServerHeader:     "Overlay API",
 	AdminBearerToken: uuid.NewString(),
+	OctetStreamLimit: middleware.ReadBodyLimit1GB,
 }
 
 // ServerOption defines a functional option for configuring an HTTP server.
@@ -68,7 +74,20 @@ func WithMiddleware(f fiber.Handler) ServerOption {
 func WithEngine(e engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(e)
-		s.advertisementsSyncHandler = ports.NewAdvertisementsSyncHandler(e)
+		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(e)
+	}
+}
+
+// WithOctetStreamLimit returns a ServerOption that sets the maximum allowed size (in bytes)
+// for incoming requests with Content-Type: application/octet-stream.
+// This is useful for controlling memory usage when clients upload large binary payloads.
+//
+// Example: To limit uploads to 512MB:
+//
+//	WithOctetStreamLimit(512 * 1024 * 1024)
+func WithOctetStreamLimit(limit int64) ServerOption {
+	return func(s *ServerHTTP) {
+		s.cfg.OctetStreamLimit = limit
 	}
 }
 
@@ -105,7 +124,7 @@ type ServerHTTP struct {
 
 	// Handlers for processing incoming HTTP requests:
 	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
-	advertisementsSyncHandler *ports.AdvertisementsSyncHandler // advertisementsSyncHandler handles advertisement sync requests.
+	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -157,10 +176,10 @@ func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
 //
 // The returned ServerHTTP instance is ready to be started by calling .Listen(...) or integrated into tests.
 func New(opts ...ServerOption) *ServerHTTP {
-	noop := newNoopEngineProvider()
+	noop := adapters.NewNoopEngineProvider()
 	srv := &ServerHTTP{
 		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop),
-		advertisementsSyncHandler: ports.NewAdvertisementsSyncHandler(noop),
+		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
 		cfg:                       &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
@@ -191,10 +210,10 @@ func New(opts ...ServerOption) *ServerHTTP {
 
 	api := srv.app.Group("/api")
 	v1 := api.Group("/v1")
-	v1.Post("/submit", srv.submitTransactionHandler.SubmitTransaction)
+	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(srv.cfg.OctetStreamLimit), srv.submitTransactionHandler.SubmitTransaction)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(srv.cfg.AdminBearerToken))
-	admin.Post("/syncAdvertisements", srv.advertisementsSyncHandler.Handle)
+	admin.Post("/syncAdvertisements", srv.syncAdvertisementsHandler.Handle)
 
 	return srv
 }

@@ -25,30 +25,25 @@ func WithResponseTime(d time.Duration) SubmitTransactionHandlerOption {
 	}
 }
 
-// WithRequestBodyLimit sets the maximum allowed size (in bytes) for incoming request bodies.
-func WithRequestBodyLimit(limit int64) SubmitTransactionHandlerOption {
-	return func(h *SubmitTransactionHandler) {
-		h.requestBodyLimit = limit
-	}
-}
-
-// SubmitTransactionService abstracts the logic for handling transaction submissions.
+// SubmitTransactionService defines the interface for a service responsible for submitting transactions.
 type SubmitTransactionService interface {
 	SubmitTransaction(ctx context.Context, topics app.Topics, body ...byte) (*overlay.Steak, error)
 }
 
 // SubmitTransactionHandler handles incoming transaction requests.
 // It validates the request body, translates the content into a format compatible
-// with the overlay engine, and invokes the appropriate service logic.
+// with the submit transaction service, and invokes the appropriate service logic.
 type SubmitTransactionHandler struct {
-	service          SubmitTransactionService
-	requestBodyLimit int64
-	responseTimeout  time.Duration
+	service         SubmitTransactionService
+	responseTimeout time.Duration
 }
 
-// SubmitTransaction processes a transaction submission request.
-// It invokes the submission service and returns an appropriate HTTP response
-// based on the outcome.
+// SubmitTransaction processes an HTTP request to submit a transaction to the submit transaction service.
+// It returns an HTTP 200 OK with a STEAK response (openapi.SubmitTransactionResponse) on success.
+// Otherwise the following error responses may be returned:
+//   - 400 Bad Request with openapi.BadRequestResponse - if the `x-topics` header is missing or contains invalid values.
+//   - 408 Request Timeout with openapi.RequestTimeoutResponse - when the transaction submission exceeds the configured timeout.
+//   - 500 Internal Server Error with openapi.InternalServerErrorResponse - when submit transaction service error occurs during processing.
 func (s *SubmitTransactionHandler) SubmitTransaction(c *fiber.Ctx) error {
 	headers := c.GetReqHeaders()
 	topics, found := headers[http.CanonicalHeaderKey(XTopicsHeader)]
@@ -59,46 +54,44 @@ func (s *SubmitTransactionHandler) SubmitTransaction(c *fiber.Ctx) error {
 	steak, err := s.service.SubmitTransaction(c.UserContext(), topics, c.Body()...)
 	switch {
 	case errors.Is(err, app.ErrMissingTopics) || errors.Is(err, app.ErrInvalidTopicFormat):
-		return c.Status(fiber.StatusBadRequest).JSON(NewInvalidRequestTopicsFormatResponse())
-
-	case errors.Is(err, app.ErrReaderLimitExceeded):
-		return c.Status(fiber.StatusRequestEntityTooLarge).JSON(NewRequestBodyTooLargeResponse(s.requestBodyLimit))
-
-	case errors.Is(err, app.ErrReaderBytesRead):
-		return c.Status(fiber.StatusInternalServerError).JSON(NewTaggedBEEFCreationErrorResponse())
+		return c.Status(fiber.StatusBadRequest).JSON(SubmitTransactionRequestInvalidTopicsHeaderFormat)
 
 	case errors.Is(err, app.ErrSubmitTransactionProviderTimeout):
 		return c.Status(fiber.StatusRequestTimeout).JSON(NewRequestTimeoutResponse(s.responseTimeout))
 
 	case errors.Is(err, app.ErrSubmitTransactionProvider):
-		return c.Status(fiber.StatusInternalServerError).JSON(NewSubmitTransactionProviderErrorResponse())
+		return c.Status(fiber.StatusInternalServerError).JSON(SubmitTransactionServiceInternalError)
 
 	default:
 		return c.Status(fiber.StatusOK).JSON(NewSubmitTransactionSuccessResponse(steak))
 	}
 }
 
-// NewSubmitTransactionHandler constructs a new SubmitTransactionHandler.
+// NewSubmitTransactionHandler creates a new SubmitTransactionHandler with the given provider and options.
 // If the provider is nil, it panics.
-func NewSubmitTransactionHandler(provider app.SubmitTransactionProvider, options ...SubmitTransactionHandlerOption) *SubmitTransactionHandler {
+//
+// By default, the handler will use a predefined request timeout value (`RequestTimeout`).
+// This timeout can be overridden by providing the `WithResponseTime` option when creating the handler.
+// The request timeout determines how long the handler will wait for a response from the submit transaction service
+// before timing out and responding with a request timeout response.
+func NewSubmitTransactionHandler(provider app.SubmitTransactionProvider, opts ...SubmitTransactionHandlerOption) *SubmitTransactionHandler {
 	if provider == nil {
 		panic("submit transaction provider is nil")
 	}
 
 	handler := SubmitTransactionHandler{
-		service:          app.NewSubmitTransactionService(provider),
-		requestBodyLimit: RequestBodyLimit1GB,
-		responseTimeout:  RequestTimeout,
+		service:         app.NewSubmitTransactionService(provider, app.DefaultSubmitTransactionTimeout),
+		responseTimeout: RequestTimeout,
 	}
-
-	for _, opt := range options {
+	for _, opt := range opts {
 		opt(&handler)
 	}
 
 	return &handler
 }
 
-// NewSubmitTransactionSuccessResponse constructs a successful transaction submission response.
+// NewSubmitTransactionSuccessResponse creates a successful response for the transaction submission.
+// It maps the Steak data to an OpenAPI response format.
 func NewSubmitTransactionSuccessResponse(steak *overlay.Steak) *openapi.SubmitTransactionResponse {
 	if steak == nil {
 		return &openapi.SubmitTransactionResponse{
@@ -126,23 +119,16 @@ func NewSubmitTransactionSuccessResponse(steak *overlay.Steak) *openapi.SubmitTr
 	return &response
 }
 
-// NewSubmitTransactionProviderErrorResponse returns an error response indicating a failure within the overlay engine.
-func NewSubmitTransactionProviderErrorResponse() openapi.InternalServerErrorResponse {
-	return openapi.Error{
-		Message: "Unable to process submitted transaction octet-stream due to an error in the overlay engine.",
-	}
+// SubmitTransactionServiceInternalError is the internal server error response for transaction submission.
+// This error is returned when an internal issue occurs while processing the submitted transaction.
+// Typically, this happens when the overlay engine encounters an unexpected error.
+var SubmitTransactionServiceInternalError = openapi.InternalServerErrorResponse{
+	Message: "Unable to process submitted transaction octet-stream due to an error in the overlay engine.",
 }
 
-// NewInvalidRequestTopicsFormatResponse returns a bad request response for invalid topic headers.
-func NewInvalidRequestTopicsFormatResponse() openapi.BadRequestResponse {
-	return openapi.Error{
-		Message: "One or more topic headers are in an invalid format. Empty string values are not allowed.",
-	}
-}
-
-// NewTaggedBEEFCreationErrorResponse returns an error response for failures during tagged BEEF creation.
-func NewTaggedBEEFCreationErrorResponse() openapi.InternalServerErrorResponse {
-	return openapi.Error{
-		Message: "Unable to process submitted transaction octet-stream due to an issue with the request body.",
-	}
+// SubmitTransactionRequestInvalidTopicsHeaderFormat is the bad request response for invalid topic header format.
+// This error occurs when the topics header provided in the request is either missing or incorrectly formatted.
+// For example, an empty string or invalid character in the topic header would trigger this error.
+var SubmitTransactionRequestInvalidTopicsHeaderFormat = openapi.BadRequestResponse{
+	Message: "One or more topic headers are in an invalid format. Empty string values are not allowed.",
 }
