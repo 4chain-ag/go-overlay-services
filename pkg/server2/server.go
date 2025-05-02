@@ -71,6 +71,7 @@ func WithEngine(e engine.OverlayEngineProvider) ServerOption {
 		s.advertisementsSyncHandler = ports.NewAdvertisementsSyncHandler(e)
 		s.lookupServiceDocumentationHandler = ports.NewLookupServiceDocumentationHandler(e)
 		s.topicManagerDocumentationHandler = ports.NewTopicManagerDocumentationHandler(e)
+		s.lookupServicesListHandler = ports.NewLookupServicesListHandler(e)
 	}
 }
 
@@ -110,6 +111,7 @@ type ServerHTTP struct {
 	advertisementsSyncHandler         *ports.AdvertisementsSyncHandler         // advertisementsSyncHandler handles advertisement sync requests.
 	lookupServiceDocumentationHandler *ports.LookupServiceDocumentationHandler // lookupServiceDocumentationHandler handles lookup service documentation requests.
 	topicManagerDocumentationHandler  *ports.TopicManagerDocumentationHandler  // topicManagerDocumentationHandler handles topic manager documentation requests.
+	lookupServicesListHandler         *ports.LookupServicesListHandler         // lookupServicesListHandler handles lookup services list requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -167,6 +169,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 		advertisementsSyncHandler:         ports.NewAdvertisementsSyncHandler(noop),
 		lookupServiceDocumentationHandler: ports.NewLookupServiceDocumentationHandler(noop),
 		topicManagerDocumentationHandler:  ports.NewTopicManagerDocumentationHandler(noop),
+		lookupServicesListHandler:         ports.NewLookupServicesListHandler(noop),
 		cfg:                               &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
@@ -200,6 +203,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	v1.Post("/submit", srv.submitTransactionHandler.SubmitTransaction)
 	v1.Get("/getDocumentationForLookupServiceProvider", srv.lookupServiceDocumentationHandler.GetDocumentation)
 	v1.Get("/getDocumentationForTopicManager", srv.topicManagerDocumentationHandler.GetDocumentation)
+	v1.Get("/listLookupServiceProviders", srv.lookupServicesListHandler.GetList)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(srv.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", srv.advertisementsSyncHandler.Handle)

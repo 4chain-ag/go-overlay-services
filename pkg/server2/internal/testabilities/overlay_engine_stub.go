@@ -42,6 +42,7 @@ type TestOverlayEngineStub struct {
 	submitTransactionProvider          app.SubmitTransactionProvider
 	lookupServiceDocumentationProvider app.LookupServiceDocumentationProvider
 	topicManagerDocumentationProvider  app.TopicManagerDocumentationProvider
+	listLookupServicesProvider         app.LookupServicesListProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider based on the configured provider.
@@ -66,10 +67,12 @@ func (t TestOverlayEngineStub) HandleNewMerkleProof(ctx context.Context, txid *c
 	panic("unimplemented")
 }
 
-// ListLookupServiceProviders lists the available lookup service providers (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// ListLookupServiceProviders lists the available lookup service providers.
 func (t TestOverlayEngineStub) ListLookupServiceProviders() map[string]*overlay.MetaData {
-	panic("unimplemented")
+	if t.listLookupServicesProvider != nil {
+		return t.listLookupServicesProvider.ListLookupServiceProviders()
+	}
+	return make(map[string]*overlay.MetaData)
 }
 
 // ListTopicManagers lists the available topic managers (unimplemented).
