@@ -40,6 +40,74 @@ components:
           $ref: "#/components/schemas/STEAK"
       required:
         - STEAK
+        
+    LookupServiceDocumentation:
+      type: object
+      properties:
+        documentation:
+          type: string
+          description: Markdown-formatted documentation for the lookup service
+      required:
+        - documentation
+        
+    TopicManagerDocumentation:
+      type: object
+      properties:
+        documentation:
+          type: string
+          description: Markdown-formatted documentation for the topic manager
+      required:
+        - documentation
+        
+    LookupMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the lookup service provider
+        shortDescription:
+          type: string
+          description: A brief description of the lookup service provider
+        iconURL:
+          type: string
+          nullable: true
+          description: URL to the icon image for the lookup service provider
+        version:
+          type: string
+          nullable: true
+          description: The version of the lookup service provider
+        informationURL:
+          type: string
+          nullable: true
+          description: URL to more information about the lookup service provider
+      required:
+        - name
+        - shortDescription
+        
+    TopicManagerMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the topic manager
+        shortDescription:
+          type: string
+          description: A brief description of the topic manager
+        iconURL:
+          type: string
+          nullable: true
+          description: URL to the icon image for the topic manager
+        version:
+          type: string
+          nullable: true
+          description: The version of the topic manager
+        informationURL:
+          type: string
+          nullable: true
+          description: URL to more information about the topic manager
+      required:
+        - name
+        - shortDescription
 
   responses:
     SubmitTransactionResponse:
@@ -49,3 +117,35 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+            
+    LookupServiceDocumentationResponse:
+      description: Returns the documentation for the specified lookup service
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LookupServiceDocumentation'
+            
+    TopicManagerDocumentationResponse:
+      description: Returns the documentation for the specified topic manager
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TopicManagerDocumentation'
+            
+    LookupServicesListResponse:
+      description: Returns a map of lookup service providers with their metadata
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/LookupMetadata'
+              
+    TopicManagersListResponse:
+      description: Returns a map of topic managers with their metadata
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/TopicManagerMetadata'
