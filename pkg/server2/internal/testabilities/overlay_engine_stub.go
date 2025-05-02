@@ -43,6 +43,7 @@ type TestOverlayEngineStub struct {
 	lookupServiceDocumentationProvider app.LookupServiceDocumentationProvider
 	topicManagerDocumentationProvider  app.TopicManagerDocumentationProvider
 	listLookupServicesProvider         app.LookupServicesListProvider
+	listTopicManagersProvider          app.TopicManagersListProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider based on the configured provider.
@@ -75,10 +76,12 @@ func (t TestOverlayEngineStub) ListLookupServiceProviders() map[string]*overlay.
 	return make(map[string]*overlay.MetaData)
 }
 
-// ListTopicManagers lists the available topic managers (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// ListTopicManagers lists the available topic managers.
 func (t TestOverlayEngineStub) ListTopicManagers() map[string]*overlay.MetaData {
-	panic("unimplemented")
+	if t.listTopicManagersProvider != nil {
+		return t.listTopicManagersProvider.ListTopicManagers()
+	}
+	return make(map[string]*overlay.MetaData)
 }
 
 // Lookup performs a lookup query based on the provided LookupQuestion (unimplemented).

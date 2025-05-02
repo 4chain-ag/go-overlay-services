@@ -87,9 +87,24 @@ func (*noopEngineProvider) ProvideForeignGASPNode(ctx context.Context, graphId, 
 	return &core.GASPNode{}, nil
 }
 
-// ListTopicManagers is a no-op call that always returns an empty topic managers map with nil error.
+// ListTopicManagers is a no-op call that always returns a map with example topic managers.
 func (*noopEngineProvider) ListTopicManagers() map[string]*overlay.MetaData {
-	return map[string]*overlay.MetaData{}
+	return map[string]*overlay.MetaData{
+		"noop_engine_topic_manager_1": {
+			Name:        "example_name_1",
+			Description: "example_desc_1",
+			Icon:        "example_icon_1",
+			Version:     "0.0.0",
+			InfoUrl:     "example_info",
+		},
+		"noop_engine_topic_manager_2": {
+			Name:        "example_name_2",
+			Description: "example_desc_2",
+			Icon:        "example_icon_2",
+			Version:     "0.0.0",
+			InfoUrl:     "example_info",
+		},
+	}
 }
 
 // ListLookupServiceProviders is a no-op call that always returns an empty lookup service providers map with nil error.
