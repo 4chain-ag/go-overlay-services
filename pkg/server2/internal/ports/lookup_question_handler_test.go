@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
@@ -37,7 +36,7 @@ func TestLookupQuestionHandler_Handle_ShouldReturnBadRequestResponse(t *testing.
 			body:               map[string]interface{}{"query": map[string]string{"test": "value"}},
 			expectedResponse:   ports.NewMissingServiceFieldResponse(),
 			lookupProviderMockOpts: []testabilities.LookupQuestionProviderMockOption{
-				testabilities.LookupQuestionProviderMockWithError(app.ErrMissingServiceField),
+				testabilities.LookupQuestionProviderMockNotCalled(),
 			},
 		},
 		"Empty service field in request body": {
@@ -45,7 +44,7 @@ func TestLookupQuestionHandler_Handle_ShouldReturnBadRequestResponse(t *testing.
 			body:               map[string]interface{}{"service": "", "query": map[string]string{"test": "value"}},
 			expectedResponse:   ports.NewMissingServiceFieldResponse(),
 			lookupProviderMockOpts: []testabilities.LookupQuestionProviderMockOption{
-				testabilities.LookupQuestionProviderMockWithError(app.ErrMissingServiceField),
+				testabilities.LookupQuestionProviderMockNotCalled(),
 			},
 		},
 		"Provider returns error": {
