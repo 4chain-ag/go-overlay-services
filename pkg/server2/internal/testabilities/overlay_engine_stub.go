@@ -33,6 +33,14 @@ func WithSubmitTransactionProvider(provider app.SubmitTransactionProvider) TestO
 	}
 }
 
+// WithLookupQuestionProvider allows setting a custom LookupQuestionProvider in a TestOverlayEngineStub.
+// This can be used to mock lookup question behavior during tests.
+func WithLookupQuestionProvider(provider *LookupQuestionProviderMock) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.lookupQuestionProvider = provider
+	}
+}
+
 // TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
@@ -40,6 +48,7 @@ type TestOverlayEngineStub struct {
 	t                          *testing.T
 	syncAdvertisementsProvider app.SyncAdvertisementsProvider
 	submitTransactionProvider  app.SubmitTransactionProvider
+	lookupQuestionProvider     *LookupQuestionProviderMock
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
@@ -78,10 +87,17 @@ func (t TestOverlayEngineStub) ListTopicManagers() map[string]*overlay.MetaData 
 	panic("unimplemented")
 }
 
-// Lookup performs a lookup query based on the provided LookupQuestion (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// Lookup performs a lookup query based on the provided LookupQuestion.
+// It delegates to the lookupQuestionProvider if set, or returns a panic if unimplemented.
 func (t TestOverlayEngineStub) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
-	panic("unimplemented")
+	if t.lookupQuestionProvider != nil {
+		return t.lookupQuestionProvider.Lookup(ctx, question)
+	}
+
+	return &lookup.LookupAnswer{
+		Type:   lookup.AnswerTypeFreeform,
+		Result: map[string]any{},
+	}, nil
 }
 
 // ProvideForeignGASPNode returns a foreign GASP node (unimplemented).

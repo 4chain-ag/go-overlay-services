@@ -134,6 +134,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/paths/~1api~1v1~1submit/post/responses/400/content/application~1json/schema'
+  /api/v1/lookup:
+    post:
+      tags:
+        - non-admin
+      operationId: LookupQuestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                service:
+                  type: string
+                  description: The name of the service
+                query:
+                  type: object
+                  description: The query data as JSON
+              required:
+                - service
+      responses:
+        '200':
+          description: |
+            Successful response from the lookup service.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer:
+                    type: object
+                    description: The lookup answer with type and result
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
 components:
   securitySchemes:
     bearerAuth:

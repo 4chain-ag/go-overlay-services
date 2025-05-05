@@ -75,6 +75,7 @@ func WithEngine(e engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(e)
 		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(e)
+		s.lookupQuestionHandler = ports.NewLookupQuestionHandler(e)
 	}
 }
 
@@ -125,6 +126,7 @@ type ServerHTTP struct {
 	// Handlers for processing incoming HTTP requests:
 	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
 	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	lookupQuestionHandler     *ports.LookupQuestionHandler     // lookupQuestionHandler handles question lookup requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -180,6 +182,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
 		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop),
 		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
+		lookupQuestionHandler:     ports.NewLookupQuestionHandler(noop),
 		cfg:                       &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
@@ -211,6 +214,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	api := srv.app.Group("/api")
 	v1 := api.Group("/v1")
 	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(srv.cfg.OctetStreamLimit), srv.submitTransactionHandler.SubmitTransaction)
+	v1.Post("/lookup", srv.lookupQuestionHandler.Handle)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(srv.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", srv.syncAdvertisementsHandler.Handle)

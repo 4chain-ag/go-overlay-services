@@ -11,6 +11,12 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"OutputsToAdmit"`
 }
 
+// LookupAnswer defines model for LookupAnswer.
+type LookupAnswer struct {
+	// Answer The lookup answer with type and result
+	Answer *map[string]interface{} `json:"answer,omitempty"`
+}
+
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
 
@@ -18,6 +24,9 @@ type STEAK map[string]AdmittanceInstructions
 type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
+
+// LookupQuestionResponse defines model for LookupQuestionResponse.
+type LookupQuestionResponse = LookupAnswer
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction

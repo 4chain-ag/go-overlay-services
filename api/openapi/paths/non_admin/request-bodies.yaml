@@ -12,3 +12,18 @@ components:
                 description: 'Serialized transaction data (e.g., a binary format such as Protobuf or other)'
             required:
               - Transaction
+    
+    LookupQuestionBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              service:
+                type: string
+                description: 'The name of the service'
+              query:
+                type: object
+                description: 'The query data as JSON'
+            required:
+              - service

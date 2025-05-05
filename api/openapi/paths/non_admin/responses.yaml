@@ -40,6 +40,13 @@ components:
           $ref: "#/components/schemas/STEAK"
       required:
         - STEAK
+        
+    LookupAnswer:
+      type: object
+      properties:
+        answer:
+          type: object
+          description: 'The lookup answer with type and result'
 
   responses:
     SubmitTransactionResponse:
@@ -49,3 +56,11 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+            
+    LookupQuestionResponse:
+      description: |
+        Successful response from the lookup service.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LookupAnswer'
