@@ -10,115 +10,84 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// SubmitTransactionProviderMock is a mock implementation of the SubmitTransactionProvider interface,
-// used for unit testing purposes. It simulates the behavior of the Submit method, allowing you to
-// configure and verify expected behavior such as whether Submit was called, whether a callback was triggered,
-// and what error (if any) should be returned.
-//
-// Default Behavior:
-//   - expectedSubmitCall: true         // The mock expects Submit to be called.
-//   - expectedCallbackTriggering: true // The mock expects the callback to be invoked.
-//   - expectedError: nil               // No error will be returned by default.
-//   - expectedSteak: empty Steak       // A zero-value Steak will be passed to the callback.
-//   - callbackSleep: 1µs               // The callback will be triggered after 1 microsecond.
-//
-// These defaults can be overridden using functional options when creating the mock.
+// SubmitTransactionProviderMockExpectations defines the expected behavior of the SubmitTransactionProviderMock during a test.
+type SubmitTransactionProviderMockExpectations struct {
+	// STEAK is the mock value that will be passed to the callback when submission succeeds.
+	STEAK *overlay.Steak
+
+	// Error is the error to return from Submit. If set, the callback will not be invoked.
+	Error error
+
+	// SubmitCall indicates whether the Submit method is expected to be called during the test.
+	SubmitCall bool
+
+	// TriggerCallbackAfter specifies the duration after which the callback should be invoked.
+	TriggerCallbackAfter time.Duration
+}
+
+// DefaultSubmitTransactionProviderMockExpectations provides default expectations for SubmitTransactionProviderMock,
+// including a non-nil STEAK, no error, and a default delay for triggering the callback.
+var DefaultSubmitTransactionProviderMockExpectations = SubmitTransactionProviderMockExpectations{
+	STEAK:                &overlay.Steak{},
+	Error:                nil,
+	SubmitCall:           true,
+	TriggerCallbackAfter: time.Millisecond,
+}
+
+// SubmitTransactionProviderMock is a mock implementation of a transaction submission provider,
+// used for testing the behavior of components that depend on transaction submission.
 type SubmitTransactionProviderMock struct {
 	t *testing.T
 
-	// expected behavior state:
-	expectedSteak              *overlay.Steak
-	expectedError              error
-	expectedSubmitCall         bool
-	expectedCallbackTriggering bool
+	// expectations defines the expected behavior and outcomes for this mock.
+	expectations SubmitTransactionProviderMockExpectations
 
-	// actual state:
-	called           bool
-	callbackInvoked  bool
-	callbackSleep    time.Duration
+	// called is true if the Submit method was called.
+	called bool
+
+	// callbackInvoked is true if the provided callback was invoked.
+	callbackInvoked bool
+
+	// calledTaggedBEEF stores the TaggedBEEF argument passed to Submit.
 	calledTaggedBEEF overlay.TaggedBEEF
+
+	// calledSubmitMode stores the SubmitMode argument passed to Submit.
 	calledSubmitMode engine.SumbitMode
 }
 
-// Submit simulates the submission of a transaction.
-// It records the call parameters and—if expectedCallbackTriggering is true—invokes the callback
-// after a delay defined by callbackSleep. Returns expectedError if one is configured,
-// otherwise returns a zero-value overlay.Steak.
+// Submit simulates the submission of a transaction. It records the call, returns
+// the predefined error if set, and optionally invokes the callback with the mock STEAK after a delay.
 func (s *SubmitTransactionProviderMock) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, callback engine.OnSteakReady) (overlay.Steak, error) {
 	s.t.Helper()
 
 	s.called = true
 	s.calledTaggedBEEF = taggedBEEF
 	s.calledSubmitMode = mode
+	s.callbackInvoked = false
 
-	if s.expectedError != nil {
-		return nil, s.expectedError
+	if s.expectations.Error != nil {
+		return nil, s.expectations.Error
 	}
 
-	if s.expectedCallbackTriggering {
-		time.AfterFunc(s.callbackSleep, func() {
-			callback(s.expectedSteak)
-			s.callbackInvoked = true
-		})
-	}
+	time.AfterFunc(s.expectations.TriggerCallbackAfter, func() {
+		callback(s.expectations.STEAK)
+		s.callbackInvoked = true
+	})
 
 	return overlay.Steak{}, nil
 }
 
-// AssertCalled verifies that the Submit method was called as expected and that the callback
-// was triggered if configured. It fails the test if the actual behavior deviates from expectations.
+// AssertCalled verifies that the Submit method was called if it was expected to be.
 func (s *SubmitTransactionProviderMock) AssertCalled() {
 	s.t.Helper()
-
-	require.Equal(s.t, s.expectedCallbackTriggering, s.callbackInvoked, "Discrepancy between expected and actual callback triggering")
-	require.Equal(s.t, s.expectedSubmitCall, s.called, "Discrepancy between expected and actual Submit call")
+	require.Equal(s.t, s.expectations.SubmitCall, s.called, "Discrepancy between expected and actual Submit call")
 }
 
-// SubmitTransactionProviderMockOption defines a functional option for configuring a SubmitTransactionProviderMock.
-type SubmitTransactionProviderMockOption func(*SubmitTransactionProviderMock)
-
-// SubmitTransactionProviderMockWithSTEAK configures the mock to invoke the callback
-// with the specified Steak after the given timeout duration.
-func SubmitTransactionProviderMockWithSTEAK(steak *overlay.Steak, timeout time.Duration) SubmitTransactionProviderMockOption {
-	return func(mock *SubmitTransactionProviderMock) {
-		mock.expectedSteak = steak
-		mock.callbackSleep = timeout
-	}
-}
-
-// SubmitTransactionProviderMockNotCalled configures the mock to expect that Submit
-// should not be called and the callback should not be triggered.
-func SubmitTransactionProviderMockNotCalled() SubmitTransactionProviderMockOption {
-	return func(mock *SubmitTransactionProviderMock) {
-		mock.expectedSubmitCall = false
-		mock.expectedCallbackTriggering = false
-		mock.expectedError = nil
-	}
-}
-
-// SubmitTransactionProviderMockWithError configures the mock to return the specified error
-// when Submit is called. It also disables callback triggering by default.
-func SubmitTransactionProviderMockWithError(err error) SubmitTransactionProviderMockOption {
-	return func(mock *SubmitTransactionProviderMock) {
-		mock.expectedError = err
-		mock.expectedCallbackTriggering = false
-	}
-}
-
-// NewSubmitTransactionProviderMock creates a new instance of SubmitTransactionProviderMock
-// with the provided testing object and functional options to override default behavior.
-func NewSubmitTransactionProviderMock(t *testing.T, opts ...SubmitTransactionProviderMockOption) *SubmitTransactionProviderMock {
+// NewSubmitTransactionProviderMock creates a new instance of SubmitTransactionProviderMock with the given expectations.
+func NewSubmitTransactionProviderMock(t *testing.T, expectations SubmitTransactionProviderMockExpectations) *SubmitTransactionProviderMock {
 	mock := &SubmitTransactionProviderMock{
-		t:                          t,
-		callbackSleep:              time.Microsecond,
-		expectedSubmitCall:         true,
-		expectedCallbackTriggering: true,
-		expectedError:              nil,
-		expectedSteak:              &overlay.Steak{},
-	}
-
-	for _, opt := range opts {
-		opt(mock)
+		t:            t,
+		expectations: expectations,
 	}
 	return mock
 }

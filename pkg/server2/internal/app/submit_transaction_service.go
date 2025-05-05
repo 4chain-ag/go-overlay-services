@@ -27,14 +27,14 @@ type SubmitTransactionService struct {
 // SubmitTransaction submits a transaction to the overlay engine using the configured provider.
 // It validates the provided topics, sends the transaction, and waits for a response (STEAK).
 // Returns a non-nil *overlay.Steak on success.An error if topics are missing, invalid, the provider fails, or a timeout occurs.
-func (s *SubmitTransactionService) SubmitTransaction(ctx context.Context, topics Topics, bytes ...byte) (*overlay.Steak, error) {
+func (s *SubmitTransactionService) SubmitTransaction(ctx context.Context, topics TransactionTopics, txBytes ...byte) (*overlay.Steak, error) {
 	err := topics.Verify()
 	if err != nil {
 		return nil, err
 	}
 
 	ch := make(chan *overlay.Steak, 1)
-	_, err = s.provider.Submit(ctx, overlay.TaggedBEEF{Beef: bytes, Topics: topics}, engine.SubmitModeCurrent, func(steak *overlay.Steak) {
+	_, err = s.provider.Submit(ctx, overlay.TaggedBEEF{Beef: txBytes, Topics: topics}, engine.SubmitModeCurrent, func(steak *overlay.Steak) {
 		ch <- steak
 	})
 	if err != nil {
@@ -62,19 +62,19 @@ func NewSubmitTransactionService(provider SubmitTransactionProvider, timeout tim
 	}
 }
 
-// Topics represents a list of topics that must be provided when submitting a transaction.
-type Topics []string
+// TransactionTopics represents a list of topics that must be provided when submitting a transaction.
+type TransactionTopics []string
 
 // Verify ensures the topic list is non-empty and that each topic is non-blank.
-// Returns ErrMissingTopics or ErrInvalidTopicFormat on failure.
-func (tt Topics) Verify() error {
+// Returns ErrMissingTransactionTopics or ErrInvalidTransactionTopicFormat on failure.
+func (tt TransactionTopics) Verify() error {
 	if len(tt) == 0 {
-		return ErrMissingTopics
+		return ErrMissingTransactionTopics
 	}
 
 	for _, t := range tt {
 		if len(t) == 0 { // TODO: Add more robust topic format check.
-			return ErrInvalidTopicFormat
+			return ErrInvalidTransactionTopicFormat
 		}
 	}
 	return nil
@@ -87,12 +87,12 @@ var (
 	// ErrSubmitTransactionProviderTimeout is returned if the provider does not respond within the configured timeout.
 	ErrSubmitTransactionProviderTimeout = errors.New("submit transaction timeout occurred")
 
-	// ErrMissingTopics is returned when no topics are provided.
-	ErrMissingTopics = errors.New("provided topics cannot be an empty slice")
+	// ErrMissingTransactionTopics is returned when no topics are provided.
+	ErrMissingTransactionTopics = errors.New("provided topics cannot be an empty slice")
 
 	// ErrMissingTransactionBytes is returned when the transaction data is empty.
 	ErrMissingTransactionBytes = errors.New("provided tx bytes data cannot be an empty slice")
 
-	// ErrInvalidTopicFormat is returned when a topic is empty or malformed.
-	ErrInvalidTopicFormat = errors.New("invalid topic header format")
+	// ErrInvalidTransactionTopicFormat is returned when a topic is empty or malformed.
+	ErrInvalidTransactionTopicFormat = errors.New("invalid topic header format")
 )

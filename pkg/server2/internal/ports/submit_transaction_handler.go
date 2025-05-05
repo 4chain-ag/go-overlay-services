@@ -27,7 +27,7 @@ func WithResponseTime(d time.Duration) SubmitTransactionHandlerOption {
 
 // SubmitTransactionService defines the interface for a service responsible for submitting transactions.
 type SubmitTransactionService interface {
-	SubmitTransaction(ctx context.Context, topics app.Topics, body ...byte) (*overlay.Steak, error)
+	SubmitTransaction(ctx context.Context, topics app.TransactionTopics, body ...byte) (*overlay.Steak, error)
 }
 
 // SubmitTransactionHandler handles incoming transaction requests.
@@ -53,7 +53,7 @@ func (s *SubmitTransactionHandler) SubmitTransaction(c *fiber.Ctx) error {
 
 	steak, err := s.service.SubmitTransaction(c.UserContext(), topics, c.Body()...)
 	switch {
-	case errors.Is(err, app.ErrMissingTopics) || errors.Is(err, app.ErrInvalidTopicFormat):
+	case errors.Is(err, app.ErrInvalidTransactionTopicFormat) || errors.Is(err, app.ErrMissingTransactionTopics):
 		return c.Status(fiber.StatusBadRequest).JSON(SubmitTransactionRequestInvalidTopicsHeaderFormat)
 
 	case errors.Is(err, app.ErrSubmitTransactionProviderTimeout):

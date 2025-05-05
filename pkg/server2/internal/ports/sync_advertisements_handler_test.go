@@ -16,7 +16,7 @@ func TestSyncAdvertisementsHandler_InvalidCase(t *testing.T) {
 	// given:
 	const token = "428e1f07-79b6-4901-b0a0-ec1fe815331b"
 	expectedErr := errors.New("internal SyncAdvertisements service test error")
-	mock := testabilities.NewSyncAdvertisementsProviderMock(t, testabilities.SyncAdvertisementsProviderMockWithError(expectedErr))
+	mock := testabilities.NewSyncAdvertisementsProviderMock(t, testabilities.SyncAdvertisementsProviderMockExpectations{Err: expectedErr, SyncAdvertisementsCall: true})
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSyncAdvertisementsProvider(mock))
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine), server2.WithAdminBearerToken(token))
 
@@ -38,7 +38,9 @@ func TestSyncAdvertisementsHandler_InvalidCase(t *testing.T) {
 func TestSyncAdvertisementsHandler_ValidCase(t *testing.T) {
 	// given:
 	const token = "428e1f07-79b6-4901-b0a0-ec1fe815331b"
-	mock := testabilities.NewSyncAdvertisementsProviderMock(t)
+	mock := testabilities.NewSyncAdvertisementsProviderMock(t, testabilities.SyncAdvertisementsProviderMockExpectations{
+		SyncAdvertisementsCall: true,
+	})
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSyncAdvertisementsProvider(mock))
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine), server2.WithAdminBearerToken(token))
 

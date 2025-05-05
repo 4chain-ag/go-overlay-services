@@ -17,11 +17,11 @@ import (
 
 func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
-		expectedStatusCode        int
-		expectedResponse          openapi.Error
-		headers                   map[string]string
-		body                      string
-		submitTransactionMockOpts []testabilities.SubmitTransactionProviderMockOption
+		expectedStatusCode int
+		expectedResponse   openapi.Error
+		headers            map[string]string
+		body               string
+		expectations       testabilities.SubmitTransactionProviderMockExpectations
 	}{
 		"Submit transaction service fails to handle the transaction submission request - internal error": {
 			expectedStatusCode: fiber.StatusInternalServerError,
@@ -31,8 +31,9 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 				ports.XTopicsHeader:     "topics1,topics2",
 			},
 			expectedResponse: ports.SubmitTransactionServiceInternalError,
-			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
-				testabilities.SubmitTransactionProviderMockWithError(app.ErrSubmitTransactionProvider),
+			expectations: testabilities.SubmitTransactionProviderMockExpectations{
+				Error:      app.ErrSubmitTransactionProvider,
+				SubmitCall: true,
 			},
 		},
 		"Submit transaction service fails to handle the transaction submission request - timeout error": {
@@ -43,9 +44,10 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 				ports.XTopicsHeader:     "topics1,topics2",
 			},
 			expectedResponse: ports.NewRequestTimeoutResponse(ports.RequestTimeout),
-			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
-				testabilities.SubmitTransactionProviderMockWithError(app.ErrSubmitTransactionProviderTimeout),
-				testabilities.SubmitTransactionProviderMockWithSTEAK(&overlay.Steak{}, 2*time.Second),
+			expectations: testabilities.SubmitTransactionProviderMockExpectations{
+				Error:                app.ErrSubmitTransactionProviderTimeout,
+				SubmitCall:           true,
+				TriggerCallbackAfter: 2 * time.Second,
 			},
 		},
 		"Missing x-topics header in the HTTP request": {
@@ -55,8 +57,8 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 				fiber.HeaderContentType: fiber.MIMEOctetStream,
 			},
 			expectedResponse: ports.NewRequestMissingHeaderResponse(ports.XTopicsHeader),
-			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
-				testabilities.SubmitTransactionProviderMockNotCalled(),
+			expectations: testabilities.SubmitTransactionProviderMockExpectations{
+				SubmitCall: false,
 			},
 		},
 		"Empty topics in the x-topics header in the HTTP request": {
@@ -67,8 +69,8 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 				ports.XTopicsHeader:     "",
 			},
 			expectedResponse: ports.SubmitTransactionRequestInvalidTopicsHeaderFormat,
-			submitTransactionMockOpts: []testabilities.SubmitTransactionProviderMockOption{
-				testabilities.SubmitTransactionProviderMockNotCalled(),
+			expectations: testabilities.SubmitTransactionProviderMockExpectations{
+				SubmitCall: false,
 			},
 		},
 	}
@@ -76,9 +78,8 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			// given:
-			mock := testabilities.NewSubmitTransactionProviderMock(t, tc.submitTransactionMockOpts...)
-			engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(mock))
-			fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine))
+			stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(testabilities.NewSubmitTransactionProviderMock(t, tc.expectations)))
+			fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
 
 			// when:
 			var actualResponse openapi.BadRequestResponse
@@ -93,22 +94,24 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 			// then:
 			require.Equal(t, tc.expectedStatusCode, res.StatusCode())
 			require.Equal(t, &tc.expectedResponse, &actualResponse)
-			mock.AssertCalled()
+			stub.AssertProvidersState()
 		})
 	}
 }
 
 func TestSubmitTransactionHandler_ValidCase(t *testing.T) {
 	// given:
-	steak := overlay.Steak{
-		"test": &overlay.AdmittanceInstructions{
-			OutputsToAdmit: []uint32{1},
+	expectations := testabilities.SubmitTransactionProviderMockExpectations{
+		SubmitCall: true,
+		STEAK: &overlay.Steak{
+			"test": &overlay.AdmittanceInstructions{
+				OutputsToAdmit: []uint32{1},
+			},
 		},
 	}
 
-	mock := testabilities.NewSubmitTransactionProviderMock(t, testabilities.SubmitTransactionProviderMockWithSTEAK(&steak, time.Microsecond))
-	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(mock))
-	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine))
+	stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(testabilities.NewSubmitTransactionProviderMock(t, expectations)))
+	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
 
 	headers := map[string]string{
 		fiber.HeaderContentType: fiber.MIMEOctetStream,
@@ -126,9 +129,9 @@ func TestSubmitTransactionHandler_ValidCase(t *testing.T) {
 		Post("/api/v1/submit")
 
 	// then:
-	expectedResponse := ports.NewSubmitTransactionSuccessResponse(&steak)
+	expectedResponse := ports.NewSubmitTransactionSuccessResponse(expectations.STEAK)
 
 	require.Equal(t, http.StatusOK, res.StatusCode())
 	require.Equal(t, expectedResponse, &actualResponse)
-	mock.AssertCalled()
+	stub.AssertProvidersState()
 }

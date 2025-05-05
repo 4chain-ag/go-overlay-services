@@ -9,19 +9,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/adapters"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/idempotency"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/pprof"
-	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/google/uuid"
 )
 
@@ -148,9 +141,6 @@ func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
 			slog.Info("Shutdown context canceled. Cleaning up...")
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-
 		if err := s.app.ShutdownWithContext(ctx); err != nil {
 			slog.Error("HTTP shutdown error", slog.Attr{Key: "server_shutdown_err", Value: slog.StringValue(err.Error())})
 		}
@@ -187,17 +177,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 			ServerHeader:  "Overlay API",
 			AppName:       "Overlay API v0.0.0",
 		}),
-		middleware: []fiber.Handler{
-			requestid.New(),
-			idempotency.New(),
-			cors.New(),
-			recover.New(recover.Config{EnableStackTrace: true}), // TODO: stack trace should be disabled after releasing to the prod.
-			logger.New(logger.Config{
-				Format:     "date=${time} request_id=${locals:requestid} status=${status} method=${method} path=${path}​\n",
-				TimeFormat: "02-Jan-2006 15:04:05",
-			}),
-			pprof.New(pprof.Config{Prefix: "/api/v1"}),
-		},
+		middleware: middleware.BasicMiddlewareGroup(),
 	}
 
 	for _, m := range srv.middleware {
@@ -208,12 +188,16 @@ func New(opts ...ServerOption) *ServerHTTP {
 		opt(srv)
 	}
 
-	api := srv.app.Group("/api")
-	v1 := api.Group("/v1")
-	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(srv.cfg.OctetStreamLimit), srv.submitTransactionHandler.SubmitTransaction)
-
-	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(srv.cfg.AdminBearerToken))
-	admin.Post("/syncAdvertisements", srv.syncAdvertisementsHandler.Handle)
-
+	srv.registerRoutes()
 	return srv
+}
+
+func (s *ServerHTTP) registerRoutes() {
+	api := s.app.Group("/api")
+
+	v1 := api.Group("/v1")
+	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.SubmitTransaction)
+
+	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
+	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)
 }

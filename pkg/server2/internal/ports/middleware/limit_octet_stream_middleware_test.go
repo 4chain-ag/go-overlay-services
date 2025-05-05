@@ -16,17 +16,15 @@ import (
 func TestLimitOctetStreamMiddleware_ValidCases(t *testing.T) {
 	const octetStreamLimit = 10
 
-	mock := testabilities.NewSubmitTransactionProviderMock(t)
-	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(mock))
-	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine), server2.WithOctetStreamLimit(octetStreamLimit))
-
 	testPaths := []struct {
-		endpoint string
-		method   string
+		endpoint               string
+		method                 string
+		expectedProviderToCall testabilities.TestOverlayEngineStubOption
 	}{
 		{
-			endpoint: "/api/v1/submit",
-			method:   fiber.MethodPost,
+			endpoint:               "/api/v1/submit",
+			method:                 fiber.MethodPost,
+			expectedProviderToCall: testabilities.WithSubmitTransactionProvider(testabilities.NewSubmitTransactionProviderMock(t, testabilities.SubmitTransactionProviderMockExpectations{SubmitCall: true})),
 		},
 	}
 
@@ -57,6 +55,18 @@ func TestLimitOctetStreamMiddleware_ValidCases(t *testing.T) {
 	for _, path := range testPaths {
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
+				// given:
+				stub := testabilities.NewTestOverlayEngineStub(t,
+					path.expectedProviderToCall,
+					// .. TODO: Update the providers list that should not be called.
+					testabilities.WithSyncAdvertisementsProvider(testabilities.NewSyncAdvertisementsProviderMock(t, testabilities.SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false})),
+				)
+
+				fixture := server2.NewServerTestFixture(t,
+					server2.WithOctetStreamLimit(octetStreamLimit),
+					server2.WithEngine(stub),
+				)
+
 				// when:
 				res, _ := fixture.Client().
 					R().
@@ -65,16 +75,15 @@ func TestLimitOctetStreamMiddleware_ValidCases(t *testing.T) {
 					Execute(path.method, path.endpoint)
 
 				// then:
-				require.Equal(t, tc.expectedStatus, res.StatusCode())
+				require.Equal(t, tc.expectedStatus, res.StatusCode(), "mismatch between the expected and actual response status codes")
+				stub.AssertProvidersState()
 			})
 		}
 	}
 }
 
 func TestLimitOctetStreamMiddleware_InvalidCases(t *testing.T) {
-	mock := testabilities.NewSubmitTransactionProviderMock(t)
-	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(mock))
-	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine), server2.WithOctetStreamLimit(10))
+	const octetStreamLimit = 10
 
 	testPaths := []struct {
 		endpoint string
@@ -96,7 +105,7 @@ func TestLimitOctetStreamMiddleware_InvalidCases(t *testing.T) {
 		"Request size exceeds octet-stream limit": {
 			headers:          map[string]string{fiber.HeaderContentType: fiber.MIMEOctetStream},
 			body:             strings.Repeat("A", 1025),
-			expectedResponse: middleware.NewRequestBodyTooLargeResponse(10),
+			expectedResponse: middleware.NewRequestBodyTooLargeResponse(octetStreamLimit),
 			expectedStatus:   fiber.StatusBadRequest,
 		},
 		"Unsupported Content-Type is rejected": {
@@ -116,6 +125,18 @@ func TestLimitOctetStreamMiddleware_InvalidCases(t *testing.T) {
 	for _, path := range testPaths {
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
+				// given:
+				stub := testabilities.NewTestOverlayEngineStub(t,
+					// ... TODO: Update the providers list that should not be called.
+					testabilities.WithSubmitTransactionProvider(testabilities.NewSubmitTransactionProviderMock(t, testabilities.SubmitTransactionProviderMockExpectations{SubmitCall: false})),
+					testabilities.WithSyncAdvertisementsProvider(testabilities.NewSyncAdvertisementsProviderMock(t, testabilities.SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false})),
+				)
+
+				fixture := server2.NewServerTestFixture(t,
+					server2.WithOctetStreamLimit(octetStreamLimit),
+					server2.WithEngine(stub),
+				)
+
 				// when:
 				var actual openapi.BadRequestResponse
 
@@ -127,8 +148,9 @@ func TestLimitOctetStreamMiddleware_InvalidCases(t *testing.T) {
 					Execute(path.method, path.endpoint)
 
 				// then:
-				require.Equal(t, tc.expectedStatus, res.StatusCode())
+				require.Equal(t, tc.expectedStatus, res.StatusCode(), "mismatch between the expected and actual response status codes")
 				require.Equal(t, tc.expectedResponse, actual, "unexpected error response from Bearer token authorization middleware")
+				stub.AssertProvidersState()
 			})
 		}
 	}
