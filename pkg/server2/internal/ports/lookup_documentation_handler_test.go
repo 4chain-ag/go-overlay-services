@@ -13,82 +13,55 @@ import (
 )
 
 func TestLookupServiceDocumentationHandler_GetDocumentation_ShouldReturnBadRequestResponse(t *testing.T) {
-
 	// Given
-
 	engine := testabilities.NewTestOverlayEngineStub(t)
-
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine))
 
 	// When
-
 	var actualResponse openapi.Error
-
 	res, _ := fixture.Client().
 		R().
 		SetError(&actualResponse).
 		Get("/api/v1/getDocumentationForLookupServiceProvider")
 
 	// Then
-
 	expectedResponse := ports.NewMissingLookupServiceParameterResponse()
-
 	require.Equal(t, fiber.StatusBadRequest, res.StatusCode())
-
 	require.Equal(t, expectedResponse.Message, actualResponse.Message)
-
 }
 
 func TestLookupServiceDocumentationHandler_GetDocumentation_ShouldReturnInternalServerErrorResponse(t *testing.T) {
-
 	// Given
-
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithLookupServiceDocumentationError())
-
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine))
 
 	// When
-
 	var actualResponse openapi.Error
-
 	res, _ := fixture.Client().
 		R().
 		SetError(&actualResponse).
 		Get("/api/v1/getDocumentationForLookupServiceProvider?lookupService=testProvider")
 
 	// Then
-
 	expectedResponse := ports.NewLookupServiceProviderErrorResponse()
-
 	require.Equal(t, fiber.StatusInternalServerError, res.StatusCode())
-
 	require.Equal(t, expectedResponse.Message, actualResponse.Message)
-
 }
 
 func TestLookupServiceDocumentationHandler_GetDocumentation_ShouldReturnSuccessResponse(t *testing.T) {
-
 	// Given
-
 	expectedDocumentation := "# Test Documentation\nThis is a test markdown document."
-
 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithLookupServiceDocumentation(expectedDocumentation))
-
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine))
 
 	// When
-
 	var actualResponse openapi.LookupServiceDocumentationResponse
-
 	res, _ := fixture.Client().
 		R().
 		SetResult(&actualResponse).
 		Get("/api/v1/getDocumentationForLookupServiceProvider?lookupService=testProvider")
 
 	// Then
-
 	require.Equal(t, http.StatusOK, res.StatusCode())
-
 	require.Equal(t, expectedDocumentation, actualResponse.Documentation)
-
 }
