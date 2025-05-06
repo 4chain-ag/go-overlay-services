@@ -2,7 +2,8 @@ package app
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
@@ -38,14 +39,14 @@ func (s *SubmitTransactionService) SubmitTransaction(ctx context.Context, topics
 		ch <- steak
 	})
 	if err != nil {
-		return nil, errors.Join(err, ErrSubmitTransactionProvider)
+		return nil, NewProviderFailureError(err.Error())
 	}
 
 	select {
 	case steak := <-ch:
 		return steak, nil
 	case <-time.After(s.submitCallTimeout):
-		return nil, ErrSubmitTransactionProviderTimeout
+		return nil, NewOperationTimeoutError("submit transaction timeout occurred")
 	}
 }
 
@@ -69,30 +70,15 @@ type TransactionTopics []string
 // Returns ErrMissingTransactionTopics or ErrInvalidTransactionTopicFormat on failure.
 func (tt TransactionTopics) Verify() error {
 	if len(tt) == 0 {
-		return ErrMissingTransactionTopics
+		return NewIncorrectInputError("provided topics cannot be an empty slice")
 	}
 
-	for _, t := range tt {
+	for i, t := range tt {
+		t = strings.TrimSpace(t)
 		if len(t) == 0 { // TODO: Add more robust topic format check.
-			return ErrInvalidTransactionTopicFormat
+			return NewIncorrectInputError(fmt.Sprintf("invalid topic header format for topic no. %d", i+1))
 		}
 	}
+
 	return nil
 }
-
-var (
-	// ErrSubmitTransactionProvider indicates a failure when submitting the transaction using the provider.
-	ErrSubmitTransactionProvider = errors.New("failed to submit transaction using provider")
-
-	// ErrSubmitTransactionProviderTimeout is returned if the provider does not respond within the configured timeout.
-	ErrSubmitTransactionProviderTimeout = errors.New("submit transaction timeout occurred")
-
-	// ErrMissingTransactionTopics is returned when no topics are provided.
-	ErrMissingTransactionTopics = errors.New("provided topics cannot be an empty slice")
-
-	// ErrMissingTransactionBytes is returned when the transaction data is empty.
-	ErrMissingTransactionBytes = errors.New("provided tx bytes data cannot be an empty slice")
-
-	// ErrInvalidTransactionTopicFormat is returned when a topic is empty or malformed.
-	ErrInvalidTransactionTopicFormat = errors.New("invalid topic header format")
-)

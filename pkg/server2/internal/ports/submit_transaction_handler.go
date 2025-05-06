@@ -15,16 +15,6 @@ import (
 // XTopicsHeader defines the HTTP header key used for specifying transaction topics.
 const XTopicsHeader = "x-topics"
 
-// SubmitTransactionHandlerOption defines a function that configures a SubmitTransactionHandler.
-type SubmitTransactionHandlerOption func(h *SubmitTransactionHandler)
-
-// WithResponseTime sets the timeout duration for awaiting a response from the transaction submission provider.
-func WithResponseTime(d time.Duration) SubmitTransactionHandlerOption {
-	return func(h *SubmitTransactionHandler) {
-		h.responseTimeout = d
-	}
-}
-
 // SubmitTransactionService defines the interface for a service responsible for submitting transactions.
 type SubmitTransactionService interface {
 	SubmitTransaction(ctx context.Context, topics app.TransactionTopics, body ...byte) (*overlay.Steak, error)
@@ -52,14 +42,19 @@ func (s *SubmitTransactionHandler) SubmitTransaction(c *fiber.Ctx) error {
 	}
 
 	steak, err := s.service.SubmitTransaction(c.UserContext(), topics, c.Body()...)
-	switch {
-	case errors.Is(err, app.ErrInvalidTransactionTopicFormat) || errors.Is(err, app.ErrMissingTransactionTopics):
+	var target app.Error
+	if err != nil && !errors.As(err, &target) {
+		return c.Status(fiber.StatusInternalServerError).JSON(UnhandledErrorTypeResponse)
+	}
+
+	switch target.ErrorType() {
+	case app.ErrorTypeIncorrectInput:
 		return c.Status(fiber.StatusBadRequest).JSON(SubmitTransactionRequestInvalidTopicsHeaderFormat)
 
-	case errors.Is(err, app.ErrSubmitTransactionProviderTimeout):
+	case app.ErrorTypeOperationTimeout:
 		return c.Status(fiber.StatusRequestTimeout).JSON(NewRequestTimeoutResponse(s.responseTimeout))
 
-	case errors.Is(err, app.ErrSubmitTransactionProvider):
+	case app.ErrorTypeProviderFailure:
 		return c.Status(fiber.StatusInternalServerError).JSON(SubmitTransactionServiceInternalError)
 
 	default:
@@ -67,26 +62,18 @@ func (s *SubmitTransactionHandler) SubmitTransaction(c *fiber.Ctx) error {
 	}
 }
 
-// NewSubmitTransactionHandler creates a new SubmitTransactionHandler with the given provider and options.
-// If the provider is nil, it panics.
-//
-// By default, the handler will use a predefined request timeout value (`RequestTimeout`).
-// This timeout can be overridden by providing the `WithResponseTime` option when creating the handler.
-// The request timeout determines how long the handler will wait for a response from the submit transaction service
-// before timing out and responding with a request timeout response.
-func NewSubmitTransactionHandler(provider app.SubmitTransactionProvider, opts ...SubmitTransactionHandlerOption) *SubmitTransactionHandler {
+// NewSubmitTransactionHandler creates a new SubmitTransactionHandler with the given provider and timeout.
+// If the provider is nil, it panics. The request timeout determines how long the handler will wait
+// for a response from the submit transaction service before timing out and responding with a request timeout response.
+func NewSubmitTransactionHandler(provider app.SubmitTransactionProvider, timeout time.Duration) *SubmitTransactionHandler {
 	if provider == nil {
 		panic("submit transaction provider is nil")
 	}
 
 	handler := SubmitTransactionHandler{
-		service:         app.NewSubmitTransactionService(provider, app.DefaultSubmitTransactionTimeout),
-		responseTimeout: RequestTimeout,
+		service:         app.NewSubmitTransactionService(provider, timeout),
+		responseTimeout: timeout,
 	}
-	for _, opt := range opts {
-		opt(&handler)
-	}
-
 	return &handler
 }
 

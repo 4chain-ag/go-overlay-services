@@ -9,31 +9,20 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
 	"github.com/bsv-blockchain/go-sdk/overlay"
-	testvectors "github.com/bsv-blockchain/universal-test-vectors/pkg/testabilities"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSubmitTransactionService_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
-		expectations  testabilities.SubmitTransactionProviderMockExpectations
-		topics        app.TransactionTopics
-		timeout       time.Duration
-		txBytes       []byte
-		expectedError error
+		expectations      testabilities.SubmitTransactionProviderMockExpectations
+		topics            app.TransactionTopics
+		timeout           time.Duration
+		txBytes           []byte
+		expectedErrorType app.ErrorType
 	}{
-		"Submit transaction service fails to handle the transaction submission - internal error": {
-			topics:  app.TransactionTopics{"topic1", "topic2"},
-			txBytes: DummyTxBEEF(t),
-			expectations: testabilities.SubmitTransactionProviderMockExpectations{
-				SubmitCall: true,
-				STEAK:      nil,
-				Error:      errors.New("internal submit transaction service test error"),
-			},
-			expectedError: app.ErrSubmitTransactionProvider,
-		},
 		"Submit transaction service fails to handle the transaction submission - timeout error": {
 			topics:  app.TransactionTopics{"topic1", "topic2"},
-			txBytes: DummyTxBEEF(t),
+			txBytes: testabilities.DummyTxBEEF(t),
 			timeout: time.Second,
 			expectations: testabilities.SubmitTransactionProviderMockExpectations{
 				SubmitCall:           true,
@@ -41,18 +30,35 @@ func TestSubmitTransactionService_InvalidCases(t *testing.T) {
 				Error:                nil,
 				STEAK:                nil,
 			},
-			expectedError: app.ErrSubmitTransactionProviderTimeout,
+			expectedErrorType: app.ErrorTypeOperationTimeout,
+		},
+		"Submit transaction service fails to handle the transaction submission - internal error": {
+			topics:  app.TransactionTopics{"topic1", "topic2"},
+			txBytes: testabilities.DummyTxBEEF(t),
+			expectations: testabilities.SubmitTransactionProviderMockExpectations{
+				SubmitCall: true,
+				STEAK:      nil,
+				Error:      errors.New("internal submit transaction service test error"),
+			},
+			expectedErrorType: app.ErrorTypeProviderFailure,
 		},
 		"Submit transaction service fails to handle the transaction submission - empty topics": {
-			txBytes:       DummyTxBEEF(t),
-			expectedError: app.ErrMissingTransactionTopics,
+			txBytes: testabilities.DummyTxBEEF(t),
 			expectations: testabilities.SubmitTransactionProviderMockExpectations{
 				SubmitCall: false,
-				Error:      nil,
-				STEAK:      nil,
 			},
+			expectedErrorType: app.ErrorTypeIncorrectInput,
+		},
+		"Submit transaction service fails to handle the transaction submission - empty topic": {
+			txBytes: testabilities.DummyTxBEEF(t),
+			topics:  app.TransactionTopics{"topic1", " "},
+			expectations: testabilities.SubmitTransactionProviderMockExpectations{
+				SubmitCall: false,
+			},
+			expectedErrorType: app.ErrorTypeIncorrectInput,
 		},
 	}
+
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			// given:
@@ -63,7 +69,10 @@ func TestSubmitTransactionService_InvalidCases(t *testing.T) {
 			STEAK, err := service.SubmitTransaction(context.Background(), tc.topics, tc.txBytes...)
 
 			// then:
-			require.ErrorIs(t, err, tc.expectedError)
+			var as app.Error
+			require.ErrorAs(t, err, &as)
+			require.Equal(t, tc.expectedErrorType, as.ErrorType())
+
 			require.Nil(t, STEAK)
 			mock.AssertCalled()
 		})
@@ -96,21 +105,4 @@ func TestSubmitTransactionService_ValidCase(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expectations.STEAK, actualSTEAK)
 	mock.AssertCalled()
-}
-
-// DummyTxBEEF returns a valid transaction serialized in BEEF format for use in tests.
-// It creates a dummy transaction with predefined input and output values.
-// The test fails immediately if the transaction cannot be serialized or results in an empty byte slice.
-func DummyTxBEEF(t *testing.T) []byte {
-	t.Helper()
-
-	dummyTx := testvectors.GivenTX().
-		WithInput(1000).
-		WithP2PKHOutput(999).
-		TX()
-
-	bb, err := dummyTx.BEEF()
-	require.NoError(t, err)
-	require.NotEmpty(t, bb)
-	return bb
 }

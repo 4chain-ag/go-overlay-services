@@ -13,30 +13,30 @@ type SyncAdvertisementsProvider interface {
 	SyncAdvertisements(ctx context.Context) error
 }
 
-// AdvertisementsSyncServcie is responsible for synchronizing advertisements
+// AdvertisementsSyncService is responsible for synchronizing advertisements
 // using the configured SyncAdvertisementsProvider.
-type AdvertisementsSyncServcie struct {
+type AdvertisementsSyncService struct {
 	provider SyncAdvertisementsProvider
 }
 
 // SyncAdvertisements calls the configured provider's SyncAdvertisements method.
 // If the provider fails, it wraps the error with ErrSyncAdvertisementsProvider.
-func (a *AdvertisementsSyncServcie) SyncAdvertisements(ctx context.Context) error {
+func (a *AdvertisementsSyncService) SyncAdvertisements(ctx context.Context) error {
 	err := a.provider.SyncAdvertisements(ctx)
 	if err != nil {
-		return errors.Join(err, ErrSyncAdvertisementsProvider)
+		return NewProviderFailureError(err.Error())
 	}
 	return nil
 }
 
-// NewAdvertisementsSyncServcie creates a new instance of AdvertisementsSyncServcie
+// NewAdvertisementsSyncService creates a new instance of AdvertisementsSyncServcie
 // using the given SyncAdvertisementsProvider. It panics if the provider is nil.
-func NewAdvertisementsSyncServcie(provider SyncAdvertisementsProvider) *AdvertisementsSyncServcie {
+func NewAdvertisementsSyncService(provider SyncAdvertisementsProvider) *AdvertisementsSyncService {
 	if provider == nil {
 		panic("sync advertisements provider is nil")
 	}
 
-	return &AdvertisementsSyncServcie{provider: provider}
+	return &AdvertisementsSyncService{provider: provider}
 }
 
 // ErrSyncAdvertisementsProvider is returned when the SyncAdvertisementsProvider fails

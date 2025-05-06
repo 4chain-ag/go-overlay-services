@@ -61,7 +61,7 @@ func TestBearerTokenAuthMiddleware_ValidCases(t *testing.T) {
 					Execute(path.method, path.endpoint)
 
 				// then:
-				require.Equal(t, tc.expectedStatus, res.StatusCode(), "mismatch between the expected and actual response status codes")
+				require.Equal(t, tc.expectedStatus, res.StatusCode())
 				stub.AssertProvidersState()
 			})
 		}
@@ -143,7 +143,7 @@ func TestBearerTokenAuthMiddleware_InvalidCases(t *testing.T) {
 
 				// then:
 				require.Equal(t, tc.expectedStatus, res.StatusCode())
-				require.Equal(t, tc.expectedResponse, actual, "unexpected error response from Bearer token authorization middleware")
+				require.Equal(t, tc.expectedResponse, actual)
 				stub.AssertProvidersState()
 			})
 		}

@@ -1,12 +1,12 @@
 package ports_test
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
@@ -32,7 +32,7 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 			},
 			expectedResponse: ports.SubmitTransactionServiceInternalError,
 			expectations: testabilities.SubmitTransactionProviderMockExpectations{
-				Error:      app.ErrSubmitTransactionProvider,
+				Error:      errors.New("internal submit transaction provider error during submit transaction handler unit test"),
 				SubmitCall: true,
 			},
 		},
@@ -43,9 +43,8 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 				fiber.HeaderContentType: fiber.MIMEOctetStream,
 				ports.XTopicsHeader:     "topics1,topics2",
 			},
-			expectedResponse: ports.NewRequestTimeoutResponse(ports.RequestTimeout),
+			expectedResponse: ports.NewRequestTimeoutResponse(time.Second),
 			expectations: testabilities.SubmitTransactionProviderMockExpectations{
-				Error:                app.ErrSubmitTransactionProviderTimeout,
 				SubmitCall:           true,
 				TriggerCallbackAfter: 2 * time.Second,
 			},
@@ -79,7 +78,7 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// given:
 			stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithSubmitTransactionProvider(testabilities.NewSubmitTransactionProviderMock(t, tc.expectations)))
-			fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
+			fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub), server2.WithSubmitTransactionHandlerResponseTime(stub, time.Second))
 
 			// when:
 			var actualResponse openapi.BadRequestResponse

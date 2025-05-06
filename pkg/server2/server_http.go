@@ -9,9 +9,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/adapters"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
 	"github.com/gofiber/fiber/v2"
@@ -64,10 +66,18 @@ func WithMiddleware(f fiber.Handler) ServerOption {
 
 // WithEngine sets the overlay engine provider for the HTTP server.
 // It configures the ServerHTTP handlers to use the provided engine implementation.
-func WithEngine(e engine.OverlayEngineProvider) ServerOption {
+func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
-		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(e)
-		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(e)
+		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, ports.RequestTimeout)
+		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(provider)
+	}
+}
+
+// WithSubmitTransactionHandlerResponseTime sets the submit transaction handler's response time threshold
+// for the HTTP server. This timeout defines how long the handler waits before returning a request timeout response.
+func WithSubmitTransactionHandlerResponseTime(provider app.SubmitTransactionProvider, timeout time.Duration) ServerOption {
+	return func(s *ServerHTTP) {
+		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, timeout)
 	}
 }
 
@@ -168,7 +178,7 @@ func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
 func New(opts ...ServerOption) *ServerHTTP {
 	noop := adapters.NewNoopEngineProvider()
 	srv := &ServerHTTP{
-		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop),
+		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
 		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
 		cfg:                       &DefaultConfig,
 		app: fiber.New(fiber.Config{

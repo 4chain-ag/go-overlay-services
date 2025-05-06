@@ -25,3 +25,10 @@ func NewRequestMissingHeaderResponse(header string) openapi.BadRequestResponse {
 		Message: fmt.Sprintf("The submitted request does not include required header: %s.", header),
 	}
 }
+
+// UnhandledErrorTypeResponse is the default response returned when an error occurs
+// that does not match any known or handled ErrorType.
+// It represents a generic internal server error to avoid exposing internal details to the client.
+var UnhandledErrorTypeResponse = openapi.InternalServerErrorResponse{
+	Message: "An internal error occurred during processing the request. Please try again later or contact the support team.",
+}
