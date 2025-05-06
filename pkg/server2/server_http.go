@@ -35,6 +35,12 @@ type Config struct {
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
 
+	// Token for authenticating to ARC when submitting transactions.
+	ArcApiKey string `mapstructure:"arc_api_key"`
+
+	// Token for authenticating requests from ARC to callback endpoints.
+	ArcCallbackToken string `mapstructure:"arc_callback_token"`
+
 	// OctetStreamLimit  defines the maximum allowed bytes read size (in bytes).
 	// This limit by default is set to 1GB to protect against excessively large payloads.
 	OctetStreamLimit int64 `mapstructure:"octet_stream_limit"`
@@ -47,6 +53,8 @@ var DefaultConfig = Config{
 	Addr:             "localhost",
 	ServerHeader:     "Overlay API",
 	AdminBearerToken: uuid.NewString(),
+	ArcCallbackToken: uuid.NewString(),
+	ArcApiKey:        "",
 	OctetStreamLimit: middleware.ReadBodyLimit1GB,
 }
 
@@ -68,6 +76,15 @@ func WithEngine(e engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(e)
 		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(e)
+		s.arcIngestHandler = ports.NewArcIngestHandler(e)
+	}
+}
+
+// WithArcConfiguration sets the ARC API key and callback token for ARC integration.
+func WithArcConfiguration(apiKey string, callbackToken string) ServerOption {
+	return func(s *ServerHTTP) {
+		s.cfg.ArcApiKey = apiKey
+		s.cfg.ArcCallbackToken = callbackToken
 	}
 }
 
@@ -118,6 +135,7 @@ type ServerHTTP struct {
 	// Handlers for processing incoming HTTP requests:
 	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
 	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	arcIngestHandler          *ports.ArcIngestHandler          // arcIngestHandler handles ARC ingest requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -170,6 +188,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
 		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop),
 		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
+		arcIngestHandler:          ports.NewArcIngestHandler(noop),
 		cfg:                       &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
@@ -197,6 +216,7 @@ func (s *ServerHTTP) registerRoutes() {
 
 	v1 := api.Group("/v1")
 	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.SubmitTransaction)
+	v1.Post("/arc-ingest", middleware.ArcCallbackTokenMiddleware(s.cfg.ArcCallbackToken, s.cfg.ArcApiKey), s.arcIngestHandler.HandleArcIngest)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)

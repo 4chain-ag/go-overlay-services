@@ -12,3 +12,24 @@ components:
                 description: 'Serialized transaction data (e.g., a binary format such as Protobuf or other)'
             required:
               - Transaction
+              
+    ArcIngestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              txid:
+                type: string
+                description: Transaction ID in hexadecimal format
+              merklePath:
+                type: string
+                description: Merkle path in hexadecimal format
+              blockHeight:
+                type: integer
+                format: uint32
+                description: Block height where the transaction was mined
+            required:
+              - txid
+              - merklePath
+              - blockHeight

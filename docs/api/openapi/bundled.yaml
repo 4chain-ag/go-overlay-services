@@ -34,6 +34,86 @@ paths:
                   - Message
         '500':
           $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/arc-ingest:
+    post:
+      tags:
+        - non-admin
+      operationId: ArcIngest
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                txid:
+                  type: string
+                  description: Transaction ID in hexadecimal format
+                merklePath:
+                  type: string
+                  description: Merkle path in hexadecimal format
+                blockHeight:
+                  type: integer
+                  format: uint32
+                  description: Block height where the transaction was mined
+              required:
+                - txid
+                - merklePath
+                - blockHeight
+      responses:
+        '200':
+          description: Transaction status successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                      - failure
+                    description: Status of the operation
+                  message:
+                    type: string
+                    description: Additional information about the operation
+                required:
+                  - status
+                  - message
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '401':
+          description: |
+            Authentication is required but was not provided or is invalid.
+            This error occurs when the client attempts to access a protected resource
+            without providing the required authentication credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1api~1v1~1submit/post/responses/400/content/application~1json/schema'
+        '403':
+          description: |
+            The server understood the request, but refuses to authorize it.
+            This error occurs when the client has valid authentication but does not have
+            the necessary permissions to access the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1api~1v1~1submit/post/responses/400/content/application~1json/schema'
+        '408':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/409'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+        '504':
+          description: |
+            The server, while acting as a gateway or proxy, did not receive a timely response
+            from the upstream server or some other auxiliary server it needed to access in order to complete the request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1api~1v1~1submit/post/responses/400/content/application~1json/schema'
   /api/v1/submit:
     post:
       tags:
@@ -120,7 +200,7 @@ paths:
         '409':
           description: |
             The server did not receive a complete request within the time it was prepared to wait. 
-            This error can occur if the client’s request takes too long to process or there is network latency.
+            This error can occur if the client's request takes too long to process or there is network latency.
           content:
             application/json:
               schema:

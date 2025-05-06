@@ -32,6 +32,13 @@ type SubmitTransactionProvider interface {
 	ProviderStateAsserter
 }
 
+// ArcIngestProvider extends app.NewMerkleProofProvider with the ability
+// to assert whether it was called during a test.
+type ArcIngestProvider interface {
+	app.NewMerkleProofProvider
+	ProviderStateAsserter
+}
+
 // TestOverlayEngineStubOption is a functional option type used to configure a TestOverlayEngineStub.
 // It allows setting custom behaviors for different parts of the TestOverlayEngineStub.
 type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
@@ -52,6 +59,14 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 	}
 }
 
+// WithArcIngestProvider allows setting a custom ArcIngestProvider in a TestOverlayEngineStub.
+// This can be used to mock Merkle proof handling behavior during tests.
+func WithArcIngestProvider(provider ArcIngestProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.arcIngestProvider = provider
+	}
+}
+
 // TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
@@ -59,6 +74,7 @@ type TestOverlayEngineStub struct {
 	t                          *testing.T
 	syncAdvertisementsProvider SyncAdvertisementsProvider
 	submitTransactionProvider  SubmitTransactionProvider
+	arcIngestProvider          ArcIngestProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
@@ -79,10 +95,11 @@ func (s *TestOverlayEngineStub) GetUTXOHistory(ctx context.Context, outpus *engi
 	panic("unimplemented")
 }
 
-// HandleNewMerkleProof processes a new Merkle proof for a transaction (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// HandleNewMerkleProof processes a new Merkle proof for a transaction.
+// It delegates to the configured ArcIngestProvider to handle the proof.
 func (s *TestOverlayEngineStub) HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error {
-	panic("unimplemented")
+	s.t.Helper()
+	return s.arcIngestProvider.HandleNewMerkleProof(ctx, txid, proof)
 }
 
 // ListLookupServiceProviders lists the available lookup service providers (unimplemented).
@@ -144,9 +161,12 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 	providers := []ProviderStateAsserter{
 		s.submitTransactionProvider,
 		s.syncAdvertisementsProvider,
+		s.arcIngestProvider,
 	}
 	for _, p := range providers {
-		p.AssertCalled()
+		if p != nil {
+			p.AssertCalled()
+		}
 	}
 }
 
@@ -157,6 +177,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		t:                          t,
 		submitTransactionProvider:  NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 		syncAdvertisementsProvider: NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
+		arcIngestProvider:          NewMerkleProofProviderMock(t, nil),
 	}
 
 	for _, opt := range opts {

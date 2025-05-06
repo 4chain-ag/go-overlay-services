@@ -28,6 +28,32 @@ paths:
         500:
           $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
 
+  /api/v1/arc-ingest:
+    post:
+      tags:
+        - non-admin
+      operationId: ArcIngest
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/ArcIngestBody'
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/ArcIngestSuccess'
+        400:
+          $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
+        401:
+          $ref: '../errors/responses.yaml#/components/responses/UnauthorizedResponse'
+        403:
+          $ref: '../errors/responses.yaml#/components/responses/ForbiddenResponse'
+        408:
+          $ref: '../errors/responses.yaml#/components/responses/RequestTimeoutResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+        504:
+          $ref: '../errors/responses.yaml#/components/responses/GatewayTimeoutResponse'
+
   /api/v1/submit:
     post:
       tags:

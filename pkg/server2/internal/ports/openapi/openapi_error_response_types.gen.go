@@ -12,6 +12,12 @@ type Error struct {
 // BadRequestResponse defines model for BadRequestResponse.
 type BadRequestResponse = Error
 
+// ForbiddenResponse defines model for ForbiddenResponse.
+type ForbiddenResponse = Error
+
+// GatewayTimeoutResponse defines model for GatewayTimeoutResponse.
+type GatewayTimeoutResponse = Error
+
 // InternalServerErrorResponse defines model for InternalServerErrorResponse.
 type InternalServerErrorResponse = Error
 
@@ -20,3 +26,6 @@ type NotFoundResponse = Error
 
 // RequestTimeoutResponse defines model for RequestTimeoutResponse.
 type RequestTimeoutResponse = Error
+
+// UnauthorizedResponse defines model for UnauthorizedResponse.
+type UnauthorizedResponse = Error

@@ -40,6 +40,20 @@ components:
           $ref: "#/components/schemas/STEAK"
       required:
         - STEAK
+        
+    ArcIngestResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, failure]
+          description: Status of the operation
+        message:
+          type: string
+          description: Additional information about the operation
+      required:
+        - status
+        - message
 
   responses:
     SubmitTransactionResponse:
@@ -49,3 +63,10 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+            
+    ArcIngestSuccess:
+      description: Transaction status successfully updated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ArcIngestResponse'
