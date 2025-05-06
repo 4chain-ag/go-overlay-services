@@ -56,15 +56,15 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
-	t                          *testing.T
-	syncAdvertisementsProvider SyncAdvertisementsProvider
-	submitTransactionProvider  SubmitTransactionProvider
+	t                                  *testing.T
+	syncAdvertisementsProvider         SyncAdvertisementsProvider
+	submitTransactionProvider          SubmitTransactionProvider
+	lookupServiceDocumentationProvider app.LookupServiceDocumentationProvider
 }
 
-// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
-func (s *TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
-	panic("unimplemented")
+// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider based on the configured provider.
+func (t TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
+	return t.lookupServiceDocumentationProvider.GetDocumentationForLookupServiceProvider(provider)
 }
 
 // GetDocumentationForTopicManager returns documentation for a topic manager (unimplemented).
@@ -154,9 +154,10 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 // The options allow for configuring custom providers for transaction submission and advertisement synchronization.
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
-		t:                          t,
-		submitTransactionProvider:  NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
-		syncAdvertisementsProvider: NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
+		t:                                  t,
+		submitTransactionProvider:          NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		syncAdvertisementsProvider:         NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
+		lookupServiceDocumentationProvider: &lookupServiceDocumentationProviderAlwaysSuccessStub{documentation: "Default documentation"},
 	}
 
 	for _, opt := range opts {

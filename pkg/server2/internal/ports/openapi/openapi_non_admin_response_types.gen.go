@@ -11,6 +11,12 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"OutputsToAdmit"`
 }
 
+// LookupServiceDocumentation defines model for LookupServiceDocumentation.
+type LookupServiceDocumentation struct {
+	// Documentation Markdown-formatted documentation for the lookup service
+	Documentation string `json:"documentation"`
+}
+
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
 
@@ -18,6 +24,9 @@ type STEAK map[string]AdmittanceInstructions
 type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
+
+// LookupServiceDocumentationResponse defines model for LookupServiceDocumentationResponse.
+type LookupServiceDocumentationResponse = LookupServiceDocumentation
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction

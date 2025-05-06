@@ -70,6 +70,7 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, ports.RequestTimeout)
 		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(provider)
+		s.lookupDocumentationHandler = ports.NewLookupServiceDocumentationHandler(provider)
 	}
 }
 
@@ -126,8 +127,9 @@ type ServerHTTP struct {
 	middleware []fiber.Handler // middleware is a list of Fiber middleware functions to be applied globally.
 
 	// Handlers for processing incoming HTTP requests:
-	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
-	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	submitTransactionHandler   *ports.SubmitTransactionHandler          // submitTransactionHandler handles transaction submission requests.
+	syncAdvertisementsHandler  *ports.SyncAdvertisementsHandler         // syncAdvertisementsHandler handles advertisement sync requests.
+	lookupDocumentationHandler *ports.LookupServiceDocumentationHandler // lookupDocumentationHandler handles lookup service documentation requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -178,9 +180,10 @@ func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
 func New(opts ...ServerOption) *ServerHTTP {
 	noop := adapters.NewNoopEngineProvider()
 	srv := &ServerHTTP{
-		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
-		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
-		cfg:                       &DefaultConfig,
+		submitTransactionHandler:   ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
+		syncAdvertisementsHandler:  ports.NewSyncAdvertisementsHandler(noop),
+		lookupDocumentationHandler: ports.NewLookupServiceDocumentationHandler(noop),
+		cfg:                        &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
 			StrictRouting: true,
@@ -207,6 +210,7 @@ func (s *ServerHTTP) registerRoutes() {
 
 	v1 := api.Group("/v1")
 	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.SubmitTransaction)
+	v1.Get("/getDocumentationForLookupServiceProvider", s.lookupDocumentationHandler.GetDocumentation)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)

@@ -34,6 +34,35 @@ paths:
                   - Message
         '500':
           $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/getDocumentationForLookupServiceProvider:
+    get:
+      tags:
+        - non-admin
+      operationId: GetLookupServiceProviderDocumentation
+      parameters:
+        - in: query
+          name: lookupService
+          schema:
+            type: string
+          required: true
+          description: The name of the lookup service to retrieve documentation for
+      responses:
+        '200':
+          description: Returns the documentation for the specified lookup service
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documentation:
+                    type: string
+                    description: Markdown-formatted documentation for the lookup service
+                required:
+                  - documentation
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
   /api/v1/submit:
     post:
       tags:
