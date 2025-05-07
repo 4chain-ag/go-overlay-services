@@ -70,6 +70,7 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, ports.RequestTimeout)
 		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(provider)
+		s.topicManagersListHandler = ports.NewTopicManagersListHandler(provider)
 	}
 }
 
@@ -128,6 +129,7 @@ type ServerHTTP struct {
 	// Handlers for processing incoming HTTP requests:
 	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
 	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	topicManagersListHandler  *ports.TopicManagersListHandler  // topicManagersListHandler handles topic managers list requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -180,6 +182,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
 		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
 		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
+		topicManagersListHandler:  ports.NewTopicManagersListHandler(noop),
 		cfg:                       &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
@@ -207,6 +210,7 @@ func (s *ServerHTTP) registerRoutes() {
 
 	v1 := api.Group("/v1")
 	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.SubmitTransaction)
+	v1.Get("/listTopicManagers", s.topicManagersListHandler.Handle)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)

@@ -34,6 +34,40 @@ paths:
                   - Message
         '500':
           $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/listTopicManagers:
+    get:
+      tags:
+        - non-admin
+      operationId: ListTopicManagers
+      responses:
+        '200':
+          description: |
+            A map of topic managers with their metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    shortDescription:
+                      type: string
+                    iconURL:
+                      type: string
+                      nullable: true
+                    version:
+                      type: string
+                      nullable: true
+                    informationURL:
+                      type: string
+                      nullable: true
+                  required:
+                    - name
+                    - shortDescription
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
   /api/v1/submit:
     post:
       tags:

@@ -41,6 +41,31 @@ components:
       required:
         - STEAK
 
+    TopicManagerMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+        shortDescription:
+          type: string
+        iconURL:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        informationURL:
+          type: string
+          nullable: true
+      required:
+        - name
+        - shortDescription
+
+    TopicManagersList:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/TopicManagerMetadata"
+
   responses:
     SubmitTransactionResponse:
       description: |
@@ -49,3 +74,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+            
+            
+    TopicManagersListResponse:
+      description: |
+        A map of topic managers with their metadata
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TopicManagersList'

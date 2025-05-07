@@ -32,6 +32,13 @@ type SubmitTransactionProvider interface {
 	ProviderStateAsserter
 }
 
+// TopicManagersListProvider extends app.TopicManagersListProvider with the ability
+// to assert whether it was called during a test.
+type TopicManagersListProvider interface {
+	app.TopicManagersListProvider
+	ProviderStateAsserter
+}
+
 // TestOverlayEngineStubOption is a functional option type used to configure a TestOverlayEngineStub.
 // It allows setting custom behaviors for different parts of the TestOverlayEngineStub.
 type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
@@ -52,6 +59,14 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 	}
 }
 
+// WithTopicManagersListProvider allows setting a custom TopicManagersListProvider in a TestOverlayEngineStub.
+// This can be used to mock topic managers list behavior during tests.
+func WithTopicManagersListProvider(provider TopicManagersListProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.topicManagersListProvider = provider
+	}
+}
+
 // TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
@@ -59,6 +74,7 @@ type TestOverlayEngineStub struct {
 	t                          *testing.T
 	syncAdvertisementsProvider SyncAdvertisementsProvider
 	submitTransactionProvider  SubmitTransactionProvider
+	topicManagersListProvider  TopicManagersListProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
@@ -91,10 +107,11 @@ func (s *TestOverlayEngineStub) ListLookupServiceProviders() map[string]*overlay
 	panic("unimplemented")
 }
 
-// ListTopicManagers lists the available topic managers (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// ListTopicManagers lists the available topic managers.
+// It delegates to the configured topicManagersListProvider.
 func (s *TestOverlayEngineStub) ListTopicManagers() map[string]*overlay.MetaData {
-	panic("unimplemented")
+	s.t.Helper()
+	return s.topicManagersListProvider.ListTopicManagers()
 }
 
 // Lookup performs a lookup query based on the provided LookupQuestion (unimplemented).
@@ -144,6 +161,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 	providers := []ProviderStateAsserter{
 		s.submitTransactionProvider,
 		s.syncAdvertisementsProvider,
+		s.topicManagersListProvider,
 	}
 	for _, p := range providers {
 		p.AssertCalled()
@@ -157,6 +175,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		t:                          t,
 		submitTransactionProvider:  NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 		syncAdvertisementsProvider: NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
+		topicManagersListProvider:  NewTopicManagersListProviderMock(t, TopicManagersListProviderMockExpectations{ListTopicManagersCall: false}),
 	}
 
 	for _, opt := range opts {

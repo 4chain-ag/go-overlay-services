@@ -19,5 +19,20 @@ type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
 
+// TopicManagerMetadata defines model for TopicManagerMetadata.
+type TopicManagerMetadata struct {
+	IconURL          *string `json:"iconURL"`
+	InformationURL   *string `json:"informationURL"`
+	Name             string  `json:"name"`
+	ShortDescription string  `json:"shortDescription"`
+	Version          *string `json:"version"`
+}
+
+// TopicManagersList defines model for TopicManagersList.
+type TopicManagersList map[string]TopicManagerMetadata
+
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction
+
+// TopicManagersListResponse defines model for TopicManagersListResponse.
+type TopicManagersListResponse = TopicManagersList
