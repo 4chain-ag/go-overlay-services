@@ -182,6 +182,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
 		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
 		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
+		lookupServicesListHandler: ports.NewLookupServicesListHandler(noop),
 		cfg:                       &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
