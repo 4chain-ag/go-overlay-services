@@ -7,6 +7,12 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// GetTopicManagerDocumentationParams defines parameters for GetTopicManagerDocumentation.
+type GetTopicManagerDocumentationParams struct {
+	// TopicManager The name of the topic manager to retrieve documentation for
+	TopicManager string `form:"topicManager" json:"topicManager"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`

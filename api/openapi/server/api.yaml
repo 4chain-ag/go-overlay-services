@@ -28,6 +28,26 @@ paths:
         500:
           $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
 
+  /api/v1/getDocumentationForTopicManager:
+    get:
+      tags:
+        - non-admin
+      operationId: GetTopicManagerDocumentation
+      parameters:
+        - in: query
+          name: topicManager
+          schema:
+            type: string
+          required: true
+          description: The name of the topic manager to retrieve documentation for
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/TopicManagerDocumentationResponse'
+        400:
+          $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
   /api/v1/submit:
     post:
       tags:
