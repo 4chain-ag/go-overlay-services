@@ -70,6 +70,7 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, ports.RequestTimeout)
 		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(provider)
+		s.lookupServicesListHandler = ports.NewLookupServicesListHandler(provider)
 	}
 }
 
@@ -128,6 +129,7 @@ type ServerHTTP struct {
 	// Handlers for processing incoming HTTP requests:
 	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
 	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	lookupServicesListHandler *ports.LookupServicesListHandler // lookupServicesListHandler handles lookup services list requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -207,6 +209,7 @@ func (s *ServerHTTP) registerRoutes() {
 
 	v1 := api.Group("/v1")
 	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.SubmitTransaction)
+	v1.Get("/listLookupServiceProviders", s.lookupServicesListHandler.Handle)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)

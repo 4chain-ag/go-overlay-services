@@ -11,6 +11,18 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"OutputsToAdmit"`
 }
 
+// LookupMetadata defines model for LookupMetadata.
+type LookupMetadata struct {
+	IconURL          *string `json:"iconURL"`
+	InformationURL   *string `json:"informationURL"`
+	Name             string  `json:"name"`
+	ShortDescription string  `json:"shortDescription"`
+	Version          *string `json:"version"`
+}
+
+// LookupServicesList defines model for LookupServicesList.
+type LookupServicesList map[string]LookupMetadata
+
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
 
@@ -18,6 +30,9 @@ type STEAK map[string]AdmittanceInstructions
 type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
+
+// LookupServicesListResponse defines model for LookupServicesListResponse.
+type LookupServicesListResponse = LookupServicesList
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction
