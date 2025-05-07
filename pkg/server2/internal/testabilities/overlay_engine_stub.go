@@ -59,7 +59,7 @@ type TestOverlayEngineStub struct {
 	t                                  *testing.T
 	syncAdvertisementsProvider         SyncAdvertisementsProvider
 	submitTransactionProvider          SubmitTransactionProvider
-	lookupServiceDocumentationProvider app.LookupServiceDocumentationProvider
+	lookupServiceDocumentationProvider app.LookupProviderDocumentationProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider based on the configured provider.
@@ -157,7 +157,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		t:                                  t,
 		submitTransactionProvider:          NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 		syncAdvertisementsProvider:         NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
-		lookupServiceDocumentationProvider: &lookupServiceDocumentationProviderAlwaysSuccessStub{documentation: "Default documentation"},
+		lookupServiceDocumentationProvider: NewMockProviderDocumentationProviderMock(t, MockProviderDocumentationProviderExpectations{ShouldFail: false}),
 	}
 
 	for _, opt := range opts {

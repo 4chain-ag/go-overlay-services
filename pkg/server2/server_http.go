@@ -70,7 +70,7 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, ports.RequestTimeout)
 		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(provider)
-		s.lookupDocumentationHandler = ports.NewLookupServiceDocumentationHandler(provider)
+		s.lookupDocumentationHandler = ports.NewLookupProviderDocumentationHandler(provider)
 	}
 }
 
@@ -127,9 +127,9 @@ type ServerHTTP struct {
 	middleware []fiber.Handler // middleware is a list of Fiber middleware functions to be applied globally.
 
 	// Handlers for processing incoming HTTP requests:
-	submitTransactionHandler   *ports.SubmitTransactionHandler          // submitTransactionHandler handles transaction submission requests.
-	syncAdvertisementsHandler  *ports.SyncAdvertisementsHandler         // syncAdvertisementsHandler handles advertisement sync requests.
-	lookupDocumentationHandler *ports.LookupServiceDocumentationHandler // lookupDocumentationHandler handles lookup service documentation requests.
+	submitTransactionHandler   *ports.SubmitTransactionHandler           // submitTransactionHandler handles transaction submission requests.
+	syncAdvertisementsHandler  *ports.SyncAdvertisementsHandler          // syncAdvertisementsHandler handles advertisement sync requests.
+	lookupDocumentationHandler *ports.LookupProviderDocumentationHandler // lookupDocumentationHandler handles lookup service documentation requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -182,7 +182,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
 		submitTransactionHandler:   ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
 		syncAdvertisementsHandler:  ports.NewSyncAdvertisementsHandler(noop),
-		lookupDocumentationHandler: ports.NewLookupServiceDocumentationHandler(noop),
+		lookupDocumentationHandler: ports.NewLookupProviderDocumentationHandler(noop),
 		cfg:                        &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
