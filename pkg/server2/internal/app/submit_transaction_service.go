@@ -10,7 +10,13 @@ import (
 	"github.com/bsv-blockchain/go-sdk/overlay"
 )
 
+// DefaultSubmitTransactionTimeout defines the default maximum duration allowed
+// for submitting a transaction before timing out.
 const DefaultSubmitTransactionTimeout = 5 * time.Second
+
+// submitTransactionServiceDescriptor is the service descriptor label used for identifying
+// the submit transaction service in logs, metrics, or tracing contexts.
+const submitTransactionServiceDescriptor = "submit-transaction-service"
 
 // SubmitTransactionProvider defines the interface for sending a tagged transaction
 // to the overlay engine for processing.
@@ -39,14 +45,14 @@ func (s *SubmitTransactionService) SubmitTransaction(ctx context.Context, topics
 		ch <- steak
 	})
 	if err != nil {
-		return nil, NewProviderFailureError(err.Error())
+		return nil, NewProviderFailureError(submitTransactionServiceDescriptor, err.Error())
 	}
 
 	select {
 	case steak := <-ch:
 		return steak, nil
 	case <-time.After(s.submitCallTimeout):
-		return nil, NewOperationTimeoutError("submit transaction timeout occurred")
+		return nil, NewOperationTimeoutError(submitTransactionServiceDescriptor, "submit transaction timeout occurred")
 	}
 }
 
@@ -70,13 +76,13 @@ type TransactionTopics []string
 // Returns ErrMissingTransactionTopics or ErrInvalidTransactionTopicFormat on failure.
 func (tt TransactionTopics) Verify() error {
 	if len(tt) == 0 {
-		return NewIncorrectInputError("provided topics cannot be an empty slice")
+		return NewIncorrectInputError(submitTransactionServiceDescriptor, "provided topics cannot be an empty slice")
 	}
 
 	for i, t := range tt {
 		t = strings.TrimSpace(t)
-		if len(t) == 0 { // TODO: Add more robust topic format check.
-			return NewIncorrectInputError(fmt.Sprintf("invalid topic header format for topic no. %d", i+1))
+		if len(t) == 0 || len(t) == 1 { // TODO: Add more robust topic format check.
+			return NewIncorrectInputError(submitTransactionServiceDescriptor, fmt.Sprintf("invalid topic header format for topic no. %d", i+1))
 		}
 	}
 

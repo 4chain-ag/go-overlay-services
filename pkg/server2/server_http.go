@@ -203,11 +203,33 @@ func New(opts ...ServerOption) *ServerHTTP {
 }
 
 func (s *ServerHTTP) registerRoutes() {
-	api := s.app.Group("/api")
+	logger := slog.Default()
 
+	api := s.app.Group("/api")
 	v1 := api.Group("/v1")
-	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.SubmitTransaction)
+	v1.Post("/submit",
+		middleware.LoggingMiddleware(middleware.LoggingMiddlewareConfig{
+			Logger:    logger,
+			Component: "submit-transaction-handler",
+		}),
+		middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit),
+		middleware.ErrorResponseMiddleware(middleware.ErrorResponseMiddlewareConfig{
+			ErrorTypeIncorrectInput:  ports.SubmitTransactionRequestInvalidTopicsHeaderFormat,
+			ErrorTypeProviderFailure: ports.SubmitTransactionServiceInternalError,
+			RequestTimeoutResponse:   s.submitTransactionHandler.ResponseTimeout(),
+		}),
+		s.submitTransactionHandler.Handle,
+	)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
-	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)
+	admin.Post("/syncAdvertisements",
+		middleware.LoggingMiddleware(middleware.LoggingMiddlewareConfig{
+			Logger:    logger,
+			Component: "sync-advertisements-handler",
+		}),
+		middleware.ErrorResponseMiddleware(middleware.ErrorResponseMiddlewareConfig{
+			ErrorTypeProviderFailure: ports.SyncAdvertisementsInternalErrorResponse,
+		}),
+		s.syncAdvertisementsHandler.Handle,
+	)
 }

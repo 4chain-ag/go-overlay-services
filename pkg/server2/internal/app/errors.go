@@ -6,6 +6,12 @@ type ErrorType struct {
 	s string
 }
 
+// IsZero returns true if the error is in its zero-value state.
+func (e ErrorType) IsZero() bool { return e == ErrorType{} }
+
+// String returns the internal error type string.
+func (e ErrorType) String() string { return e.s }
+
 // Predefined error types for categorizing different kinds of errors.
 var (
 	// ErrorTypeProviderFailure indicates an error caused by a provider/service dependency.
@@ -34,8 +40,11 @@ var (
 // sensitive data to the requester.
 type Error struct {
 	err       string
+	service   string
 	errorType ErrorType
 }
+
+func (e Error) Service() string { return e.service }
 
 // IsZero returns true if the error is in its zero-value state.
 func (e Error) IsZero() bool { return e == Error{} }
@@ -48,25 +57,28 @@ func (e Error) Error() string { return e.err }
 func (e Error) ErrorType() ErrorType { return e.errorType }
 
 // NewIncorrectInputError creates a new Error with ErrorTypeIncorrectInput.
-func NewIncorrectInputError(err string) Error {
+func NewIncorrectInputError(service, err string) Error {
 	return Error{
 		err:       err,
+		service:   service,
 		errorType: ErrorTypeIncorrectInput,
 	}
 }
 
 // NewProviderFailureError creates a new Error with ErrorTypeProviderFailure.
-func NewProviderFailureError(err string) Error {
+func NewProviderFailureError(service, err string) Error {
 	return Error{
 		err:       err,
+		service:   service,
 		errorType: ErrorTypeProviderFailure,
 	}
 }
 
 // NewOperationTimeoutError creates a new Error with ErrorTypeOperationTimeout.
-func NewOperationTimeoutError(err string) Error {
+func NewOperationTimeoutError(service, err string) Error {
 	return Error{
 		err:       err,
+		service:   service,
 		errorType: ErrorTypeOperationTimeout,
 	}
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
 	"github.com/bsv-blockchain/go-sdk/overlay"
@@ -43,7 +44,7 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 				fiber.HeaderContentType: fiber.MIMEOctetStream,
 				ports.XTopicsHeader:     "topics1,topics2",
 			},
-			expectedResponse: ports.NewRequestTimeoutResponse(time.Second),
+			expectedResponse: middleware.NewRequestTimeoutResponse(time.Second),
 			expectations: testabilities.SubmitTransactionProviderMockExpectations{
 				SubmitCall:           true,
 				TriggerCallbackAfter: 2 * time.Second,

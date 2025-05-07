@@ -2,7 +2,7 @@ package ports
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -28,13 +28,18 @@ type SubmitTransactionHandler struct {
 	responseTimeout time.Duration
 }
 
-// SubmitTransaction processes an HTTP request to submit a transaction to the submit transaction service.
-// It returns an HTTP 200 OK with a STEAK response (openapi.SubmitTransactionResponse) on success.
-// Otherwise the following error responses may be returned:
-//   - 400 Bad Request with openapi.BadRequestResponse - if the `x-topics` header is missing or contains invalid values.
-//   - 408 Request Timeout with openapi.RequestTimeoutResponse - when the transaction submission exceeds the configured timeout.
-//   - 500 Internal Server Error with openapi.InternalServerErrorResponse - when submit transaction service error occurs during processing.
-func (s *SubmitTransactionHandler) SubmitTransaction(c *fiber.Ctx) error {
+// ResponseTimeout returns the configured timeout duration for submitting a transaction response.
+// This value defines how long the handler will wait before treating the operation as timed out.
+func (s *SubmitTransactionHandler) ResponseTimeout() time.Duration {
+	return s.responseTimeout
+}
+
+// Handle processes an HTTP request to submit a transaction to the submit transaction service.
+// It expects the `x-topics` header to be present and valid. On success, it returns
+// HTTP 200 OK with a STEAK response (openapi.SubmitTransactionResponse).
+// If the header is missing or invalid, it returns HTTP 400 Bad Request.
+// If an error occurs during transaction submission, it returns the corresponding application error.
+func (s *SubmitTransactionHandler) Handle(c *fiber.Ctx) error {
 	headers := c.GetReqHeaders()
 	topics, found := headers[http.CanonicalHeaderKey(XTopicsHeader)]
 	if !found {
@@ -43,23 +48,8 @@ func (s *SubmitTransactionHandler) SubmitTransaction(c *fiber.Ctx) error {
 
 	steak, err := s.service.SubmitTransaction(c.UserContext(), topics, c.Body()...)
 	if err != nil {
-		var target app.Error
-		if !errors.As(err, &target) || target.IsZero() {
-			return c.Status(fiber.StatusInternalServerError).JSON(UnhandledErrorTypeResponse)
-		}
-
-		switch target.ErrorType() {
-		case app.ErrorTypeIncorrectInput:
-			return c.Status(fiber.StatusBadRequest).JSON(SubmitTransactionRequestInvalidTopicsHeaderFormat)
-
-		case app.ErrorTypeOperationTimeout:
-			return c.Status(fiber.StatusRequestTimeout).JSON(NewRequestTimeoutResponse(s.responseTimeout))
-
-		case app.ErrorTypeProviderFailure:
-			return c.Status(fiber.StatusInternalServerError).JSON(SubmitTransactionServiceInternalError)
-		}
+		return err
 	}
-
 	return c.Status(fiber.StatusOK).JSON(NewSubmitTransactionSuccessResponse(steak))
 }
 
@@ -119,4 +109,15 @@ var SubmitTransactionServiceInternalError = openapi.InternalServerErrorResponse{
 // For example, an empty string or invalid character in the topic header would trigger this error.
 var SubmitTransactionRequestInvalidTopicsHeaderFormat = openapi.BadRequestResponse{
 	Message: "One or more topic headers are in an invalid format. Empty string values are not allowed.",
+}
+
+// RequestTimeout defines the default duration after which a request is considered timed out.
+const RequestTimeout = 5 * time.Second
+
+// NewRequestMissingHeaderResponse creates a bad request response indicating that a required HTTP header is missing.
+// It takes the name of the missing header and returns an openapi.BadRequestResponse with a descriptive message.
+func NewRequestMissingHeaderResponse(header string) openapi.BadRequestResponse {
+	return openapi.BadRequestResponse{
+		Message: fmt.Sprintf("The submitted request does not include required header: %s.", header),
+	}
 }

@@ -4,29 +4,30 @@ import (
 	"fmt"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
+	"github.com/gofiber/fiber/v2"
 )
 
 // RequestMethodCheckMiddleware creates a middleware that validates incoming requests against
 // known route paths and their expected HTTP methods. If the path is unrecognized, it returns
 // a 404 Not Found with details. If the method is invalid, it returns a 405 Method Not Allowed
 // with a mismatch description. Otherwise, it passes the request to the next handler.
-// func RequestMethodCheckMiddleware() fiber.Handler {
+func RequestMethodCheckMiddleware() fiber.Handler {
 
-// 	return func(c *fiber.Ctx) error {
-// 		ctx := c.Context()
-// 		actual := string(ctx.Method())
-// 		path := string(ctx.Path())
-// 		if !routes.exists(path) {
-// 			return c.Status(fiber.StatusNotFound).JSON(NewRequestPathNotRecognized()) // to change
-// 		}
+	return func(c *fiber.Ctx) error {
+		// ctx := c.Context()
+		// actual := string(ctx.Method())
+		// path := string(ctx.Path())
+		// if !routes.exists(path) {
+		// 	return c.Status(fiber.StatusNotFound).JSON(NewRequestPathNotRecognized()) // to change
+		// }
 
-// 		expected := routes.method(path)
-// 		if actual != expected {
-// 			return c.Status(fiber.StatusMethodNotAllowed).JSON(NewRequestInvalidMethodResponse(actual, expected))
-// 		}
-// 		return c.Next()
-// 	}
-// }
+		// expected := routes.method(path)
+		// if actual != expected {
+		// 	return c.Status(fiber.StatusMethodNotAllowed).JSON(NewRequestInvalidMethodResponse(actual, expected))
+		// }
+		return c.Next()
+	}
+}
 
 // NewRequestInvalidMethodResponse creates a bad request response when the submitted request uses an invalid HTTP method.
 // It takes the actual HTTP method used and the expected HTTP method, and returns an openapi.BadRequestResponse

@@ -2,7 +2,6 @@ package ports
 
 import (
 	"context"
-	"errors"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
@@ -24,26 +23,16 @@ type SyncAdvertisementsHandler struct {
 // Handle processes an HTTP request to synchronize advertisements.
 // It invokes the underlying service and returns an HTTP 200 OK on success.
 // If an internal error occurs during synchronization, it returns an HTTP 500 Internal Server Error.
-func (h *SyncAdvertisementsHandler) Handle(c *fiber.Ctx) error {
-	err := h.service.SyncAdvertisements(c.Context())
+func (s *SyncAdvertisementsHandler) Handle(c *fiber.Ctx) error {
+	err := s.service.SyncAdvertisements(c.Context())
 	if err != nil {
-		var target app.Error
-		if !errors.As(err, &target) || target.IsZero() {
-			return c.Status(fiber.StatusInternalServerError).JSON(UnhandledErrorTypeResponse)
-		}
-
-		switch target.ErrorType() {
-		case app.ErrorTypeProviderFailure:
-			return c.Status(fiber.StatusInternalServerError).JSON(SyncAdvertisementsInternalErrorResponse)
-		}
+		return err
 	}
-
 	return c.Status(fiber.StatusOK).JSON(SyncAdvertisementsSuccessResponse)
 }
 
 // NewSyncAdvertisementsHandler returns a new instance of SyncAdvertisementsHandler,
 // using the given SyncAdvertisementsProvider implementation.
-//
 // If the provider is nil, the function will panic to avoid misconfigured handlers at runtime.
 func NewSyncAdvertisementsHandler(provider app.SyncAdvertisementsProvider) *SyncAdvertisementsHandler {
 	if provider == nil {
