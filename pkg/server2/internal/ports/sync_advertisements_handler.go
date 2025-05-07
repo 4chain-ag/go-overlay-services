@@ -25,19 +25,20 @@ type SyncAdvertisementsHandler struct {
 // It invokes the underlying service and returns an HTTP 200 OK on success.
 // If an internal error occurs during synchronization, it returns an HTTP 500 Internal Server Error.
 func (h *SyncAdvertisementsHandler) Handle(c *fiber.Ctx) error {
-	var target app.Error
 	err := h.service.SyncAdvertisements(c.Context())
-	if err != nil && !errors.As(err, &target) {
-		return c.Status(fiber.StatusInternalServerError).JSON(UnhandledErrorTypeResponse)
+	if err != nil {
+		var target app.Error
+		if !errors.As(err, &target) || target.IsZero() {
+			return c.Status(fiber.StatusInternalServerError).JSON(UnhandledErrorTypeResponse)
+		}
+
+		switch target.ErrorType() {
+		case app.ErrorTypeProviderFailure:
+			return c.Status(fiber.StatusInternalServerError).JSON(SyncAdvertisementsInternalErrorResponse)
+		}
 	}
 
-	switch target.ErrorType() {
-	case app.ErrorTypeProviderFailure:
-		return c.Status(fiber.StatusInternalServerError).JSON(SyncAdvertisementsInternalErrorResponse)
-
-	default:
-		return c.Status(fiber.StatusOK).JSON(SyncAdvertisementsSuccessResponse)
-	}
+	return c.Status(fiber.StatusOK).JSON(SyncAdvertisementsSuccessResponse)
 }
 
 // NewSyncAdvertisementsHandler returns a new instance of SyncAdvertisementsHandler,

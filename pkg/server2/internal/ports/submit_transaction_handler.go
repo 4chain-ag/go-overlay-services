@@ -42,24 +42,25 @@ func (s *SubmitTransactionHandler) SubmitTransaction(c *fiber.Ctx) error {
 	}
 
 	steak, err := s.service.SubmitTransaction(c.UserContext(), topics, c.Body()...)
-	var target app.Error
-	if err != nil && !errors.As(err, &target) {
-		return c.Status(fiber.StatusInternalServerError).JSON(UnhandledErrorTypeResponse)
+	if err != nil {
+		var target app.Error
+		if !errors.As(err, &target) || target.IsZero() {
+			return c.Status(fiber.StatusInternalServerError).JSON(UnhandledErrorTypeResponse)
+		}
+
+		switch target.ErrorType() {
+		case app.ErrorTypeIncorrectInput:
+			return c.Status(fiber.StatusBadRequest).JSON(SubmitTransactionRequestInvalidTopicsHeaderFormat)
+
+		case app.ErrorTypeOperationTimeout:
+			return c.Status(fiber.StatusRequestTimeout).JSON(NewRequestTimeoutResponse(s.responseTimeout))
+
+		case app.ErrorTypeProviderFailure:
+			return c.Status(fiber.StatusInternalServerError).JSON(SubmitTransactionServiceInternalError)
+		}
 	}
 
-	switch target.ErrorType() {
-	case app.ErrorTypeIncorrectInput:
-		return c.Status(fiber.StatusBadRequest).JSON(SubmitTransactionRequestInvalidTopicsHeaderFormat)
-
-	case app.ErrorTypeOperationTimeout:
-		return c.Status(fiber.StatusRequestTimeout).JSON(NewRequestTimeoutResponse(s.responseTimeout))
-
-	case app.ErrorTypeProviderFailure:
-		return c.Status(fiber.StatusInternalServerError).JSON(SubmitTransactionServiceInternalError)
-
-	default:
-		return c.Status(fiber.StatusOK).JSON(NewSubmitTransactionSuccessResponse(steak))
-	}
+	return c.Status(fiber.StatusOK).JSON(NewSubmitTransactionSuccessResponse(steak))
 }
 
 // NewSubmitTransactionHandler creates a new SubmitTransactionHandler with the given provider and timeout.
