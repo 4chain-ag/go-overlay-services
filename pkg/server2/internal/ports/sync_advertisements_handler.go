@@ -49,9 +49,3 @@ func NewSyncAdvertisementsHandler(provider app.SyncAdvertisementsProvider) *Sync
 var SyncAdvertisementsSuccessResponse = openapi.AdvertisementsSyncResponse{
 	Message: "Advertisement sync request successfully delegated to overlay engine.",
 }
-
-// SyncAdvertisementsInternalErrorResponse is returned when the synchronization process fails
-// due to an internal issue in the overlay engine.
-var SyncAdvertisementsInternalErrorResponse = openapi.InternalServerErrorResponse{
-	Message: "Unable to process sync advertisements request due to issues with the overlay engine.",
-}

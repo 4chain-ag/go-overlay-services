@@ -4,10 +4,6 @@ import (
 	"context"
 )
 
-// syncAdvertisementsProviderDescriptor is the service descriptor label used for identifying
-// the submit transaction service in logs, metrics, or tracing contexts.
-const syncAdvertisementsProviderDescriptor = "advertisements-sync-service"
-
 // SyncAdvertisementsProvider defines the contract that must be fulfilled
 // to send a synchronize advertisements request to the overlay engine for further processing.
 type SyncAdvertisementsProvider interface {
@@ -29,7 +25,7 @@ type AdvertisementsSyncService struct {
 func (a *AdvertisementsSyncService) SyncAdvertisements(ctx context.Context) error {
 	err := a.provider.SyncAdvertisements(ctx)
 	if err != nil {
-		return NewProviderFailureError(syncAdvertisementsProviderDescriptor, err.Error())
+		return NewSyncAdvertisementsProviderError(err)
 	}
 	return nil
 }
@@ -42,4 +38,15 @@ func NewAdvertisementsSyncService(provider SyncAdvertisementsProvider) *Advertis
 	}
 
 	return &AdvertisementsSyncService{provider: provider}
+}
+
+// NewSyncAdvertisementsProviderError returns an Error indicating a failure
+// in the provider while processing a sync advertisements request.
+// Typically used when the overlay engine encounters an issue.
+func NewSyncAdvertisementsProviderError(err error) Error {
+	return Error{
+		errorType: ErrorTypeProviderFailure,
+		err:       err.Error(),
+		slug:      "Unable to process sync advertisements request due to issues with the overlay engine.",
+	}
 }

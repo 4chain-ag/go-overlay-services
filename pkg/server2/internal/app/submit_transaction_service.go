@@ -14,10 +14,6 @@ import (
 // for submitting a transaction before timing out.
 const DefaultSubmitTransactionTimeout = 5 * time.Second
 
-// submitTransactionServiceDescriptor is the service descriptor label used for identifying
-// the submit transaction service in logs, metrics, or tracing contexts.
-const submitTransactionServiceDescriptor = "submit-transaction-service"
-
 // SubmitTransactionProvider defines the interface for sending a tagged transaction
 // to the overlay engine for processing.
 type SubmitTransactionProvider interface {
@@ -45,14 +41,14 @@ func (s *SubmitTransactionService) SubmitTransaction(ctx context.Context, topics
 		ch <- steak
 	})
 	if err != nil {
-		return nil, NewProviderFailureError(submitTransactionServiceDescriptor, err.Error())
+		return nil, NewSubmitTransactionProviderError(err)
 	}
 
 	select {
 	case steak := <-ch:
 		return steak, nil
 	case <-time.After(s.submitCallTimeout):
-		return nil, NewOperationTimeoutError(submitTransactionServiceDescriptor, "submit transaction timeout occurred")
+		return nil, NewSubmitTransactionServiceTimeoutError(s.submitCallTimeout)
 	}
 }
 
@@ -76,15 +72,55 @@ type TransactionTopics []string
 // Returns ErrMissingTransactionTopics or ErrInvalidTransactionTopicFormat on failure.
 func (tt TransactionTopics) Verify() error {
 	if len(tt) == 0 {
-		return NewIncorrectInputError(submitTransactionServiceDescriptor, "provided topics cannot be an empty slice")
+		return NewEmptyTransactionTopicsError()
 	}
 
 	for i, t := range tt {
 		t = strings.TrimSpace(t)
 		if len(t) == 0 || len(t) == 1 { // TODO: Add more robust topic format check.
-			return NewIncorrectInputError(submitTransactionServiceDescriptor, fmt.Sprintf("invalid topic header format for topic no. %d", i+1))
+			return NewErrInvalidTopicFormatError(i)
 		}
 	}
 
 	return nil
+}
+
+// NewEmptyTransactionTopicsError returns an Error indicating that the topics slice is empty,
+// which is invalid input when submitting a transaction.
+func NewEmptyTransactionTopicsError() Error {
+	return Error{
+		errorType: ErrorTypeIncorrectInput,
+		err:       "provided topics cannot be an empty slice",
+		slug:      "At least one topic must be provided in the correct string format. Empty topic values are not allowed.",
+	}
+}
+
+// NewErrInvalidTopicFormatError returns an Error indicating that a specific topic,
+// identified by its index, is in an invalid format.
+func NewErrInvalidTopicFormatError(i int) Error {
+	return Error{
+		errorType: ErrorTypeIncorrectInput,
+		err:       fmt.Sprintf("invalid topic header format for topic no. %d", i+1),
+		slug:      "One or more topics are in an invalid format. Empty string values are not allowed.",
+	}
+}
+
+// NewSubmitTransactionProviderError returns an Error indicating that the overlay engine
+// failed to process a submitted transaction octet-stream.
+func NewSubmitTransactionProviderError(err error) Error {
+	return Error{
+		errorType: ErrorTypeProviderFailure,
+		err:       err.Error(),
+		slug:      "Unable to process submitted transaction octet-stream due to an error in the overlay engine.",
+	}
+}
+
+// NewSubmitTransactionServiceTimeoutError returns an Error indicating that the submit transaction
+// request exceeded the configured timeout limit.
+func NewSubmitTransactionServiceTimeoutError(timeout time.Duration) Error {
+	return Error{
+		errorType: ErrorTypeOperationTimeout,
+		err:       fmt.Sprintf("submit transaction timeout occurred - limit set to %f seconds", timeout.Seconds()),
+		slug:      "The submitted request exceeded the timeout limit",
+	}
 }

@@ -1,84 +1,93 @@
 package app
 
 // ErrorType represents a generic category of error used as descriptor
-// to clarify the nature of a failure that occurred in application-layer dependencies.
+// to clarify the nature of a failure that occurred in dependencies.
 type ErrorType struct {
 	s string
 }
 
-// IsZero returns true if the error is in its zero-value state.
-func (e ErrorType) IsZero() bool { return e == ErrorType{} }
-
-// String returns the internal error type string.
-func (e ErrorType) String() string { return e.s }
-
-// Predefined error types for categorizing different kinds of errors.
 var (
-	// ErrorTypeProviderFailure indicates an error caused by a provider/service dependency.
-	ErrorTypeProviderFailure = ErrorType{"provider-failure"}
-
-	// ErrorTypeAuthorization indicates an error due to unauthorized access or permissions.
-	ErrorTypeAuthorization = ErrorType{"authorization"}
-
-	// ErrorTypeIncorrectInput indicates an error due to malformed or invalid user input.
-	ErrorTypeIncorrectInput = ErrorType{"incorrect-input"}
-
-	// ErrorTypeUnknown is used when the error cause is not clearly identifiable.
-	ErrorTypeUnknown = ErrorType{"unknown"}
-
-	// ErrorTypeOperationTimeout indicates the operation timed out.
-	ErrorTypeOperationTimeout = ErrorType{"operation-timeout"}
+	ErrorTypeProviderFailure   = ErrorType{"provider-failure"}
+	ErrorTypeAuthorization     = ErrorType{"authorization"}
+	ErrorTypeAccessForbidden   = ErrorType{"access-forbidden"}
+	ErrorTypeIncorrectInput    = ErrorType{"incorrect-input"}
+	ErrorTypeUnknown           = ErrorType{"unknown"}
+	ErrorTypeOperationTimeout  = ErrorType{"operation-timeout"}
+	ErrorTypeRawDataProcessing = ErrorType{"raw-data-processing"}
 )
 
 // Error defines a generic application-layer error that should be translated
-// into the specific response format returned to the requester.
-// An error includes the source error message and a type describing the particular
-// category of the failure. The type should be used during the translation process
-// in the error-handling implementation.
+// into a specific response format for the requester.
+//
+// The error includes a err source message, a type indicating the category
+// of the failure, and a slug string representing the error message content
+// to be returned to the requester. The error type is used during translation
+// process in the error-handling implementation.
+//
 // The source error message may contain internal details, so it is not recommended
-// to include it in the final response due to the potential risk of leaking
-// sensitive data to the requester.
+// to include it in the final response to avoid exposing sensitive information.
+// Instead, it is highly recommended to use the slug string, which is intended
+// for the response, ensuring no sensitive data is leaked to the requester.
 type Error struct {
 	err       string
-	service   string
+	slug      string
 	errorType ErrorType
 }
 
-func (e Error) Service() string { return e.service }
-
-// IsZero returns true if the error is in its zero-value state.
-func (e Error) IsZero() bool { return e == Error{} }
-
-// Error returns the source error message, which may contain internal details.
-func (e Error) Error() string { return e.err }
-
-// ErrorType returns the category of the error, which should be used
-// during error handling and response format translation.
+func (e Error) Slug() string         { return e.slug }
+func (e Error) IsZero() bool         { return e == Error{} }
+func (e Error) Error() string        { return e.err }
 func (e Error) ErrorType() ErrorType { return e.errorType }
 
-// NewIncorrectInputError creates a new Error with ErrorTypeIncorrectInput.
-func NewIncorrectInputError(service, err string) Error {
+// NewIncorrectInputError returns an error that handles invalid input data,
+// typically caused by partial state, inappropriate data formats, or other
+// issues related to incorrect input.
+func NewIncorrectInputError(err, slug string) Error {
 	return Error{
+		slug:      slug,
 		err:       err,
-		service:   service,
 		errorType: ErrorTypeIncorrectInput,
 	}
 }
 
-// NewProviderFailureError creates a new Error with ErrorTypeProviderFailure.
-func NewProviderFailureError(service, err string) Error {
+// NewProviderFailureError returns an error that handles service dependency failures,
+// internal processing issues, unavailability, connection problems, or other issues
+// that should not be exposed to the requester.
+func NewProviderFailureError(err, slug string) Error {
 	return Error{
+		slug:      slug,
 		err:       err,
-		service:   service,
 		errorType: ErrorTypeProviderFailure,
 	}
 }
 
-// NewOperationTimeoutError creates a new Error with ErrorTypeOperationTimeout.
-func NewOperationTimeoutError(service, err string) Error {
+// NewAuthorizationError returns an error that handles authorization failures,
+// such as missing or invalid credentials when attempting to access a restricted resource.
+func NewAuthorizationError(err, slug string) Error {
 	return Error{
+		slug:      slug,
 		err:       err,
-		service:   service,
-		errorType: ErrorTypeOperationTimeout,
+		errorType: ErrorTypeAuthorization,
+	}
+}
+
+// NewAccessForbiddenError returns an error that handles access control failures,
+// such as valid credentials without the necessary permissions to access a resource.
+func NewAccessForbiddenError(err, slug string) Error {
+	return Error{
+		slug:      slug,
+		err:       err,
+		errorType: ErrorTypeAccessForbidden,
+	}
+}
+
+// NewRawDataProcessingError returns an error that handles issues encountered
+// during raw data processing, such as invalid or corrupt input data that prevents
+// successful processing.
+func NewRawDataProcessingError(err, slug string) Error {
+	return Error{
+		slug:      slug,
+		errorType: ErrorTypeRawDataProcessing,
+		err:       err,
 	}
 }

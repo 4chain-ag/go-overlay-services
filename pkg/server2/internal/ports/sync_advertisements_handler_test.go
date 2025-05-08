@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
@@ -15,11 +16,12 @@ import (
 func TestSyncAdvertisementsHandler_InvalidCase(t *testing.T) {
 	// given:
 	const token = "428e1f07-79b6-4901-b0a0-ec1fe815331b"
-
+	providerInternalErr := errors.New("internal SyncAdvertisements service test error")
+	expectedResponse := testabilities.NewTestOpenapiErrorResponse(t, app.NewSyncAdvertisementsProviderError(providerInternalErr))
 	stub := testabilities.NewTestOverlayEngineStub(t,
 		testabilities.WithSyncAdvertisementsProvider(
 			testabilities.NewSyncAdvertisementsProviderMock(t, testabilities.SyncAdvertisementsProviderMockExpectations{
-				Err:                    errors.New("internal SyncAdvertisements service test error"),
+				Err:                    providerInternalErr,
 				SyncAdvertisementsCall: true,
 			}),
 		),
@@ -36,8 +38,9 @@ func TestSyncAdvertisementsHandler_InvalidCase(t *testing.T) {
 		Post("api/v1/admin/syncAdvertisements")
 
 	// then:
+
 	require.Equal(t, fiber.StatusInternalServerError, res.StatusCode())
-	require.Equal(t, ports.SyncAdvertisementsInternalErrorResponse, actualResponse)
+	require.Equal(t, expectedResponse, actualResponse)
 	stub.AssertProvidersState()
 }
 

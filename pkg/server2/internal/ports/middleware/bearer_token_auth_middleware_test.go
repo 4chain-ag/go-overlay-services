@@ -88,28 +88,28 @@ func TestBearerTokenAuthMiddleware_InvalidCases(t *testing.T) {
 	}{
 		"Authorization header with ivalid HTTP server token": {
 			expectedStatus:   fiber.StatusForbidden,
-			expectedResponse: middleware.InvalidBearerTokenValueResponse,
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewInvalidBearerTokenValueError()),
 			headers: map[string]string{
 				fiber.HeaderAuthorization: "Bearer " + "1234",
 			},
 		},
 		"Missing Authorization header in the HTTP request": {
 			expectedStatus:   fiber.StatusUnauthorized,
-			expectedResponse: middleware.MissingAuthorizationHeaderResponse,
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewMissingAuthorizationHeaderError()),
 			headers: map[string]string{
 				"RandomHeader": "Bearer " + bearerToken,
 			},
 		},
 		"Missing Authorization header value in the HTTP request": {
 			expectedStatus:   fiber.StatusUnauthorized,
-			expectedResponse: middleware.MissingAuthorizationHeaderResponse,
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewMissingAuthorizationHeaderError()),
 			headers: map[string]string{
 				fiber.HeaderAuthorization: "",
 			},
 		},
 		"Invalid Bearer scheme in the Authorization header appended to the HTTP request": {
 			expectedStatus:   fiber.StatusUnauthorized,
-			expectedResponse: middleware.MissingAuthorizationHeaderBearerTokenValueResponse,
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewMissingBearerTokenValueError()),
 			headers: map[string]string{
 				fiber.HeaderAuthorization: "InvalidScheme " + bearerToken,
 			},

@@ -17,6 +17,7 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/google/uuid"
 )
 
@@ -186,6 +187,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 			StrictRouting: true,
 			ServerHeader:  "Overlay API",
 			AppName:       "Overlay API v0.0.0",
+			ErrorHandler:  ports.ErrorHandler(),
 		}),
 		middleware: middleware.BasicMiddlewareGroup(),
 	}
@@ -203,33 +205,12 @@ func New(opts ...ServerOption) *ServerHTTP {
 }
 
 func (s *ServerHTTP) registerRoutes() {
-	logger := slog.Default()
-
 	api := s.app.Group("/api")
 	v1 := api.Group("/v1")
-	v1.Post("/submit",
-		middleware.LoggingMiddleware(middleware.LoggingMiddlewareConfig{
-			Logger:    logger,
-			Component: "submit-transaction-handler",
-		}),
-		middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit),
-		middleware.ErrorResponseMiddleware(middleware.ErrorResponseMiddlewareConfig{
-			ErrorTypeIncorrectInput:  ports.SubmitTransactionRequestInvalidTopicsHeaderFormat,
-			ErrorTypeProviderFailure: ports.SubmitTransactionServiceInternalError,
-			RequestTimeoutResponse:   s.submitTransactionHandler.ResponseTimeout(),
-		}),
-		s.submitTransactionHandler.Handle,
-	)
+	v1.Get("/metrics", monitor.New(monitor.Config{Title: "Overlay-services API"}))
+
+	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.Handle)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
-	admin.Post("/syncAdvertisements",
-		middleware.LoggingMiddleware(middleware.LoggingMiddlewareConfig{
-			Logger:    logger,
-			Component: "sync-advertisements-handler",
-		}),
-		middleware.ErrorResponseMiddleware(middleware.ErrorResponseMiddlewareConfig{
-			ErrorTypeProviderFailure: ports.SyncAdvertisementsInternalErrorResponse,
-		}),
-		s.syncAdvertisementsHandler.Handle,
-	)
+	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)
 }

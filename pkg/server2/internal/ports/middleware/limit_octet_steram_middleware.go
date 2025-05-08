@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -100,7 +100,7 @@ func (l *limitedBytesReader) Read() ([]byte, error) {
 func LimitOctetStreamBodyMiddleware(limit int64) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if !c.Is(fiber.MIMEOctetStream) {
-			return c.Status(fiber.StatusBadRequest).JSON(NewUnsupportedContentTypeResponse(fiber.MIMEOctetStream))
+			return NewUnsupportedContentTypeError(fiber.MIMEOctetStream)
 		}
 
 		reader := limitedBytesReader{
@@ -111,13 +111,13 @@ func LimitOctetStreamBodyMiddleware(limit int64) fiber.Handler {
 		bytes, err := reader.Read()
 		switch {
 		case errors.Is(err, errReaderMissingBytes):
-			return c.Status(fiber.StatusBadRequest).JSON(ResponseEmptyOctetStream)
+			return NewEmptyRequestBodyError()
 
 		case errors.Is(err, errReaderLimitExceeded):
-			return c.Status(fiber.StatusBadRequest).JSON(NewRequestBodyTooLargeResponse(limit))
+			return NewBodySizeLimitExceededError(limit)
 
 		case errors.Is(err, errReaderBytesRead):
-			return c.Status(fiber.StatusInternalServerError).JSON(ResponseBodyReadFailure)
+			return NewBodyReadError(err)
 
 		default:
 			c.Context().SetBody(bytes)
@@ -126,30 +126,31 @@ func LimitOctetStreamBodyMiddleware(limit int64) fiber.Handler {
 	}
 }
 
-// NewRequestBodyTooLargeResponse returns a BadRequestResponse indicating that
-// the request body exceeds the allowed size.
-func NewRequestBodyTooLargeResponse(limit int64) openapi.BadRequestResponse {
-	return openapi.BadRequestResponse{
-		Message: fmt.Sprintf("The submitted octet-stream exceeds the maximum allowed size: %d.", limit),
-	}
+// NewBodySizeLimitExceededError returns an error indicating that the request body exceeds the allowed maximum size.
+func NewBodySizeLimitExceededError(limit int64) app.Error {
+	msg := fmt.Sprintf("The submitted octet-stream exceeds the maximum allowed size: %d bytes.", limit)
+	return app.NewIncorrectInputError(msg, msg)
 }
 
-// NewUnsupportedContentTypeResponse returns a BadRequestResponse indicating
-// that the Content-Type of the request is not supported.
-func NewUnsupportedContentTypeResponse(expected string) openapi.BadRequestResponse {
-	return openapi.BadRequestResponse{
-		Message: fmt.Sprintf("Unsupported content type. Expected: %s.", expected),
-	}
+// NewUnsupportedContentTypeError returns an error indicating that the submitted content type is not supported.
+// It includes the expected content type in the message.
+func NewUnsupportedContentTypeError(expected string) app.Error {
+	msg := fmt.Sprintf("Unsupported content type. Expected: %s.", expected)
+	return app.NewIncorrectInputError(msg, msg)
 }
 
-// ResponseBodyReadFailure is an InternalServerErrorResponse used when the server
-// cannot read the request body due to an internal issue.
-var ResponseBodyReadFailure = openapi.InternalServerErrorResponse{
-	Message: "Failed to process request octet-stream due to a read error.",
+// NewBodyReadError returns an error indicating that the request body could not be read or processed.
+// It wraps the original error with a user-facing message.
+func NewBodyReadError(err error) app.Error {
+	return app.NewRawDataProcessingError(
+		err.Error(),
+		"Unable to process request with content type octet-stream. Please verify the request content and try again later.",
+	)
 }
 
-// ResponseEmptyOctetStream is a BadRequestResponse used when the submitted
-// request octet-stream is empty.
-var ResponseEmptyOctetStream = openapi.BadRequestResponse{
-	Message: "Empty request octet-stream is not allowed.",
+// NewEmptyRequestBodyError returns an error indicating that the request body is empty, which is not allowed.
+func NewEmptyRequestBodyError() app.Error {
+	return app.NewIncorrectInputError(
+		"Unable to process empty octet stream",
+		"Unable to process request with content type octet-stream. The request body is empty.")
 }

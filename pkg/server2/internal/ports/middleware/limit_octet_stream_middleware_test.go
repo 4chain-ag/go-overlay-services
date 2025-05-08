@@ -105,18 +105,18 @@ func TestLimitOctetStreamMiddleware_InvalidCases(t *testing.T) {
 		"Request size exceeds octet-stream limit": {
 			headers:          map[string]string{fiber.HeaderContentType: fiber.MIMEOctetStream},
 			body:             strings.Repeat("A", 1025),
-			expectedResponse: middleware.NewRequestBodyTooLargeResponse(octetStreamLimit),
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewBodySizeLimitExceededError(octetStreamLimit)),
 			expectedStatus:   fiber.StatusBadRequest,
 		},
 		"Unsupported Content-Type is rejected": {
 			headers:          map[string]string{fiber.HeaderContentType: fiber.MIMEApplicationJSON},
-			expectedResponse: middleware.NewUnsupportedContentTypeResponse(fiber.MIMEOctetStream),
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewUnsupportedContentTypeError(fiber.MIMEOctetStream)),
 			expectedStatus:   fiber.StatusBadRequest,
 			body:             strings.Repeat("A", 10),
 		},
 		"Request octet-stream is empty": {
 			headers:          map[string]string{fiber.HeaderContentType: fiber.MIMEOctetStream},
-			expectedResponse: middleware.ResponseEmptyOctetStream,
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewEmptyRequestBodyError()),
 			expectedStatus:   fiber.StatusBadRequest,
 			body:             "",
 		},
