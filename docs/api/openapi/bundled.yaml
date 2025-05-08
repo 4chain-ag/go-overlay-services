@@ -34,6 +34,54 @@ paths:
                   - Message
         '500':
           $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/requestForeignGASPNode:
+    post:
+      tags:
+        - non-admin
+      operationId: RequestForeignGASPNode
+      parameters:
+        - in: header
+          name: X-BSV-Topic
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - graphID
+                - txID
+                - outputIndex
+              properties:
+                graphID:
+                  type: string
+                  description: The graph ID in the format of "txID.outputIndex"
+                  example: 0000000000000000000000000000000000000000000000000000000000000000.1
+                txID:
+                  type: string
+                  description: The transaction ID
+                  example: '0000000000000000000000000000000000000000000000000000000000000000'
+                outputIndex:
+                  type: integer
+                  description: The output index
+                  format: uint32
+                  example: 1
+      responses:
+        '200':
+          description: |
+            Overlay engine successfully provided the requested foreign GASP node.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: A GASP node representation from the overlay engine
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
   /api/v1/submit:
     post:
       tags:

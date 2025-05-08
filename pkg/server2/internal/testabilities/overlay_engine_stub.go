@@ -32,6 +32,13 @@ type SubmitTransactionProvider interface {
 	ProviderStateAsserter
 }
 
+// RequestForeignGASPNodeProvider extends app.RequestForeignGASPNodeProvider with the ability
+// to assert whether it was called during a test.
+type RequestForeignGASPNodeProvider interface {
+	app.RequestForeignGASPNodeProvider
+	ProviderStateAsserter
+}
+
 // TestOverlayEngineStubOption is a functional option type used to configure a TestOverlayEngineStub.
 // It allows setting custom behaviors for different parts of the TestOverlayEngineStub.
 type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
@@ -52,13 +59,22 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 	}
 }
 
+// WithRequestForeignGASPNodeProvider allows setting a custom RequestForeignGASPNodeProvider in a TestOverlayEngineStub.
+// This can be used to mock foreign GASP node retrieval during tests.
+func WithRequestForeignGASPNodeProvider(provider RequestForeignGASPNodeProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.requestForeignGASPNodeProvider = provider
+	}
+}
+
 // TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
-	t                          *testing.T
-	syncAdvertisementsProvider SyncAdvertisementsProvider
-	submitTransactionProvider  SubmitTransactionProvider
+	t                              *testing.T
+	syncAdvertisementsProvider     SyncAdvertisementsProvider
+	submitTransactionProvider      SubmitTransactionProvider
+	requestForeignGASPNodeProvider RequestForeignGASPNodeProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
@@ -103,15 +119,16 @@ func (s *TestOverlayEngineStub) Lookup(ctx context.Context, question *lookup.Loo
 	panic("unimplemented")
 }
 
-// ProvideForeignGASPNode returns a foreign GASP node (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
-func (s *TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoins *overlay.Outpoint, topic string) (*core.GASPNode, error) {
-	panic("unimplemented")
+// ProvideForeignGASPNode returns a foreign GASP node.
+// It calls the ProvideForeignGASPNode method of the configured provider.
+func (s *TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphID *overlay.Outpoint, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error) {
+	s.t.Helper()
+	return s.requestForeignGASPNodeProvider.ProvideForeignGASPNode(ctx, graphID, outpoint, topic)
 }
 
 // ProvideForeignSyncResponse returns a foreign sync response (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
-func (s *TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, initialRequess *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
+func (s *TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, initialRequest *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
 	panic("unimplemented")
 }
 
@@ -125,7 +142,6 @@ func (s *TestOverlayEngineStub) StartGASPSync(ctx context.Context) error {
 // It calls the Submit method of the configured SubmitTransactionProvider and handles the steak callback.
 func (s *TestOverlayEngineStub) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {
 	s.t.Helper()
-
 	return s.submitTransactionProvider.Submit(ctx, taggedBEEF, mode, onSteakReady)
 }
 
@@ -133,7 +149,6 @@ func (s *TestOverlayEngineStub) Submit(ctx context.Context, taggedBEEF overlay.T
 // It calls the SyncAdvertisements method of the provider and handles the result.
 func (s *TestOverlayEngineStub) SyncAdvertisements(ctx context.Context) error {
 	s.t.Helper()
-
 	return s.syncAdvertisementsProvider.SyncAdvertisements(ctx)
 }
 
@@ -144,9 +159,12 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 	providers := []ProviderStateAsserter{
 		s.submitTransactionProvider,
 		s.syncAdvertisementsProvider,
+		s.requestForeignGASPNodeProvider,
 	}
 	for _, p := range providers {
-		p.AssertCalled()
+		if p != nil {
+			p.AssertCalled()
+		}
 	}
 }
 
@@ -154,9 +172,10 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 // The options allow for configuring custom providers for transaction submission and advertisement synchronization.
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
-		t:                          t,
-		submitTransactionProvider:  NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
-		syncAdvertisementsProvider: NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
+		t:                              t,
+		submitTransactionProvider:      NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		syncAdvertisementsProvider:     NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
+		requestForeignGASPNodeProvider: NewRequestForeignGASPNodeProviderMock(t, RequestForeignGASPNodeProviderMockExpectations{ProvideForeignGASPNodeCall: false}),
 	}
 
 	for _, opt := range opts {

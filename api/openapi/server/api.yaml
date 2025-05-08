@@ -28,6 +28,28 @@ paths:
         500:
           $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
 
+  /api/v1/requestForeignGASPNode:
+    post:
+      tags:
+        - non-admin
+      operationId: RequestForeignGASPNode
+      parameters:
+        - in: header
+          name: X-BSV-Topic
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/RequestForeignGASPNodeBody'
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/RequestForeignGASPNodeResponse'
+        400:
+          $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
   /api/v1/submit:
     post:
       tags:

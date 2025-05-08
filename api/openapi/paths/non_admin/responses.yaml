@@ -40,6 +40,10 @@ components:
           $ref: "#/components/schemas/STEAK"
       required:
         - STEAK
+        
+    GASPNode:
+      type: object
+      description: A GASP node representation from the overlay engine
 
   responses:
     SubmitTransactionResponse:
@@ -49,3 +53,11 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+            
+    RequestForeignGASPNodeResponse:
+      description: |
+         Overlay engine successfully provided the requested foreign GASP node.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GASPNode'

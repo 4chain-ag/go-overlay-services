@@ -7,7 +7,27 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// RequestForeignGASPNodeJSONBody defines parameters for RequestForeignGASPNode.
+type RequestForeignGASPNodeJSONBody struct {
+	// GraphID The graph ID in the format of "txID.outputIndex"
+	GraphID string `json:"graphID"`
+
+	// OutputIndex The output index
+	OutputIndex uint32 `json:"outputIndex"`
+
+	// TxID The transaction ID
+	TxID string `json:"txID"`
+}
+
+// RequestForeignGASPNodeParams defines parameters for RequestForeignGASPNode.
+type RequestForeignGASPNodeParams struct {
+	XBSVTopic string `json:"X-BSV-Topic"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
+
+// RequestForeignGASPNodeJSONRequestBody defines body for RequestForeignGASPNode for application/json ContentType.
+type RequestForeignGASPNodeJSONRequestBody RequestForeignGASPNodeJSONBody

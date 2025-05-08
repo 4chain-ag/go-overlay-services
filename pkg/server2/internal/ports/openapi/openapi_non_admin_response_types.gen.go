@@ -11,6 +11,9 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"OutputsToAdmit"`
 }
 
+// GASPNode A GASP node representation from the overlay engine
+type GASPNode = map[string]interface{}
+
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
 
@@ -18,6 +21,9 @@ type STEAK map[string]AdmittanceInstructions
 type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
+
+// RequestForeignGASPNodeResponse A GASP node representation from the overlay engine
+type RequestForeignGASPNodeResponse = GASPNode
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction

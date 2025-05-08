@@ -71,6 +71,7 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, ports.RequestTimeout)
 		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(provider)
+		s.requestForeignGASPNodeHandler = ports.NewRequestForeignGASPNodeHandler(provider)
 	}
 }
 
@@ -115,6 +116,7 @@ func WithConfig(cfg *Config) ServerOption {
 			StrictRouting: true,
 			ServerHeader:  cfg.ServerHeader,
 			AppName:       cfg.AppName,
+			ErrorHandler:  ports.ErrorHandler(),
 		})
 	}
 }
@@ -127,8 +129,9 @@ type ServerHTTP struct {
 	middleware []fiber.Handler // middleware is a list of Fiber middleware functions to be applied globally.
 
 	// Handlers for processing incoming HTTP requests:
-	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
-	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	submitTransactionHandler      *ports.SubmitTransactionHandler      // submitTransactionHandler handles transaction submission requests.
+	syncAdvertisementsHandler     *ports.SyncAdvertisementsHandler     // advertisementsSyncHandler handles advertisement sync requests.
+	requestForeignGASPNodeHandler *ports.RequestForeignGASPNodeHandler // requestForeignGASPNodeHandler handles foreign GASP node requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -179,9 +182,10 @@ func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
 func New(opts ...ServerOption) *ServerHTTP {
 	noop := adapters.NewNoopEngineProvider()
 	srv := &ServerHTTP{
-		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
-		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
-		cfg:                       &DefaultConfig,
+		submitTransactionHandler:      ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
+		syncAdvertisementsHandler:     ports.NewSyncAdvertisementsHandler(noop),
+		requestForeignGASPNodeHandler: ports.NewRequestForeignGASPNodeHandler(noop),
+		cfg:                           &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
 			StrictRouting: true,
@@ -210,6 +214,7 @@ func (s *ServerHTTP) registerRoutes() {
 	v1.Get("/metrics", monitor.New(monitor.Config{Title: "Overlay-services API"}))
 
 	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.Handle)
+	v1.Post("/requestForeignGASPNode", s.requestForeignGASPNodeHandler.Handle)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)
