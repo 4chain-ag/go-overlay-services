@@ -235,7 +235,7 @@ func (s *ServerHTTP) registerRoutes() {
 		}),
 		s.syncAdvertisementsHandler.Handle,
 	)
-	
+
 	//TODO: Update this to use the new structure once refactoring is complete
 	admin.Post("/startGASPSync",
 		middleware.LoggingMiddleware(middleware.LoggingMiddlewareConfig{
