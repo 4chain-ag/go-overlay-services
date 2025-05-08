@@ -17,7 +17,6 @@ require (
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e
 )
 
 require (
