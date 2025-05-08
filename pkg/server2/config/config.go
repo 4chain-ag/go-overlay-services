@@ -5,13 +5,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server"
-	"github.com/4chain-ag/go-overlay-services/pkg/server/config/exporters"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/config/exporters"
 )
 
 // Config contains configuration settings for the overlay-engine API and its dependencies.
 type Config struct {
-	Server server.Config `mapstructure:"server"`
+	Server server2.Config `mapstructure:"server"`
 }
 
 // Export writes the configuration to the file at the specified path.
@@ -40,6 +40,6 @@ func (c *Config) Export(path string) error {
 // NewDefault returns a Config with default HTTP server and MongoDB settings.
 func NewDefault() Config {
 	return Config{
-		Server: server.DefaultConfig,
+		Server: server2.DefaultConfig,
 	}
 }
