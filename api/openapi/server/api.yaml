@@ -28,6 +28,19 @@ paths:
         500:
           $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
 
+  /api/v1/admin/startGASPSync:
+    post:
+      tags:
+        - admin
+      operationId: StartGASPSync
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          $ref: '../paths/admin/responses.yaml#/components/responses/StartGASPSyncResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
   /api/v1/submit:
     post:
       tags:

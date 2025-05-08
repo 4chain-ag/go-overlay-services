@@ -70,6 +70,7 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, ports.RequestTimeout)
 		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(provider)
+		s.startGASPSyncHandler = ports.NewStartGASPSyncHandler(provider)
 	}
 }
 
@@ -128,6 +129,7 @@ type ServerHTTP struct {
 	// Handlers for processing incoming HTTP requests:
 	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
 	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	startGASPSyncHandler      *ports.StartGASPSyncHandler      // startGASPSyncHandler handles GASP sync initiation requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -180,6 +182,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
 		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
 		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
+		startGASPSyncHandler:      ports.NewStartGASPSyncHandler(noop),
 		cfg:                       &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
@@ -231,5 +234,17 @@ func (s *ServerHTTP) registerRoutes() {
 			ErrorTypeProviderFailure: ports.SyncAdvertisementsInternalErrorResponse,
 		}),
 		s.syncAdvertisementsHandler.Handle,
+	)
+	
+	//TODO: Update this to use the new structure once refactoring is complete
+	admin.Post("/startGASPSync",
+		middleware.LoggingMiddleware(middleware.LoggingMiddlewareConfig{
+			Logger:    logger,
+			Component: "start-gasp-sync-handler",
+		}),
+		middleware.ErrorResponseMiddleware(middleware.ErrorResponseMiddlewareConfig{
+			ErrorTypeProviderFailure: ports.StartGASPSyncInternalErrorResponse,
+		}),
+		s.startGASPSyncHandler.Handle,
 	)
 }
