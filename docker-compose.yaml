@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    ports:
+      - 8080:8080
+    environment:
+      SWAGGER_JSON: /foo/bundled.yaml
+    volumes:
+      - ./docs/api/openapi:/foo:ro
