@@ -116,7 +116,6 @@ func WithConfig(cfg *Config) ServerOption {
 			StrictRouting: true,
 			ServerHeader:  cfg.ServerHeader,
 			AppName:       cfg.AppName,
-			ErrorHandler:  ports.ErrorHandler(),
 		})
 	}
 }
@@ -177,15 +176,12 @@ func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
 // It initializes the application with default settings and middleware, registers OpenAPI handlers,
 // sets up transaction submission and advertisement synchronization handlers using the provided OverlayEngineProvider,
 // and applies any optional functional configuration options passed via opts.
-//
-// The returned ServerHTTP instance is ready to be started by calling .Listen(...) or integrated into tests.
 func New(opts ...ServerOption) *ServerHTTP {
 	noop := adapters.NewNoopEngineProvider()
 	srv := &ServerHTTP{
-		submitTransactionHandler:      ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
-		syncAdvertisementsHandler:     ports.NewSyncAdvertisementsHandler(noop),
-		requestForeignGASPNodeHandler: ports.NewRequestForeignGASPNodeHandler(noop),
-		cfg:                           &DefaultConfig,
+		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
+		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
+		cfg:                       &DefaultConfig,
 		app: fiber.New(fiber.Config{
 			CaseSensitive: true,
 			StrictRouting: true,
@@ -208,6 +204,9 @@ func New(opts ...ServerOption) *ServerHTTP {
 	return srv
 }
 
+// registerRoutes defines and registers all HTTP routes handled by the server,
+// including public and admin endpoints. It applies middleware such as request
+// body limits and bearer token authentication where appropriate.
 func (s *ServerHTTP) registerRoutes() {
 	api := s.app.Group("/api")
 	v1 := api.Group("/v1")
@@ -218,4 +217,21 @@ func (s *ServerHTTP) registerRoutes() {
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)
+}
+
+// newFiberApp initializes a new Fiber application with the specified name and
+// server header. It enables case-sensitive and strict routing, applies a custom
+// error handler, and registers any global middleware passed to the function.
+func newFiberApp(name, header string, middleware ...fiber.Handler) *fiber.App {
+	app := fiber.New(fiber.Config{
+		CaseSensitive: true,
+		StrictRouting: true,
+		ServerHeader:  header,
+		AppName:       name,
+		ErrorHandler:  ports.ErrorHandler(),
+	})
+	for _, m := range middleware {
+		app.Use(m)
+	}
+	return app
 }

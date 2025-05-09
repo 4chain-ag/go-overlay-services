@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server/config/exporters"
-	"github.com/4chain-ag/go-overlay-services/pkg/server/config/loaders"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/config/exporters"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/config/loaders"
 	"github.com/stretchr/testify/require"
 )
 
