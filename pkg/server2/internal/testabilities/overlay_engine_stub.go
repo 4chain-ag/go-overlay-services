@@ -13,13 +13,32 @@ import (
 	"github.com/bsv-blockchain/go-sdk/transaction"
 )
 
+// ProviderStateAsserter is an interface for asserting internal state after a test run.
+type ProviderStateAsserter interface {
+	AssertCalled()
+}
+
+// SyncAdvertisementsProvider extends app.SyncAdvertisementsProvider with the ability
+// to assert whether it was called during a test.
+type SyncAdvertisementsProvider interface {
+	app.SyncAdvertisementsProvider
+	ProviderStateAsserter
+}
+
+// SubmitTransactionProvider extends app.SubmitTransactionProvider with the ability
+// to assert whether it was called during a test.
+type SubmitTransactionProvider interface {
+	app.SubmitTransactionProvider
+	ProviderStateAsserter
+}
+
 // TestOverlayEngineStubOption is a functional option type used to configure a TestOverlayEngineStub.
 // It allows setting custom behaviors for different parts of the TestOverlayEngineStub.
 type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
 
 // WithSyncAdvertisementsProvider allows setting a custom SyncAdvertisementsProvider in a TestOverlayEngineStub.
 // This can be used to mock advertisement synchronization behavior during tests.
-func WithSyncAdvertisementsProvider(provider app.SyncAdvertisementsProvider) TestOverlayEngineStubOption {
+func WithSyncAdvertisementsProvider(provider SyncAdvertisementsProvider) TestOverlayEngineStubOption {
 	return func(stub *TestOverlayEngineStub) {
 		stub.syncAdvertisementsProvider = provider
 	}
@@ -27,17 +46,9 @@ func WithSyncAdvertisementsProvider(provider app.SyncAdvertisementsProvider) Tes
 
 // WithSubmitTransactionProvider allows setting a custom SubmitTransactionProvider in a TestOverlayEngineStub.
 // This can be used to mock transaction submission behavior during tests.
-func WithSubmitTransactionProvider(provider app.SubmitTransactionProvider) TestOverlayEngineStubOption {
+func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverlayEngineStubOption {
 	return func(stub *TestOverlayEngineStub) {
 		stub.submitTransactionProvider = provider
-	}
-}
-
-// WithLookupQuestionProvider allows setting a custom LookupQuestionProvider in a TestOverlayEngineStub.
-// This can be used to mock lookup question behavior during tests.
-func WithLookupQuestionProvider(provider *LookupQuestionProviderMock) TestOverlayEngineStubOption {
-	return func(stub *TestOverlayEngineStub) {
-		stub.lookupQuestionProvider = provider
 	}
 }
 
@@ -46,125 +57,110 @@ func WithLookupQuestionProvider(provider *LookupQuestionProviderMock) TestOverla
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
 	t                          *testing.T
-	syncAdvertisementsProvider app.SyncAdvertisementsProvider
-	submitTransactionProvider  app.SubmitTransactionProvider
-	lookupQuestionProvider     *LookupQuestionProviderMock
+	syncAdvertisementsProvider SyncAdvertisementsProvider
+	submitTransactionProvider  SubmitTransactionProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
-func (t TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
+func (s *TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
 	panic("unimplemented")
 }
 
 // GetDocumentationForTopicManager returns documentation for a topic manager (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
-func (t TestOverlayEngineStub) GetDocumentationForTopicManager(provider string) (string, error) {
+func (s *TestOverlayEngineStub) GetDocumentationForTopicManager(provider string) (string, error) {
 	panic("unimplemented")
 }
 
 // GetUTXOHistory retrieves UTXO history for the given output (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
-func (t TestOverlayEngineStub) GetUTXOHistory(ctx context.Context, output *engine.Output, historySelector func(beef []byte, outputIndex uint32, currentDepth uint32) bool, currentDepth uint32) (*engine.Output, error) {
+func (s *TestOverlayEngineStub) GetUTXOHistory(ctx context.Context, outpus *engine.Output, historySelector func(beef []byte, outputIndex uint32, currentDepth uint32) bool, currentDepth uint32) (*engine.Output, error) {
 	panic("unimplemented")
 }
 
 // HandleNewMerkleProof processes a new Merkle proof for a transaction (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
-func (t TestOverlayEngineStub) HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error {
+func (s *TestOverlayEngineStub) HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error {
 	panic("unimplemented")
 }
 
 // ListLookupServiceProviders lists the available lookup service providers (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
-func (t TestOverlayEngineStub) ListLookupServiceProviders() map[string]*overlay.MetaData {
+func (s *TestOverlayEngineStub) ListLookupServiceProviders() map[string]*overlay.MetaData {
 	panic("unimplemented")
 }
 
 // ListTopicManagers lists the available topic managers (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
-func (t TestOverlayEngineStub) ListTopicManagers() map[string]*overlay.MetaData {
+func (s *TestOverlayEngineStub) ListTopicManagers() map[string]*overlay.MetaData {
 	panic("unimplemented")
 }
 
-// Lookup performs a lookup query based on the provided LookupQuestion.
-// It delegates to the lookupQuestionProvider if set, or returns a panic if unimplemented.
-func (t TestOverlayEngineStub) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
-	if t.lookupQuestionProvider != nil {
-		return t.lookupQuestionProvider.Lookup(ctx, question)
-	}
-
-	return &lookup.LookupAnswer{
-		Type:   lookup.AnswerTypeFreeform,
-		Result: map[string]any{},
-	}, nil
+// Lookup performs a lookup query based on the provided LookupQuestion (unimplemented).
+// This is a placeholder function meant to be overridden in actual implementations.
+func (s *TestOverlayEngineStub) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
+	panic("unimplemented")
 }
 
 // ProvideForeignGASPNode returns a foreign GASP node (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
-func (t TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error) {
+func (s *TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoins *overlay.Outpoint, topic string) (*core.GASPNode, error) {
 	panic("unimplemented")
 }
 
 // ProvideForeignSyncResponse returns a foreign sync response (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
-func (t TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, initialRequest *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
+func (s *TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, initialRequess *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
 	panic("unimplemented")
 }
 
 // StartGASPSync starts the GASP synchronization process (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
-func (t TestOverlayEngineStub) StartGASPSync(ctx context.Context) error {
+func (s *TestOverlayEngineStub) StartGASPSync(ctx context.Context) error {
 	panic("unimplemented")
 }
 
 // Submit processes a transaction submission and returns a steak or error based on the provided inputs.
 // It calls the Submit method of the configured SubmitTransactionProvider and handles the steak callback.
-func (t TestOverlayEngineStub) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {
-	t.t.Helper()
+func (s *TestOverlayEngineStub) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {
+	s.t.Helper()
 
-	return t.submitTransactionProvider.Submit(ctx, taggedBEEF, mode, onSteakReady)
+	return s.submitTransactionProvider.Submit(ctx, taggedBEEF, mode, onSteakReady)
 }
 
 // SyncAdvertisements synchronizes advertisements using the configured SyncAdvertisementsProvider.
 // It calls the SyncAdvertisements method of the provider and handles the result.
-func (t TestOverlayEngineStub) SyncAdvertisements(ctx context.Context) error {
-	t.t.Helper()
+func (s *TestOverlayEngineStub) SyncAdvertisements(ctx context.Context) error {
+	s.t.Helper()
 
-	return t.syncAdvertisementsProvider.SyncAdvertisements(ctx)
+	return s.syncAdvertisementsProvider.SyncAdvertisements(ctx)
+}
+
+// AssertProvidersState asserts that all configured providers were used as expected.
+func (s *TestOverlayEngineStub) AssertProvidersState() {
+	s.t.Helper()
+
+	providers := []ProviderStateAsserter{
+		s.submitTransactionProvider,
+		s.syncAdvertisementsProvider,
+	}
+	for _, p := range providers {
+		p.AssertCalled()
+	}
 }
 
 // NewTestOverlayEngineStub creates and returns a new instance of TestOverlayEngineStub with the provided options.
 // The options allow for configuring custom providers for transaction submission and advertisement synchronization.
-func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) engine.OverlayEngineProvider {
-	engine := TestOverlayEngineStub{
+func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
+	stub := TestOverlayEngineStub{
 		t:                          t,
-		submitTransactionProvider:  submitTransactionProviderAlwaysSuccessStub{},
-		syncAdvertisementsProvider: syncAdvertisementsProviderAlwaysSuccessStub{},
+		submitTransactionProvider:  NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		syncAdvertisementsProvider: NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
 	}
 
 	for _, opt := range opts {
-		opt(&engine)
+		opt(&stub)
 	}
-	return engine
-}
-
-// submitTransactionProviderAlwaysSuccessStub is a mock implementation of SubmitTransactionProvider that always succeeds.
-// It is used as the default SubmitTransactionProvider in the TestOverlayEngineStub.
-type submitTransactionProviderAlwaysSuccessStub struct{ ExpectedSteak overlay.Steak }
-
-// Submit simulates a successful transaction submission, triggering the onSteakReady callback with the expected steak.
-func (s submitTransactionProviderAlwaysSuccessStub) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {
-	onSteakReady(&s.ExpectedSteak)
-	return nil, nil
-}
-
-// syncAdvertisementsProviderAlwaysSuccessStub is a mock implementation of SyncAdvertisementsProvider that always succeeds.
-// It is used as the default SyncAdvertisementsProvider in the TestOverlayEngineStub.
-type syncAdvertisementsProviderAlwaysSuccessStub struct{}
-
-// SyncAdvertisements simulates a successful advertisements synchronization request call.
-// It always returns nil, indicating that the synchronization was successful.
-func (syncAdvertisementsProviderAlwaysSuccessStub) SyncAdvertisements(ctx context.Context) error {
-	return nil
+	return &stub
 }
