@@ -7,7 +7,25 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// RequestSyncResponseJSONBody defines parameters for RequestSyncResponse.
+type RequestSyncResponseJSONBody struct {
+	// Since Timestamp or sequence number from which to start synchronization
+	Since int `json:"since"`
+
+	// Version The version number of the GASP protocol
+	Version int `json:"version"`
+}
+
+// RequestSyncResponseParams defines parameters for RequestSyncResponse.
+type RequestSyncResponseParams struct {
+	// XBSVTopic Topic identifier for the sync response request
+	XBSVTopic string `json:"X-BSV-Topic"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
+
+// RequestSyncResponseJSONRequestBody defines body for RequestSyncResponse for application/json ContentType.
+type RequestSyncResponseJSONRequestBody RequestSyncResponseJSONBody

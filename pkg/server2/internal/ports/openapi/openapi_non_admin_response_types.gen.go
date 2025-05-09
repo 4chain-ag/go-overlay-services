@@ -19,5 +19,19 @@ type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
 
+// RequestSyncResponseResponse defines model for RequestSyncResponseResponse.
+type RequestSyncResponseResponse struct {
+	UTXOList []struct {
+		// Txid Transaction ID in hexadecimal format
+		Txid *string `json:"txid,omitempty"`
+
+		// Vout Output index number
+		Vout *int `json:"vout,omitempty"`
+	} `json:"UTXOList"`
+
+	// Since Timestamp or sequence number from which synchronization data was generated
+	Since int `json:"since"`
+}
+
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction

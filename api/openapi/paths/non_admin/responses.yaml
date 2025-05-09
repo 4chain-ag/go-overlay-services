@@ -49,3 +49,32 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+
+    RequestSyncResponseResponse:
+      description: |
+        Response containing synchronization data for the requested topic.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              UTXOList:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    txid:
+                      type: string
+                      description: 'Transaction ID in hexadecimal format'
+                    vout:
+                      type: integer
+                      description: 'Output index number'
+                required:
+                  - txid
+                  - vout
+              since:
+                type: integer
+                description: 'Timestamp or sequence number from which synchronization data was generated'
+            required:
+              - UTXOList
+              - since

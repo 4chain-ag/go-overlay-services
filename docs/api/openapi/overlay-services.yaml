@@ -134,6 +134,67 @@ paths:
             application/json:
               schema:
                 $ref: '#/paths/~1api~1v1~1submit/post/responses/400/content/application~1json/schema'
+  /api/v1/requestSyncResponse:
+    post:
+      tags:
+        - non-admin
+      operationId: RequestSyncResponse
+      parameters:
+        - in: header
+          name: X-BSV-Topic
+          schema:
+            type: string
+          required: true
+          description: Topic identifier for the sync response request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version:
+                  type: integer
+                  description: The version number of the GASP protocol
+                since:
+                  type: integer
+                  description: Timestamp or sequence number from which to start synchronization
+              required:
+                - version
+                - since
+      responses:
+        '200':
+          description: |
+            Response containing synchronization data for the requested topic.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  UTXOList:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        txid:
+                          type: string
+                          description: Transaction ID in hexadecimal format
+                        vout:
+                          type: integer
+                          description: Output index number
+                    required:
+                      - txid
+                      - vout
+                  since:
+                    type: integer
+                    description: Timestamp or sequence number from which synchronization data was generated
+                required:
+                  - UTXOList
+                  - since
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
 components:
   securitySchemes:
     bearerAuth:

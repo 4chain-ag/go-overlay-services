@@ -56,6 +56,29 @@ paths:
         409:
           $ref: '../errors/responses.yaml#/components/responses/RequestTimeoutResponse'
 
+  /api/v1/requestSyncResponse:
+    post:
+      tags:
+        - non-admin
+      operationId: RequestSyncResponse
+      parameters:
+        - in: header
+          name: X-BSV-Topic
+          schema:
+            type: string
+          required: true
+          description: Topic identifier for the sync response request
+      requestBody:
+        required: true
+        $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/RequestSyncResponseBody'
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/RequestSyncResponseResponse'
+        400:
+          $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
+        500:
+          $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:

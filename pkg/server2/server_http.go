@@ -71,6 +71,7 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, ports.RequestTimeout)
 		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(provider)
+		s.requestSyncResponseHandler = ports.NewRequestSyncResponseHandler(provider)
 	}
 }
 
@@ -122,8 +123,9 @@ type ServerHTTP struct {
 	middleware []fiber.Handler // middleware is a list of Fiber middleware functions to be applied globally.
 
 	// Handlers for processing incoming HTTP requests:
-	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
-	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	submitTransactionHandler   *ports.SubmitTransactionHandler   // submitTransactionHandler handles transaction submission requests.
+	syncAdvertisementsHandler  *ports.SyncAdvertisementsHandler  // advertisementsSyncHandler handles advertisement sync requests.
+	requestSyncResponseHandler *ports.RequestSyncResponseHandler // requestSyncResponseHandler handles sync response requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -172,10 +174,11 @@ func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
 func New(opts ...ServerOption) *ServerHTTP {
 	noop := adapters.NewNoopEngineProvider()
 	srv := &ServerHTTP{
-		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
-		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
-		cfg:                       &DefaultConfig,
-		app:                       newFiberApp("Overlay API", "Overlay API v0.0.0", middleware.BasicMiddlewareGroup()...),
+		submitTransactionHandler:   ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
+		syncAdvertisementsHandler:  ports.NewSyncAdvertisementsHandler(noop),
+		requestSyncResponseHandler: ports.NewRequestSyncResponseHandler(noop),
+		cfg:                        &DefaultConfig,
+		app:                        newFiberApp("Overlay API", "Overlay API v0.0.0", middleware.BasicMiddlewareGroup()...),
 	}
 
 	for _, opt := range opts {
@@ -195,6 +198,7 @@ func (s *ServerHTTP) registerRoutes() {
 	v1.Get("/metrics", monitor.New(monitor.Config{Title: "Overlay-services API"}))
 
 	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.Handle)
+	v1.Post("/requestSyncResponse", s.requestSyncResponseHandler.Handle)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)
