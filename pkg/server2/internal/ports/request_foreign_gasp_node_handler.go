@@ -2,10 +2,10 @@ package ports
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -31,16 +31,16 @@ type RequestForeignGASPNodePayload struct {
 
 // Handle processes requests for foreign GASP nodes.
 func (h *RequestForeignGASPNodeHandler) Handle(c *fiber.Ctx) error {
-	// Get topic from header
 	topic := c.Get(XBSVTopicHeader)
-
-	// Parse request body
-	var payload RequestForeignGASPNodePayload
-	if err := c.BodyParser(&payload); err != nil {
-		return app.NewIncorrectInputError("Invalid request body", "The submitted request body is invalid or malformed")
+	if topic == "" {
+		return NewMissingXBSVTopicHeaderError()
 	}
 
-	// Call service with string parameters - service will handle validation and conversion
+	var payload RequestForeignGASPNodePayload
+	if err := c.BodyParser(&payload); err != nil {
+		return NewInvalidRequestBodyError()
+	}
+
 	node, err := h.service.RequestForeignGASPNodeWithStrings(
 		c.Context(),
 		payload.GraphID,
@@ -66,7 +66,14 @@ func NewRequestForeignGASPNodeHandler(provider app.RequestForeignGASPNodeProvide
 	}
 }
 
-// RequestForeignGASPNodeInternalErrorResponse is the error response for internal errors.
-var RequestForeignGASPNodeInternalErrorResponse = openapi.InternalServerErrorResponse{
-	Message: "Unable to process foreign GASP node request due to an error in the overlay engine.",
+// NewMissingXBSVTopicHeaderError returns an Error indicating that the X-BSV-Topic header is missing.
+func NewMissingXBSVTopicHeaderError() app.Error {
+	str := fmt.Sprintf("The submitted request does not include required header: %s.", XBSVTopicHeader)
+	return app.NewIncorrectInputError(str, str)
+}
+
+// NewInvalidRequestBodyError returns an Error indicating that the request body is invalid.
+func NewInvalidRequestBodyError() app.Error {
+	const msg = "The submitted request body is invalid or malformed"
+	return app.NewIncorrectInputError(msg, msg)
 }

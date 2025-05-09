@@ -23,7 +23,6 @@ type RequestForeignGASPNodeService struct {
 // RequestForeignGASPNode requests a foreign GASP node using the configured provider.
 // Returns the GASP node on success, an error if the provider fails.
 func (s *RequestForeignGASPNodeService) RequestForeignGASPNode(ctx context.Context, graphID, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error) {
-	// Validate input parameters
 	if topic == "" {
 		return nil, NewMissingTopicError()
 	}
