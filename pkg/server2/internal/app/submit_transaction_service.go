@@ -27,9 +27,10 @@ type SubmitTransactionService struct {
 	submitCallTimeout time.Duration
 }
 
-// SubmitTransaction submits a transaction to the overlay engine using the configured provider.
+// SubmitTransaction submits a transaction to the configured provider.
 // It validates the provided topics, sends the transaction, and waits for a response (STEAK).
-// Returns a non-nil *overlay.Steak on success.An error if topics are missing, invalid, the provider fails, or a timeout occurs.
+// Returns a non-nil *overlay.Steak on success, or an error if topics are missing, invalid,
+// the provider fails, or a timeout occurs.
 func (s *SubmitTransactionService) SubmitTransaction(ctx context.Context, topics TransactionTopics, txBytes ...byte) (*overlay.Steak, error) {
 	err := topics.Verify()
 	if err != nil {
@@ -69,7 +70,7 @@ func NewSubmitTransactionService(provider SubmitTransactionProvider, timeout tim
 type TransactionTopics []string
 
 // Verify ensures the topic list is non-empty and that each topic is non-blank.
-// Returns ErrMissingTransactionTopics or ErrInvalidTransactionTopicFormat on failure.
+// Returns EmptyTransactionTopicsError or ErrInvalidTopicFormatError on failure.
 func (tt TransactionTopics) Verify() error {
 	if len(tt) == 0 {
 		return NewEmptyTransactionTopicsError()
@@ -90,7 +91,7 @@ func (tt TransactionTopics) Verify() error {
 func NewEmptyTransactionTopicsError() Error {
 	return Error{
 		errorType: ErrorTypeIncorrectInput,
-		err:       "provided topics cannot be an empty slice",
+		err:       "Provided topics cannot be an empty slice.",
 		slug:      "At least one topic must be provided in the correct string format. Empty topic values are not allowed.",
 	}
 }
@@ -100,18 +101,18 @@ func NewEmptyTransactionTopicsError() Error {
 func NewErrInvalidTopicFormatError(i int) Error {
 	return Error{
 		errorType: ErrorTypeIncorrectInput,
-		err:       fmt.Sprintf("invalid topic header format for topic no. %d", i+1),
+		err:       fmt.Sprintf("Invalid topic header format for topic no. %d.", i+1),
 		slug:      "One or more topics are in an invalid format. Empty string values are not allowed.",
 	}
 }
 
-// NewSubmitTransactionProviderError returns an Error indicating that the overlay engine
+// NewSubmitTransactionProviderError returns an Error indicating that the configured provider
 // failed to process a submitted transaction octet-stream.
 func NewSubmitTransactionProviderError(err error) Error {
 	return Error{
 		errorType: ErrorTypeProviderFailure,
 		err:       err.Error(),
-		slug:      "Unable to process submitted transaction octet-stream due to an error in the overlay engine.",
+		slug:      "Unable to process submitted transaction octet-stream due to an internal error. Please try again later or contact the support team.",
 	}
 }
 
@@ -120,7 +121,7 @@ func NewSubmitTransactionProviderError(err error) Error {
 func NewSubmitTransactionServiceTimeoutError(timeout time.Duration) Error {
 	return Error{
 		errorType: ErrorTypeOperationTimeout,
-		err:       fmt.Sprintf("submit transaction timeout occurred - limit set to %f seconds", timeout.Seconds()),
+		err:       fmt.Sprintf("Submit transaction timeout occurred - limit set to %f seconds", timeout.Seconds()),
 		slug:      "The submitted request exceeded the timeout limit",
 	}
 }

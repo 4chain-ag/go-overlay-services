@@ -2,13 +2,7 @@ package server2
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log/slog"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
@@ -38,19 +32,24 @@ type Config struct {
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
 
-	// OctetStreamLimit  defines the maximum allowed bytes read size (in bytes).
+	// OctetStreamLimit defines the maximum allowed bytes read size (in bytes).
 	// This limit by default is set to 1GB to protect against excessively large payloads.
 	OctetStreamLimit int64 `mapstructure:"octet_stream_limit"`
+
+	// ConnectionReadTimeout defines the maximum duration an active connection is allowed to stay open.
+	// Once this threshold is exceeded, the connection will be forcefully closed.
+	ConnectionReadTimeout time.Duration `mapstructure:"connection_read_timeout_limit"`
 }
 
 // DefaultConfig provides a default configuration with reasonable values for local development.
 var DefaultConfig = Config{
-	AppName:          "Overlay API v0.0.0",
-	Port:             3000,
-	Addr:             "localhost",
-	ServerHeader:     "Overlay API",
-	AdminBearerToken: uuid.NewString(),
-	OctetStreamLimit: middleware.ReadBodyLimit1GB,
+	AppName:               "Overlay API v0.0.0",
+	Port:                  3000,
+	Addr:                  "localhost",
+	ServerHeader:          "Overlay API",
+	AdminBearerToken:      uuid.NewString(),
+	OctetStreamLimit:      middleware.ReadBodyLimit1GB,
+	ConnectionReadTimeout: 10 * time.Second,
 }
 
 // ServerOption defines a functional option for configuring an HTTP server.
@@ -107,17 +106,17 @@ func WithAdminBearerToken(token string) ServerOption {
 // WithConfig sets the configuration for the HTTP server using the provided Config.
 // It initializes a new Fiber application with the specified server settings.
 // Returns a ServerOption to apply during server setup.
-func WithConfig(cfg *Config) ServerOption {
+func WithConfig(cfg Config) ServerOption {
 	return func(s *ServerHTTP) {
 		s.cfg = cfg
-		s.app = newFiberApp(cfg.ServerHeader, cfg.AppName, middleware.BasicMiddlewareGroup()...)
+		s.app = newFiberApp(cfg, middleware.BasicMiddlewareGroup()...)
 	}
 }
 
 // ServerHTTP represents the HTTP server instance, including configuration,
 // Fiber app instance, middleware stack, and registered request handlers.
 type ServerHTTP struct {
-	cfg        *Config         // cfg holds the server configuration settings.
+	cfg        Config          // cfg holds the server configuration settings.
 	app        *fiber.App      // app is the Fiber application instance serving HTTP requests.
 	middleware []fiber.Handler // middleware is a list of Fiber middleware functions to be applied globally.
 
@@ -131,38 +130,16 @@ func (s *ServerHTTP) SocketAddr() string {
 	return fmt.Sprintf("%s:%d", s.cfg.Addr, s.cfg.Port)
 }
 
-// ListenAndServe starts the HTTP server and listens for termination signals.
-// It returns a channel that will be closed once the shutdown is complete.
-func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
-	idleConnsClosed := make(chan struct{})
+// ListenAndServe starts the HTTP server and begins listening on the configured socket address.
+// It blocks until the server is stopped or an error occurs.
+func (s *ServerHTTP) ListenAndServe(ctx context.Context) error {
+	return s.app.Listen(s.SocketAddr())
+}
 
-	go func() {
-		sigint := make(chan os.Signal, 1)
-		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
-
-		select {
-		case <-sigint:
-			slog.Info("Shutdown signal received. Cleaning up...")
-		case <-ctx.Done():
-			slog.Info("Shutdown context canceled. Cleaning up...")
-		}
-
-		if err := s.app.ShutdownWithContext(ctx); err != nil {
-			slog.Error("HTTP shutdown error", slog.Attr{Key: "server_shutdown_err", Value: slog.StringValue(err.Error())})
-		}
-
-		close(idleConnsClosed)
-	}()
-
-	go func() {
-		err := s.app.Listen(s.SocketAddr())
-		isNotErrServerClosed := err != nil && !errors.Is(err, http.ErrServerClosed)
-		if isNotErrServerClosed {
-			slog.Error("HTTP shutdown error", slog.Attr{Key: "server_listen_err", Value: slog.StringValue(err.Error())})
-		}
-	}()
-
-	return idleConnsClosed
+// Shutdown gracefully shuts down the HTTP server using the provided context,
+// allowing ongoing requests to complete within the context's deadline.
+func (s *ServerHTTP) Shutdown(ctx context.Context) error {
+	return s.app.ShutdownWithContext(ctx)
 }
 
 // New creates and configures a new instance of ServerHTTP.
@@ -174,8 +151,8 @@ func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
 		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
 		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
-		cfg:                       &DefaultConfig,
-		app:                       newFiberApp("Overlay API", "Overlay API v0.0.0", middleware.BasicMiddlewareGroup()...),
+		cfg:                       DefaultConfig,
+		app:                       newFiberApp(DefaultConfig, middleware.BasicMiddlewareGroup()...),
 	}
 
 	for _, opt := range opts {
@@ -192,23 +169,29 @@ func New(opts ...ServerOption) *ServerHTTP {
 func (s *ServerHTTP) registerRoutes() {
 	api := s.app.Group("/api")
 	v1 := api.Group("/v1")
+
+	// HTTP GET:
 	v1.Get("/metrics", monitor.New(monitor.Config{Title: "Overlay-services API"}))
 
+	// HTTP POST:
 	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.Handle)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
+
+	// HTTP POST:
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)
 }
 
-// newFiberApp initializes a new Fiber application with the specified name and
-// server header. It enables case-sensitive and strict routing, applies a custom
-// error handler, and registers any global middleware passed to the function.
-func newFiberApp(name, header string, middleware ...fiber.Handler) *fiber.App {
+// newFiberApp creates and returns a new instance of a fiber.App with the provided configuration and middleware.
+// The app is configured with case-sensitive routing, strict routing, custom server headers, and read timeout settings.
+// Additionally, any provided middleware handlers are applied to the app.
+func newFiberApp(cfg Config, middleware ...fiber.Handler) *fiber.App {
 	app := fiber.New(fiber.Config{
 		CaseSensitive: true,
 		StrictRouting: true,
-		ServerHeader:  header,
-		AppName:       name,
+		ServerHeader:  cfg.ServerHeader,
+		AppName:       cfg.AppName,
+		ReadTimeout:   cfg.ConnectionReadTimeout,
 		ErrorHandler:  ports.ErrorHandler(),
 	})
 	for _, m := range middleware {

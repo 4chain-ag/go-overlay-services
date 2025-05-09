@@ -2,6 +2,7 @@ package ports
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
@@ -15,11 +16,12 @@ import (
 // returns a generic internal server error response.
 func ErrorHandler() fiber.ErrorHandler {
 	codes := map[app.ErrorType]int{
-		app.ErrorTypeAuthorization:    fiber.StatusUnauthorized,
-		app.ErrorTypeAccessForbidden:  fiber.StatusForbidden,
-		app.ErrorTypeIncorrectInput:   fiber.StatusBadRequest,
-		app.ErrorTypeOperationTimeout: fiber.StatusRequestTimeout,
-		app.ErrorTypeProviderFailure:  fiber.StatusInternalServerError,
+		app.ErrorTypeAuthorization:     fiber.StatusUnauthorized,
+		app.ErrorTypeAccessForbidden:   fiber.StatusForbidden,
+		app.ErrorTypeIncorrectInput:    fiber.StatusBadRequest,
+		app.ErrorTypeOperationTimeout:  fiber.StatusRequestTimeout,
+		app.ErrorTypeProviderFailure:   fiber.StatusInternalServerError,
+		app.ErrorTypeRawDataProcessing: fiber.StatusInternalServerError,
 	}
 
 	return func(c *fiber.Ctx, err error) error {
@@ -27,13 +29,18 @@ func ErrorHandler() fiber.ErrorHandler {
 			return nil
 		}
 
-		var target app.Error
-		if !errors.As(err, &target) || target.IsZero() {
+		var fiberErr *fiber.Error
+		if errors.As(err, &fiberErr) {
+			return c.Status(fiberErr.Code).JSON(openapi.Error{Message: http.StatusText(fiberErr.Code)}) // TODO: Add more descriptive responses.
+		}
+
+		var appErr app.Error
+		if !errors.As(err, &appErr) || appErr.IsZero() {
 			return c.Status(fiber.StatusInternalServerError).JSON(UnhandledErrorTypeResponse)
 		}
 
-		code := codes[target.ErrorType()]
-		return c.Status(code).JSON(openapi.Error{Message: target.Slug()})
+		code := codes[appErr.ErrorType()]
+		return c.Status(code).JSON(openapi.Error{Message: appErr.Slug()})
 	}
 }
 
