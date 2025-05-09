@@ -134,6 +134,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/paths/~1api~1v1~1submit/post/responses/400/content/application~1json/schema'
+  /api/v1/lookup:
+    post:
+      tags:
+        - non-admin
+      operationId: LookupQuestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                service:
+                  type: string
+                  description: Service name to query
+                query:
+                  type: object
+                  description: Query parameters specific to the service
+                  additionalProperties: true
+              required:
+                - service
+                - query
+      responses:
+        '200':
+          description: |
+            Overlay engine successfully processed the lookup question and returned an answer.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer:
+                    type: object
+                    description: The answer data for the lookup question
+                    additionalProperties: true
+                required:
+                  - answer
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
 components:
   securitySchemes:
     bearerAuth:

@@ -40,6 +40,16 @@ components:
           $ref: "#/components/schemas/STEAK"
       required:
         - STEAK
+        
+    LookupAnswer:
+      type: object
+      properties:
+        answer:
+          type: object
+          description: 'The answer data for the lookup question'
+          additionalProperties: true
+      required:
+        - answer
 
   responses:
     SubmitTransactionResponse:
@@ -49,3 +59,11 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+            
+    LookupQuestionResponse:
+      description: |
+        Overlay engine successfully processed the lookup question and returned an answer.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LookupAnswer'

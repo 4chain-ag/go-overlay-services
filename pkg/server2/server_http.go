@@ -71,6 +71,7 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
 		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, ports.RequestTimeout)
 		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(provider)
+		s.lookupQuestionHandler = ports.NewLookupQuestionHandler(provider)
 	}
 }
 
@@ -124,6 +125,7 @@ type ServerHTTP struct {
 	// Handlers for processing incoming HTTP requests:
 	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
 	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	lookupQuestionHandler     *ports.LookupQuestionHandler     // lookupQuestionHandler handles lookup question requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -174,6 +176,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
 		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
 		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
+		lookupQuestionHandler:     ports.NewLookupQuestionHandler(noop),
 		cfg:                       &DefaultConfig,
 		app:                       newFiberApp("Overlay API", "Overlay API v0.0.0", middleware.BasicMiddlewareGroup()...),
 	}
@@ -195,6 +198,7 @@ func (s *ServerHTTP) registerRoutes() {
 	v1.Get("/metrics", monitor.New(monitor.Config{Title: "Overlay-services API"}))
 
 	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.Handle)
+	v1.Post("/lookup", s.lookupQuestionHandler.Handle)
 
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)

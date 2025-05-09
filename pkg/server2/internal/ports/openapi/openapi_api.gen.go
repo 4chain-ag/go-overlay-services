@@ -7,7 +7,19 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// LookupQuestionJSONBody defines parameters for LookupQuestion.
+type LookupQuestionJSONBody struct {
+	// Query Query parameters specific to the service
+	Query map[string]interface{} `json:"query"`
+
+	// Service Service name to query
+	Service string `json:"service"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
+
+// LookupQuestionJSONRequestBody defines body for LookupQuestion for application/json ContentType.
+type LookupQuestionJSONRequestBody LookupQuestionJSONBody
