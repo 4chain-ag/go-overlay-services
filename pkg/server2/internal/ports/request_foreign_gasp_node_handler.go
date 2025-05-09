@@ -6,8 +6,6 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
-	"github.com/bsv-blockchain/go-sdk/chainhash"
-	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -16,7 +14,7 @@ const XBSVTopicHeader = "X-BSV-Topic"
 
 // RequestForeignGASPNodeService defines the interface for a service handling foreign GASP node requests.
 type RequestForeignGASPNodeService interface {
-	RequestForeignGASPNode(ctx context.Context, graphID, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error)
+	RequestForeignGASPNodeWithStrings(ctx context.Context, graphIDStr string, txIDStr string, outputIndex uint32, topic string) (*core.GASPNode, error)
 }
 
 // RequestForeignGASPNodeHandler handles requests for foreign GASP nodes.
@@ -33,36 +31,23 @@ type RequestForeignGASPNodePayload struct {
 
 // Handle processes requests for foreign GASP nodes.
 func (h *RequestForeignGASPNodeHandler) Handle(c *fiber.Ctx) error {
-	// Check for topic header
+	// Get topic from header
 	topic := c.Get(XBSVTopicHeader)
-	if topic == "" {
-		return NewMissingXBSVTopicHeaderError()
-	}
 
 	// Parse request body
 	var payload RequestForeignGASPNodePayload
 	if err := c.BodyParser(&payload); err != nil {
-		return NewInvalidRequestBodyError()
+		return app.NewIncorrectInputError("Invalid request body", "The submitted request body is invalid or malformed")
 	}
 
-	// Create outpoint
-	outpoint := &overlay.Outpoint{
-		OutputIndex: payload.OutputIndex,
-	}
-	txid, err := chainhash.NewHashFromHex(payload.TxID)
-	if err != nil {
-		return NewInvalidTxIDError()
-	}
-	outpoint.Txid = *txid
-
-	// Create graphID
-	graphID, err := overlay.NewOutpointFromString(payload.GraphID)
-	if err != nil {
-		return NewInvalidGraphIDError()
-	}
-
-	// Call service
-	node, err := h.service.RequestForeignGASPNode(c.Context(), graphID, outpoint, topic)
+	// Call service with string parameters - service will handle validation and conversion
+	node, err := h.service.RequestForeignGASPNodeWithStrings(
+		c.Context(),
+		payload.GraphID,
+		payload.TxID,
+		payload.OutputIndex,
+		topic,
+	)
 	if err != nil {
 		return err
 	}
@@ -79,27 +64,6 @@ func NewRequestForeignGASPNodeHandler(provider app.RequestForeignGASPNodeProvide
 	return &RequestForeignGASPNodeHandler{
 		service: app.NewRequestForeignGASPNodeService(provider),
 	}
-}
-
-// Error types for RequestForeignGASPNode handler
-func NewMissingXBSVTopicHeaderError() app.Error {
-	const msg = "The submitted request does not include required header: X-BSV-Topic"
-	return app.NewIncorrectInputError(msg, msg)
-}
-
-func NewInvalidRequestBodyError() app.Error {
-	const msg = "The submitted request body is invalid or malformed"
-	return app.NewIncorrectInputError(msg, msg)
-}
-
-func NewInvalidTxIDError() app.Error {
-	const msg = "The submitted txID is not a valid transaction hash"
-	return app.NewIncorrectInputError(msg, msg)
-}
-
-func NewInvalidGraphIDError() app.Error {
-	const msg = "The submitted graphID is not in a valid format (expected: txID.outputIndex)"
-	return app.NewIncorrectInputError(msg, msg)
 }
 
 // RequestForeignGASPNodeInternalErrorResponse is the error response for internal errors.

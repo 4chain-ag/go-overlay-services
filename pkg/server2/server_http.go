@@ -111,12 +111,7 @@ func WithAdminBearerToken(token string) ServerOption {
 func WithConfig(cfg *Config) ServerOption {
 	return func(s *ServerHTTP) {
 		s.cfg = cfg
-		s.app = fiber.New(fiber.Config{
-			CaseSensitive: true,
-			StrictRouting: true,
-			ServerHeader:  cfg.ServerHeader,
-			AppName:       cfg.AppName,
-		})
+		s.app = newFiberApp(cfg.ServerHeader, cfg.AppName, middleware.BasicMiddlewareGroup()...)
 	}
 }
 
@@ -179,21 +174,11 @@ func (s *ServerHTTP) ListenAndServe(ctx context.Context) <-chan struct{} {
 func New(opts ...ServerOption) *ServerHTTP {
 	noop := adapters.NewNoopEngineProvider()
 	srv := &ServerHTTP{
-		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
-		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
-		cfg:                       &DefaultConfig,
-		app: fiber.New(fiber.Config{
-			CaseSensitive: true,
-			StrictRouting: true,
-			ServerHeader:  "Overlay API",
-			AppName:       "Overlay API v0.0.0",
-			ErrorHandler:  ports.ErrorHandler(),
-		}),
-		middleware: middleware.BasicMiddlewareGroup(),
-	}
-
-	for _, m := range srv.middleware {
-		srv.app.Use(m)
+		submitTransactionHandler:      ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
+		syncAdvertisementsHandler:     ports.NewSyncAdvertisementsHandler(noop),
+		requestForeignGASPNodeHandler: ports.NewRequestForeignGASPNodeHandler(noop),
+		cfg:                           &DefaultConfig,
+		app:                           newFiberApp("Overlay API", "Overlay API v0.0.0", middleware.BasicMiddlewareGroup()...),
 	}
 
 	for _, opt := range opts {
