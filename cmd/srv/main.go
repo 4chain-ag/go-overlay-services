@@ -2,64 +2,55 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
+	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server"
-	"github.com/4chain-ag/go-overlay-services/pkg/server/config"
-	"github.com/4chain-ag/go-overlay-services/pkg/server/config/loaders"
-	"github.com/gookit/slog"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/config"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/config/loaders"
 )
 
 func main() {
-	configPath := flag.String("c", loaders.DefaultConfigFilePath, "Path to the configuration file")
-	flag.Parse()
-
-	loader := loaders.NewLoader(config.NewDefault, "OVERLAY")
-	if err := loader.SetConfigFilePath(*configPath); err != nil {
-		slog.Fatalf("Invalid config file path: %v", err)
+	if err := execute(); err != nil {
+		log.Fatal(err)
 	}
-
-	cfg, err := loader.Load()
-	if err != nil {
-		slog.Fatalf("failed to load config: %v", err)
-	}
-
-	if err := config.PrettyPrintAs(cfg, "json"); err != nil {
-		slog.Fatalf("failed to pretty print config: %v", err)
-	}
-
-	opts := []server.HTTPOption{
-		server.WithMiddleware(loggingMiddleware),
-		server.WithConfig(&cfg.Server),
-	}
-
-	httpAPI, err := server.New(opts...)
-	if err != nil {
-		slog.Fatalf("Failed to create HTTP server: %v", err)
-	}
-
-	// Graceful shutdown handling
-	ctx := context.Background()
-	idleConnsClosed := httpAPI.StartWithGracefulShutdown(ctx)
-	<-idleConnsClosed
-	slog.Info("Server shutdown completed.")
 }
 
-// loggingMiddleware is a custom definition of the logging middleware format accepted by the HTTP API.
-func loggingMiddleware(next http.Handler) http.Handler {
-	slog.SetLogLevel(slog.DebugLevel)
-	slog.SetFormatter(slog.NewJSONFormatter(func(f *slog.JSONFormatter) {
-		f.PrettyPrint = true
-	}))
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := slog.WithFields(slog.M{
-			"category":    "service",
-			"method":      r.Method,
-			"remote-addr": r.RemoteAddr,
-			"request-uri": r.RequestURI,
-		})
-		logger.Info("log-line")
-		next.ServeHTTP(w, r)
-	})
+func execute() error {
+	configPath := flag.String("config", loaders.DefaultConfigFilePath, "Path to the configuration file")
+	flag.Parse()
+
+	cfg, err := config.LoadFromPath(*configPath, "OVERLAY")
+	if err != nil {
+		return fmt.Errorf("load config op failed: %w", err)
+	}
+
+	ctx := context.Background()
+	srv := server2.New(server2.WithConfig(cfg))
+	done := make(chan struct{})
+
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+
+		// We received an interrupt signal, shut down.
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("http server shutdown err: %v", err)
+		}
+		close(done)
+	}()
+
+	err = srv.ListenAndServe(ctx)
+	if !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("http server listen and serve op failure: %w", err)
+	}
+	<-done
+
+	return nil
 }
