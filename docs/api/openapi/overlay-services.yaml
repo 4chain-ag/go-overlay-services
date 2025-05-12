@@ -125,8 +125,8 @@ components:
   responses:
     BadRequestResponse:
       description: |
-        The server cannot process the request due to malformed syntax or invalid input. 
-        This error is typically caused by client-side issues, such as missing required parameters, 
+        The server cannot process the request due to malformed syntax or invalid input.
+        This error is typically caused by client-side issues, such as missing required parameters,
         invalid data formats, or incorrect request structures.
       content:
         application/json:
@@ -143,7 +143,7 @@ components:
     InternalServerErrorResponse:
       description: |
         An unexpected condition was encountered on the server, causing the request to fail.
-        This error is typically caused by internal issues such as server misconfigurations, 
+        This error is typically caused by internal issues such as server misconfigurations,
         database failures, or unhandled exceptions.
       content:
         application/json:
@@ -151,7 +151,7 @@ components:
             $ref: '#/components/schemas/Error'
     RequestTimeoutResponse:
       description: |
-        The server did not receive a complete request within the time it was prepared to wait. 
+        The server did not receive a complete request within the time it was prepared to wait.
         This error can occur if the client’s request takes too long to process or there is network latency.
       content:
         application/json:

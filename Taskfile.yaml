@@ -2,7 +2,7 @@ version: '3'
 
 vars:
   OPENAPI_FILE: api/openapi/server/api.yaml
-  SWAGGER_FILE: overlay-services.yaml
+  SWAGGER_FILE: docs/api/openapi/overlay-services.yaml
 
 tasks:
   default:
@@ -20,7 +20,7 @@ tasks:
     desc: "Bundle OpenAPI spec."
     cmds:
       - swagger-cli bundle {{.OPENAPI_FILE}} -o {{.SWAGGER_FILE}} -t yaml
-    silent: true 
+    silent: true
 
   swagger-ui-up:
     desc: "Bundle OpenAPI spec and start Swagger UI with Docker Compose."
