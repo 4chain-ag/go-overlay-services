@@ -1,14 +1,11 @@
 version: '3.8'
 
 services:
-  mongo:
-    image: mongo:6.0
-    container_name: overlay-mongo
+  swagger-ui:
+    image: swaggerapi/swagger-ui
     ports:
-      - "27017:27017"
+      - 8080:8080
+    environment:
+      SWAGGER_JSON: /foo/overlay-services.yaml
     volumes:
-      - mongo_data:/data/db
-    restart: unless-stopped
-
-volumes:
-  mongo_data:
+      - ./docs/api/openapi:/foo:ro

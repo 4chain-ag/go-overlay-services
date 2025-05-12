@@ -1,0 +1,52 @@
+
+components:
+  schemas:
+    AdmittanceInstructions:
+      type: object
+      properties:
+        OutputsToAdmit:
+          type: array
+          items:
+            type: integer
+            format: uint32
+        CoinsToRetain:
+          type: array
+          items:
+            type: integer
+            format: uint32
+        CoinsRemoved:
+          type: array
+          items:
+            type: integer
+            format: uint32
+        AncillaryTxIDs:
+          type: array
+          items:
+            type: string
+      required:
+        - OutputsToAdmit
+        - CoinsToRetain
+        - CoinsRemoved
+        - AncillaryTxIDs
+
+    STEAK:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/AdmittanceInstructions"
+
+    SubmitTransaction:
+      type: object
+      properties:
+        STEAK:
+          $ref: "#/components/schemas/STEAK"
+      required:
+        - STEAK
+
+  responses:
+    SubmitTransactionResponse:
+      description: |
+         Overlay engine successfully processed the submitted transaction octet-stream with the specified topic headers.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SubmitTransaction'

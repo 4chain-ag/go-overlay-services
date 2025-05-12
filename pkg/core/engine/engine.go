@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/advertiser"
@@ -19,7 +20,6 @@ import (
 	"github.com/bsv-blockchain/go-sdk/spv"
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/bsv-blockchain/go-sdk/transaction/chaintracker"
-	"golang.org/x/exp/slices"
 )
 
 var TRUE = true
