@@ -9,7 +9,7 @@ tasks:
     cmds:
       - task --list
     desc: "Display all available tasks."
-    
+
   swagger-cli:
     desc: "Install swagger-cli globally using npm."
     cmds:
