@@ -105,11 +105,11 @@ issues:
 
     - path: /ports/
       linters:
-        - wrapcheck 
+        - wrapcheck
 
     - path: /server2/
       linters:
-        - wrapcheck 
+        - wrapcheck
 
     - path: /core/
       linters:
