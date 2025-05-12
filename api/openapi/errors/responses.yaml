@@ -42,7 +42,16 @@ components:
     RequestTimeoutResponse:
       description: |
         The server did not receive a complete request within the time it was prepared to wait. 
-        This error can occur if the client’s request takes too long to process or there is network latency.
+        This error can occur if the client's request takes too long to process or there is network latency.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+            
+    GatewayTimeoutResponse:
+      description: |
+        The server was acting as a gateway or proxy and did not receive a timely response from the upstream server.
+        This error occurs when the server is waiting for a response from another server, but the request times out.
       content:
         application/json:
           schema:

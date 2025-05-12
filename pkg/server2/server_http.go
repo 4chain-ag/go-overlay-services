@@ -39,6 +39,12 @@ type Config struct {
 	// ConnectionReadTimeout defines the maximum duration an active connection is allowed to stay open.
 	// Once this threshold is exceeded, the connection will be forcefully closed.
 	ConnectionReadTimeout time.Duration `mapstructure:"connection_read_timeout_limit"`
+
+	// ArcCallbackToken is the token required for ARC ingest endpoint authentication.
+	ArcCallbackToken string `mapstructure:"arc_callback_token"`
+
+	// ArcApiKey is the key used for ARC API integration. Empty value means ARC is disabled.
+	ArcApiKey string `mapstructure:"arc_api_key"`
 }
 
 // DefaultConfig provides a default configuration with reasonable values for local development.
@@ -50,6 +56,8 @@ var DefaultConfig = Config{
 	AdminBearerToken:      uuid.NewString(),
 	OctetStreamLimit:      middleware.ReadBodyLimit1GB,
 	ConnectionReadTimeout: 10 * time.Second,
+	ArcCallbackToken:      "",
+	ArcApiKey:             "",
 }
 
 // ServerOption defines a functional option for configuring an HTTP server.
@@ -81,6 +89,14 @@ func WithSubmitTransactionHandlerResponseTime(provider app.SubmitTransactionProv
 	}
 }
 
+// WithArcIngestHandler sets the ARC ingest handler with the provided NewMerkleProofProvider
+// for the HTTP server. This configures the ServerHTTP to handle ARC ingest requests.
+func WithArcIngestHandler(provider app.NewMerkleProofProvider, timeout time.Duration) ServerOption {
+	return func(s *ServerHTTP) {
+		s.arcIngestHandler = ports.NewArcIngestHandler(provider, ports.WithArcResponseTimeout(timeout))
+	}
+}
+
 // WithOctetStreamLimit returns a ServerOption that sets the maximum allowed size (in bytes)
 // for incoming requests with Content-Type: application/octet-stream.
 // This is useful for controlling memory usage when clients upload large binary payloads.
@@ -100,6 +116,16 @@ func WithOctetStreamLimit(limit int64) ServerOption {
 func WithAdminBearerToken(token string) ServerOption {
 	return func(s *ServerHTTP) {
 		s.cfg.AdminBearerToken = token
+	}
+}
+
+// WithArcCallbackToken sets the ARC callback token used for authenticating
+// ARC ingest routes on the HTTP server.
+// It returns a ServerOption that applies this configuration to ServerHTTP.
+func WithArcCallbackToken(token string, apiKey string) ServerOption {
+	return func(s *ServerHTTP) {
+		s.cfg.ArcCallbackToken = token
+		s.cfg.ArcApiKey = apiKey
 	}
 }
 
@@ -123,6 +149,7 @@ type ServerHTTP struct {
 	// Handlers for processing incoming HTTP requests:
 	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
 	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	arcIngestHandler          *ports.ArcIngestHandler          // arcIngestHandler handles ARC ingest requests.
 }
 
 // SocketAddr builds the address string for binding.
@@ -151,6 +178,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
 		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
 		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
+		arcIngestHandler:          nil, // Will be set if WithArcIngestHandler is used
 		cfg:                       DefaultConfig,
 		app:                       newFiberApp(DefaultConfig, middleware.BasicMiddlewareGroup()...),
 	}
@@ -176,10 +204,14 @@ func (s *ServerHTTP) registerRoutes() {
 	// HTTP POST:
 	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.Handle)
 
+	// Admin routes
 	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
-
-	// HTTP POST:
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)
+
+	// ARC ingest route - only register if ArcApiKey is configured (non-empty)
+	if s.cfg.ArcApiKey != "" && s.arcIngestHandler != nil {
+		v1.Post("/arc-ingest", middleware.ArcCallbackTokenMiddleware(s.cfg.ArcCallbackToken, s.cfg.ArcApiKey), s.arcIngestHandler.HandleArcIngest)
+	}
 }
 
 // newFiberApp creates and returns a new instance of a fiber.App with the provided configuration and middleware.
