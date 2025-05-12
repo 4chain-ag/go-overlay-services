@@ -17,11 +17,11 @@ components:
           type: array
           items:
             type: integer
-            format: uint32 
+            format: uint32
         AncillaryTxIDs:
           type: array
           items:
-            type: string 
+            type: string
       required:
         - OutputsToAdmit
         - CoinsToRetain
@@ -29,7 +29,7 @@ components:
         - AncillaryTxIDs
 
     STEAK:
-      type: object 
+      type: object
       additionalProperties:
         $ref: "#/components/schemas/AdmittanceInstructions"
 

@@ -10,7 +10,7 @@ tags:
   - name: admin
     description: Admin API endpoints
   - name: non-admin
-    description: Non Admin API endpointsa
+    description: Non Admin API endpoints
 paths:
   /api/v1/admin/syncAdvertisements:
     post:

@@ -29,7 +29,7 @@ tasks:
     cmds:
       - swagger-cli bundle {{.OPENAPI_FILE}} -o {{.SWAGGER_FILE}} -t yaml
       - docker-compose down
-    silent: true 
+    silent: true
 
   swagger-cleanup:
     desc: "Remove generated Swagger files and stop running containers if needed."

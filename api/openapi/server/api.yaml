@@ -12,7 +12,7 @@ tags:
   - name: admin
     description: Admin API endpoints
   - name: non-admin
-    description: Non Admin API endpointsa
+    description: Non Admin API endpoints
 
 paths:
   /api/v1/admin/syncAdvertisements:
@@ -39,9 +39,9 @@ paths:
           schema:
             type: array
             items:
-              type: string 
+              type: string
           required: true
-          explode: true 
+          explode: true
           style: simple
       requestBody:
         required: true
@@ -71,7 +71,7 @@ components:
     bearerAuth:
       type: http 
       scheme: bearer
-      
+            
   responses:
     BadRequestResponse:
       description: |
