@@ -16,7 +16,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
 )
-//TODO: check draft if all test cases are covered for http and fiber
+
+// TODO: check draft if all test cases are covered for http and fiber
 const (
 	testArcCallbackToken = "test-arc-callback-token"
 	testArcApiKey        = "test-arc-api-key"

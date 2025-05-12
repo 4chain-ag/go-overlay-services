@@ -8,7 +8,8 @@ import (
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/stretchr/testify/require"
 )
-//TODO: consolidate mocks for arc ingest
+
+// TODO: consolidate mocks for arc ingest
 // MerkleProofProviderMock is a mock implementation of the NewMerkleProofProvider interface,
 // used for testing components that interact with Merkle proof processing.
 type MerkleProofProviderMock struct {

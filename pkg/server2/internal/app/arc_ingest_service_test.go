@@ -12,7 +12,8 @@ import (
 	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/stretchr/testify/require"
 )
-//TODO: move all mock providers to testabilities
+
+// TODO: move all mock providers to testabilities
 type ServiceTestMerkleProofProvider struct {
 	shouldBeCalled bool
 	error          error
