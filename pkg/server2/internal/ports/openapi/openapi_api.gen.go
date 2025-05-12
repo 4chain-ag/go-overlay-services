@@ -7,6 +7,24 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Error defines model for Error.
+type Error struct {
+	// Message Human-readable error message
+	Message string `json:"message"`
+}
+
+// BadRequestResponse defines model for BadRequestResponse.
+type BadRequestResponse = Error
+
+// InternalServerErrorResponse defines model for InternalServerErrorResponse.
+type InternalServerErrorResponse = Error
+
+// NotFoundResponse defines model for NotFoundResponse.
+type NotFoundResponse = Error
+
+// RequestTimeoutResponse defines model for RequestTimeoutResponse.
+type RequestTimeoutResponse = Error
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`

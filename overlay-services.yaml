@@ -1,0 +1,159 @@
+openapi: 3.0.4
+info:
+  version: 1.0.0
+  title: Overlay HTTP API
+  description: The overlay server API
+servers:
+  - url: 'http://localhost:3000'
+    description: 'Optional server description, e.g. Main (production) server'
+tags:
+  - name: admin
+    description: Admin API endpoints
+  - name: non-admin
+    description: Non Admin API endpointsa
+paths:
+  /api/v1/admin/syncAdvertisements:
+    post:
+      tags:
+        - admin
+      operationId: AdvertisementsSync
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: |
+            Advertisement sync request successfully delegated to overlay engine.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Message:
+                    type: string
+                required:
+                  - Message
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /api/v1/submit:
+    post:
+      tags:
+        - non-admin
+      operationId: SubmitTransaction
+      parameters:
+        - in: header
+          name: x-topics
+          schema:
+            type: array
+            items:
+              type: string
+          required: true
+          explode: true
+          style: simple
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: object
+              properties:
+                Transaction:
+                  type: string
+                  format: binary
+                  description: 'Serialized transaction data (e.g., a binary format such as Protobuf or other)'
+              required:
+                - Transaction
+      responses:
+        '200':
+          description: |
+            Overlay engine successfully processed the submitted transaction octet-stream with the specified topic headers.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  STEAK:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        OutputsToAdmit:
+                          type: array
+                          items:
+                            type: integer
+                            format: uint32
+                        CoinsToRetain:
+                          type: array
+                          items:
+                            type: integer
+                            format: uint32
+                        CoinsRemoved:
+                          type: array
+                          items:
+                            type: integer
+                            format: uint32
+                        AncillaryTxIDs:
+                          type: array
+                          items:
+                            type: string
+                      required:
+                        - OutputsToAdmit
+                        - CoinsToRetain
+                        - CoinsRemoved
+                        - AncillaryTxIDs
+                required:
+                  - STEAK
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '409':
+          $ref: '#/components/responses/RequestTimeoutResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Human-readable error message
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    BadRequestResponse:
+      description: |
+        The server cannot process the request due to malformed syntax or invalid input. 
+        This error is typically caused by client-side issues, such as missing required parameters, 
+        invalid data formats, or incorrect request structures.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFoundResponse:
+      description: |
+        The requested resource could not be found. This error occurs when the client
+        requests an endpoint or resource that does not exist on the server or cannot be located.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalServerErrorResponse:
+      description: |
+        An unexpected condition was encountered on the server, causing the request to fail.
+        This error is typically caused by internal issues such as server misconfigurations, 
+        database failures, or unhandled exceptions.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RequestTimeoutResponse:
+      description: |
+        The server did not receive a complete request within the time it was prepared to wait. 
+        This error can occur if the client’s request takes too long to process or there is network latency.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

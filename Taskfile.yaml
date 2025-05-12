@@ -1,0 +1,39 @@
+version: '3'
+
+vars:
+  OPENAPI_FILE: api/openapi/server/api.yaml
+  SWAGGER_FILE: overlay-services.yaml 
+
+tasks:
+  default:
+    cmds:
+      - task --list
+    desc: "Display all available tasks."
+  
+  swagger-cli:
+    desc: "Install swagger-cli globally using npm."
+    cmds:
+      - npm install -g swagger-cli
+    silent: true 
+
+  swagger-ui-up:
+    desc: "Bundle OpenAPI spec and start Swagger UI with Docker Compose."
+    cmds:
+      - swagger-cli bundle {{.OPENAPI_FILE}} -o {{.SWAGGER_FILE}} -t yaml
+      - swagger-cli validate {{.OPENAPI_FILE}}
+      - docker-compose up -d 
+    silent: true 
+  
+  swagger-ui-down:
+    desc: "Bundle OpenAPI spec and stop Swagger UI containers."
+    cmds:
+      - swagger-cli bundle {{.OPENAPI_FILE}} -o {{.SWAGGER_FILE}} -t yaml
+      - docker-compose down
+    silent: true 
+
+  swagger-cleanup:
+    desc: "Remove generated Swagger files and stop running containers if needed."
+    cmds:
+      - docker-compose down || true
+      - rm -f {{.SWAGGER_FILE}}
+    silent: true

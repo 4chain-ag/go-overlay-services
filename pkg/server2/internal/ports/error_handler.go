@@ -36,7 +36,7 @@ func ErrorHandler() fiber.ErrorHandler {
 
 		var appErr app.Error
 		if !errors.As(err, &appErr) || appErr.IsZero() {
-			return c.Status(fiber.StatusInternalServerError).JSON(UnhandledErrorTypeResponse)
+			return c.Status(fiber.StatusInternalServerError).JSON(NewUnhandledErrorTypeResponse())
 		}
 
 		code := codes[appErr.ErrorType()]
@@ -44,9 +44,11 @@ func ErrorHandler() fiber.ErrorHandler {
 	}
 }
 
-// UnhandledErrorTypeResponse is the default response returned when an error occurs
+// NewUnhandledErrorTypeResponse is the default response returned when an error occurs
 // that does not match any known or handled ErrorType.
 // It represents a generic internal server error to avoid exposing internal details to the client.
-var UnhandledErrorTypeResponse = openapi.Error{
-	Message: "An internal error occurred during processing the request. Please try again later or contact the support team.",
+func NewUnhandledErrorTypeResponse() openapi.Error {
+	return openapi.Error{
+		Message: "An internal error occurred during processing the request. Please try again later or contact the support team.",
+	}
 }

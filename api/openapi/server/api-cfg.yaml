@@ -8,7 +8,6 @@ output-options:
   skip-prune: true
 import-mapping:
   # for a given file/URL that is $ref'd, point `oapi-codegen` to the Go package that this spec is generated into, to perform Go package imports
-  ../errors/responses.yaml: '-'
   ../paths/admin/responses.yaml: '-'
   ../paths/non_admin/responses.yaml: '-'
   ../paths/non_admin/request-bodies.yaml: '-'
