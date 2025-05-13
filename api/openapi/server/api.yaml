@@ -28,19 +28,17 @@ paths:
         500:
           $ref: '../errors/responses.yaml#/components/responses/InternalServerErrorResponse'
 
-  /api/v1/admin/arc-ingest:
+  /api/v1/arc-ingest:
     post:
       tags:
-        - admin
+        - non-admin
       operationId: ArcIngest
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
-        $ref: '../paths/admin/request-bodies.yaml#/components/requestBodies/ArcIngestBody'
+        $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/ArcIngestBody'
       responses:
         200:
-          $ref: '../paths/admin/responses.yaml#/components/responses/ArcIngestResponse'
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/ArcIngestResponse'
         400:
           $ref: '../errors/responses.yaml#/components/responses/BadRequestResponse'
         408:

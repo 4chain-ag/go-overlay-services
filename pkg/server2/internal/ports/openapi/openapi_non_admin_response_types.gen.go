@@ -11,6 +11,12 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"OutputsToAdmit"`
 }
 
+// ArcIngest defines model for ArcIngest.
+type ArcIngest struct {
+	Message string `json:"message"`
+	Status  string `json:"status"`
+}
+
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
 
@@ -18,6 +24,9 @@ type STEAK map[string]AdmittanceInstructions
 type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
+
+// ArcIngestResponse defines model for ArcIngestResponse.
+type ArcIngestResponse = ArcIngest
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction

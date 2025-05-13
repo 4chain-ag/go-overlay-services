@@ -12,6 +12,9 @@ type Error struct {
 // BadRequestResponse defines model for BadRequestResponse.
 type BadRequestResponse = Error
 
+// GatewayTimeoutResponse defines model for GatewayTimeoutResponse.
+type GatewayTimeoutResponse = Error
+
 // InternalServerErrorResponse defines model for InternalServerErrorResponse.
 type InternalServerErrorResponse = Error
 

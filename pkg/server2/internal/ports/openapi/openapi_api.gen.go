@@ -7,7 +7,22 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// ArcIngestJSONBody defines parameters for ArcIngest.
+type ArcIngestJSONBody struct {
+	// BlockHeight Block height where the transaction was included
+	BlockHeight uint32 `json:"blockHeight"`
+
+	// MerklePath Merkle path in hexadecimal format
+	MerklePath string `json:"merklePath"`
+
+	// Txid Transaction ID in hexadecimal format
+	Txid string `json:"txid"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
+
+// ArcIngestJSONRequestBody defines body for ArcIngest for application/json ContentType.
+type ArcIngestJSONRequestBody ArcIngestJSONBody

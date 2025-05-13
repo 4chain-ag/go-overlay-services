@@ -34,6 +34,64 @@ paths:
                   - Message
         '500':
           $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+  /api/v1/arc-ingest:
+    post:
+      tags:
+        - non-admin
+      operationId: ArcIngest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                txid:
+                  type: string
+                  description: Transaction ID in hexadecimal format
+                merklePath:
+                  type: string
+                  description: Merkle path in hexadecimal format
+                blockHeight:
+                  type: integer
+                  format: uint32
+                  description: Block height where the transaction was included
+              required:
+                - txid
+                - merklePath
+                - blockHeight
+      responses:
+        '200':
+          description: |
+            Merkle proof successfully processed and transaction status updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Transaction status updated
+                required:
+                  - status
+                  - message
+        '400':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/400'
+        '408':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/409'
+        '500':
+          $ref: '#/paths/~1api~1v1~1submit/post/responses/500'
+        '504':
+          description: |
+            The server was acting as a gateway or proxy and did not receive a timely response from the upstream server.
+            This error occurs when the server is waiting for a response from another server, but the request times out.
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1api~1v1~1submit/post/responses/400/content/application~1json/schema'
   /api/v1/submit:
     post:
       tags:
@@ -120,7 +178,7 @@ paths:
         '409':
           description: |
             The server did not receive a complete request within the time it was prepared to wait. 
-            This error can occur if the client’s request takes too long to process or there is network latency.
+            This error can occur if the client's request takes too long to process or there is network latency.
           content:
             application/json:
               schema:
