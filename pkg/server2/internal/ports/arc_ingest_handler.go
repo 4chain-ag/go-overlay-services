@@ -78,10 +78,8 @@ func (h *ArcIngestHandler) HandleArcIngest(c *fiber.Ctx) error {
 
 	err := h.service.HandleArcIngest(c.Context(), request.TxID, request.MerklePath, request.BlockHeight)
 
-	// Check for specific error types
 	if err != nil {
 		if appErr, ok := err.(app.Error); ok {
-			// Handle app.Error types based on their ErrorType
 			switch appErr.ErrorType() {
 			case app.ErrorTypeOperationTimeout:
 				return c.Status(fiber.StatusGatewayTimeout).JSON(openapi.Error{
@@ -106,13 +104,11 @@ func (h *ArcIngestHandler) HandleArcIngest(c *fiber.Ctx) error {
 			}
 		}
 
-		// Default error handler for non-app.Error types
 		return c.Status(fiber.StatusInternalServerError).JSON(openapi.Error{
 			Message: "Internal server error occurred during processing",
 		})
 	}
 
-	// Success case
 	return c.Status(fiber.StatusOK).JSON(ArcIngestResponse{
 		Status:  "success",
 		Message: "Transaction status updated",

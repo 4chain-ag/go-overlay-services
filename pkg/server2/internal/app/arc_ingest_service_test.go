@@ -8,54 +8,12 @@ import (
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
-	"github.com/bsv-blockchain/go-sdk/chainhash"
-	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: move all mock providers to testabilities
-type ServiceTestMerkleProofProvider struct {
-	shouldBeCalled bool
-	error          error
-	calledWithTxID *chainhash.Hash
-	calledWithPath *transaction.MerklePath
-	called         bool
-}
-
-func (m *ServiceTestMerkleProofProvider) HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error {
-	m.called = true
-	m.calledWithTxID = txid
-	m.calledWithPath = proof
-	return m.error
-}
-
-func (m *ServiceTestMerkleProofProvider) AssertCalled(t *testing.T) {
-	if m.shouldBeCalled && !m.called {
-		t.Error("Expected HandleNewMerkleProof to be called, but it wasn't")
-	}
-	if !m.shouldBeCalled && m.called {
-		t.Error("Expected HandleNewMerkleProof not to be called, but it was")
-	}
-}
-
-func NewServiceTestMerkleProofProvider(err error) *ServiceTestMerkleProofProvider {
-	return &ServiceTestMerkleProofProvider{
-		shouldBeCalled: err == nil || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) || (err != nil && !isValidationError(err)),
-		error:          err,
-	}
-}
-
-func isValidationError(err error) bool {
-	if appErr, ok := err.(app.Error); ok {
-		errorType := appErr.ErrorType()
-		return errorType == app.ErrorTypeIncorrectInput
-	}
-	return false
-}
-
 func Test_ArcIngestService_ShouldSuccessfullyProcessValidRequest(t *testing.T) {
 	// given:
-	provider := NewServiceTestMerkleProofProvider(nil)
+	provider := testabilities.NewServiceTestMerkleProofProvider(nil)
 	service := app.NewArcIngestService(provider, 5*time.Second)
 
 	// when:
@@ -113,8 +71,7 @@ func Test_ArcIngestService_ValidationFailures(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			// For validation tests, the provider should never be called
-			provider := &ServiceTestMerkleProofProvider{shouldBeCalled: false}
+			provider := testabilities.NewServiceTestMerkleProofProviderNotCalled()
 			service := app.NewArcIngestService(provider, 5*time.Second)
 
 			// when:
@@ -167,7 +124,7 @@ func Test_ArcIngestService_ProviderErrors(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			// given:
-			provider := NewServiceTestMerkleProofProvider(tc.mockError)
+			provider := testabilities.NewServiceTestMerkleProofProvider(tc.mockError)
 			service := app.NewArcIngestService(provider, 5*time.Second)
 
 			// when:

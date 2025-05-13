@@ -30,25 +30,21 @@ type ArcIngestService struct {
 // to the NewMerkleProofProvider for verification and processing.
 // It returns an error if the processing fails or times out.
 func (s *ArcIngestService) HandleArcIngest(ctx context.Context, txID string, merklePath string, blockHeight uint32) error {
-	// Validate txID format
 	hash, err := chainhash.NewHashFromHex(txID)
 	if err != nil {
 		return NewInvalidTxIDFormatError(err.Error())
 	}
 
-	// Validate txID length
 	if len(txID) != chainhash.MaxHashStringSize {
 		return NewInvalidTxIDLengthError()
 	}
 
-	// Validate and parse merklePath
 	path, err := transaction.NewMerklePathFromHex(merklePath)
 	if err != nil {
 		return NewInvalidMerklePathFormatError(err.Error())
 	}
 	path.BlockHeight = blockHeight
 
-	// Process the Merkle proof with timeout
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, s.responseTimeout)
 	defer cancel()
 

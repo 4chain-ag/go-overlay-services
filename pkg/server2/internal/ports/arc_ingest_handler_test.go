@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: check draft if all test cases are covered for http and fiber
 const (
 	testArcCallbackToken = "test-arc-callback-token"
 	testArcApiKey        = "test-arc-api-key"
@@ -92,8 +91,7 @@ func Test_ArcIngestHandler_ShouldRespondWith200AndCallsProvider(t *testing.T) {
 	// then:
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	// Read and verify response body
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	var actualResponse ports.ArcIngestResponse
@@ -208,7 +206,7 @@ func Test_ArcIngestHandler_ValidationAndErrorTests(t *testing.T) {
 			require.Equal(t, tc.expectedStatusCode, resp.StatusCode)
 
 			if tc.expectedErrorMsg != "" {
-				body, err := ioutil.ReadAll(resp.Body)
+				body, err := io.ReadAll(resp.Body)
 				require.NoError(t, err)
 				require.Contains(t, string(body), tc.expectedErrorMsg)
 			}
