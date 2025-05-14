@@ -16,10 +16,6 @@ Handler: si,
 Middleware: options.Middleware,
 }
 
-for _, m := range options.Middleware {
-    router.Use(m)
-}
-
 {{end}}
 {{range .}}
 router.{{.Method | lower | title }}(options.BaseURL+"{{.Path | swaggerUriToFiberUri}}", wrapper.{{.OperationId}})
