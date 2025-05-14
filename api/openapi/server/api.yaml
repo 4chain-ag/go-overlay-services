@@ -6,7 +6,6 @@ info:
 
 servers:
   - url: http://localhost:3000
-    description: Optional server description, e.g. Main (production) server
 
 tags:
   - name: admin

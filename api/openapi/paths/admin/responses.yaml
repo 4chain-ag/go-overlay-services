@@ -3,10 +3,10 @@ components:
     AdvertisementsSync:
       type: object
       properties:
-        Message:
+        message:
           type: string
-      required:
-        - Message
+      message:
+        - message
 
   responses:
     AdvertisementsSyncResponse:

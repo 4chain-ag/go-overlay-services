@@ -3,30 +3,30 @@ components:
     AdmittanceInstructions:
       type: object
       properties:
-        OutputsToAdmit:
+        outputsToAdmit:
           type: array
           items:
             type: integer
             format: uint32
-        CoinsToRetain:
+        coinsToRetain:
           type: array
           items:
             type: integer
             format: uint32
-        CoinsRemoved:
+        coinsRemoved:
           type: array
           items:
             type: integer
             format: uint32
-        AncillaryTxIDs:
+        ancillaryTxIDs:
           type: array
           items:
             type: string
       required:
-        - OutputsToAdmit
-        - CoinsToRetain
-        - CoinsRemoved
-        - AncillaryTxIDs
+        - outputsToAdmit
+        - coinsToRetain
+        - coinsRemoved
+        - ancillaryTxIDs
 
     STEAK:
       type: object
