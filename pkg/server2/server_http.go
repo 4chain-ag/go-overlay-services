@@ -182,6 +182,27 @@ func (s *ServerHTTP) registerRoutes() {
 	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)
 }
 
+// RegisterRoute registers a custom route with the server.
+// This method allows users to extend the server with their own HTTP endpoints by registering
+// new routes with custom methods, paths, and handlers.
+//
+// Parameters:
+//   - method: The HTTP method ("GET", "POST", "PUT", "DELETE", etc.)
+//   - path: The route path, which can include parameters like "/users/:id"
+//   - handler: The function that will handle the request
+//   - middleware: Optional middleware functions that will be applied only to this route
+func (s *ServerHTTP) RegisterRoute(method, path string, handler fiber.Handler, middleware ...fiber.Handler) {
+	if method == "" || path == "" || handler == nil {
+		return
+	}
+
+	if len(middleware) > 0 {
+		s.app.Add(method, path, append(middleware, handler)...)
+	} else {
+		s.app.Add(method, path, handler)
+	}
+}
+
 // newFiberApp creates and returns a new instance of a fiber.App with the provided configuration and middleware.
 // The app is configured with case-sensitive routing, strict routing, custom server headers, and read timeout settings.
 // Additionally, any provided middleware handlers are applied to the app.
