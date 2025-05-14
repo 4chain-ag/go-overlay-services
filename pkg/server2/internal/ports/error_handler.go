@@ -2,7 +2,6 @@ package ports
 
 import (
 	"errors"
-	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
@@ -31,7 +30,7 @@ func ErrorHandler() fiber.ErrorHandler {
 
 		var fiberErr *fiber.Error
 		if errors.As(err, &fiberErr) {
-			return c.Status(fiberErr.Code).JSON(openapi.Error{Message: http.StatusText(fiberErr.Code)}) // TODO: Add more descriptive responses.
+			return c.Status(fiberErr.Code).JSON(openapi.Error{Message: fiberErr.Message}) // TODO: Add more descriptive responses.
 		}
 
 		var appErr app.Error

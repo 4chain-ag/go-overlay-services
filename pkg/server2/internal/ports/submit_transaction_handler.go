@@ -2,8 +2,6 @@ package ports
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
@@ -36,14 +34,8 @@ type SubmitTransactionHandler struct {
 // HTTP 200 OK with a STEAK response (openapi.SubmitTransactionResponse).
 // If the header is missing or invalid, it returns HTTP 400 Bad Request.
 // If an error occurs during transaction submission, it returns the corresponding application error.
-func (s *SubmitTransactionHandler) Handle(c *fiber.Ctx) error {
-	headers := c.GetReqHeaders()
-	topics, found := headers[http.CanonicalHeaderKey(XTopicsHeader)]
-	if !found {
-		return NewMissingXTopicsHeaderError()
-	}
-
-	steak, err := s.service.SubmitTransaction(c.UserContext(), topics, c.Body()...)
+func (s *SubmitTransactionHandler) Handle(c *fiber.Ctx, params openapi.SubmitTransactionParams) error {
+	steak, err := s.service.SubmitTransaction(c.UserContext(), params.XTopics, c.Body()...)
 	if err != nil {
 		return err
 	}
@@ -56,6 +48,9 @@ func (s *SubmitTransactionHandler) Handle(c *fiber.Ctx) error {
 func NewSubmitTransactionHandler(provider app.SubmitTransactionProvider, timeout time.Duration) *SubmitTransactionHandler {
 	if provider == nil {
 		panic("submit transaction provider is nil")
+	}
+	if timeout == 0 {
+		timeout = app.DefaultSubmitTransactionTimeout
 	}
 
 	handler := SubmitTransactionHandler{
@@ -92,9 +87,4 @@ func NewSubmitTransactionSuccessResponse(steak *overlay.Steak) *openapi.SubmitTr
 		}
 	}
 	return &response
-}
-
-func NewMissingXTopicsHeaderError() app.Error {
-	str := fmt.Sprintf("The submitted request does not include required header: %s.", XTopicsHeader)
-	return app.NewIncorrectInputError(str, str)
 }

@@ -63,7 +63,9 @@ func TestSubmitTransactionHandler_InvalidCases(t *testing.T) {
 			headers: map[string]string{
 				fiber.HeaderContentType: fiber.MIMEOctetStream,
 			},
-			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, ports.NewMissingXTopicsHeaderError()),
+			expectedResponse: openapi.Error{
+				Message: "The submitted request does not include required header: x-topics.",
+			},
 			expectations: testabilities.SubmitTransactionProviderMockExpectations{
 				SubmitCall: false,
 			},

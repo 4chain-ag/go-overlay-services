@@ -18,20 +18,6 @@ const ReadBodyLimit1GB = 1000 * 1024 * 1024 // 1,000 MB
 // Reading in smaller chunks helps control memory usage during large reads.
 const chunkSize = 64 * 1024 // 64KB
 
-var (
-	// errReaderBytesRead indicates a failure while reading or buffering input data.
-	// This error is returned when an issue occurs during the process of reading the request body.
-	errReaderBytesRead = errors.New("failed to read input data")
-
-	// errReaderLimitExceeded is returned when the read operation exceeds the maximum allowed byte limit.
-	// It is triggered if the total number of bytes read surpasses the configured ReadLimit.
-	errReaderLimitExceeded = errors.New("input data too large")
-
-	// errReaderMissingBytes is returned when an attempt is made to read an empty byte slice.
-	// This error occurs when the input data (Bytes) is an empty slice, indicating that there are no bytes to read.
-	errReaderMissingBytes = errors.New("failed to read input bytes. Input bytes cannot be an empty slice")
-)
-
 // LimitedBytesReader is a utility for safely reading bytes with an enforced size limit.
 // It is typically used to prevent reading more than a configured number of bytes
 // from an incoming payload (e.g., request body).
@@ -47,12 +33,12 @@ type limitedBytesReader struct {
 // Read reads from the underlying byte slice up to the specified ReadLimit.
 // It processes the input in 64KB chunks and returns the entire read data as a byte slice.
 //
-// If more than ReadLimit bytes are encountered, the function returns ErrReaderLimitExceeded.
-// If the byte slice is empty, it returns ErrReaderMissingBytes.
-// If an I/O or buffering error occurs during the read, it returns ErrReaderBytesRead.
+// If more than ReadLimit bytes are encountered, the function returns BodySizeLimitExceededError.
+// If the byte slice is empty, it returns EmptyRequestBodyError.
+// If an I/O or buffering error occurs during the read, it returns BodyReadError.
 func (l *limitedBytesReader) Read() ([]byte, error) {
 	if len(l.bytes) == 0 {
-		return nil, errReaderMissingBytes
+		return nil, NewEmptyRequestBodyError()
 	}
 
 	reader := io.LimitReader(bytes.NewBuffer(l.bytes), l.readLimit+1)
@@ -65,11 +51,11 @@ func (l *limitedBytesReader) Read() ([]byte, error) {
 		if n > 0 {
 			read += int64(n)
 			if read > l.readLimit {
-				return nil, errReaderLimitExceeded
+				return nil, NewBodySizeLimitExceededError(l.readLimit)
 			}
 			_, err := buff.Write(bb[:n])
 			if err != nil {
-				return nil, errors.Join(err, errReaderBytesRead)
+				return nil, NewBodyReadError(err)
 			}
 		}
 
@@ -77,7 +63,7 @@ func (l *limitedBytesReader) Read() ([]byte, error) {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return nil, errors.Join(err, errReaderBytesRead)
+			return nil, NewBodyReadError(err)
 		}
 	}
 	return buff.Bytes(), nil
@@ -85,44 +71,25 @@ func (l *limitedBytesReader) Read() ([]byte, error) {
 
 // LimitOctetStreamBodyMiddleware is a Fiber middleware that limits the size of incoming
 // request bodies with the Content-Type: application/octet-stream. It reads the body in chunks
-// and ensures that the body does not exceed the specified size limit. The middleware responds
-// with appropriate error messages if the body is empty, exceeds the size limit, or cannot be read.
-//
-//   - If the body exceeds the specified limit, it responds with a 400 Bad Request and an error message
-//     indicating the body is too large.
-//   - If the body is empty, it responds with a 400 Bad Request and an error message indicating the
-//     body is missing.
-//   - If an error occurs while reading the body, it responds with a 500 Internal Server Error.
-//
-// Usage:
-//
-//	app.Post("/upload", LimitOctetStreamBodyMiddleware(10*1024*1024), uploadHandler)
-func LimitOctetStreamBodyMiddleware(limit int64) fiber.Handler {
+// and ensures that the body does not exceed the specified size limit.
+func LimitOctetStreamBodyMiddleware(octetStreamLimit int64) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if !c.Is(fiber.MIMEOctetStream) {
-			return NewUnsupportedContentTypeError(fiber.MIMEOctetStream)
+			return c.Next()
 		}
 
 		reader := limitedBytesReader{
 			bytes:     c.Body(),
-			readLimit: limit,
+			readLimit: octetStreamLimit,
 		}
 
 		bytes, err := reader.Read()
-		switch {
-		case errors.Is(err, errReaderMissingBytes):
-			return NewEmptyRequestBodyError()
-
-		case errors.Is(err, errReaderLimitExceeded):
-			return NewBodySizeLimitExceededError(limit)
-
-		case errors.Is(err, errReaderBytesRead):
-			return NewBodyReadError(err)
-
-		default:
-			c.Context().SetBody(bytes)
-			return c.Next()
+		if err != nil {
+			return err
 		}
+
+		c.Context().SetBody(bytes)
+		return c.Next()
 	}
 }
 
@@ -150,7 +117,6 @@ func NewBodyReadError(err error) app.Error {
 
 // NewEmptyRequestBodyError returns an error indicating that the request body is empty, which is not allowed.
 func NewEmptyRequestBodyError() app.Error {
-	return app.NewIncorrectInputError(
-		"Unable to process empty octet stream",
-		"Unable to process request with content type octet-stream. The request body is empty.")
+	const msg = "Unable to process request with content type octet-stream. The request body is empty."
+	return app.NewIncorrectInputError(msg, msg)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/google/uuid"
@@ -68,8 +69,7 @@ func WithMiddleware(f fiber.Handler) ServerOption {
 // It configures the ServerHTTP handlers to use the provided engine implementation.
 func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
-		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, ports.RequestTimeout)
-		s.syncAdvertisementsHandler = ports.NewSyncAdvertisementsHandler(provider)
+		s.registry = ports.NewHandlerRegistryService(provider, app.DefaultSubmitTransactionTimeout)
 	}
 }
 
@@ -77,7 +77,7 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 // for the HTTP server. This timeout defines how long the handler waits before returning a request timeout response.
 func WithSubmitTransactionHandlerResponseTime(provider app.SubmitTransactionProvider, timeout time.Duration) ServerOption {
 	return func(s *ServerHTTP) {
-		s.submitTransactionHandler = ports.NewSubmitTransactionHandler(provider, timeout)
+		s.registry.SetSubmitTransactionHandler(provider, timeout)
 	}
 }
 
@@ -109,7 +109,7 @@ func WithAdminBearerToken(token string) ServerOption {
 func WithConfig(cfg Config) ServerOption {
 	return func(s *ServerHTTP) {
 		s.cfg = cfg
-		s.app = newFiberApp(cfg, middleware.BasicMiddlewareGroup()...)
+		s.app = newFiberApp(cfg)
 	}
 }
 
@@ -120,9 +120,8 @@ type ServerHTTP struct {
 	app        *fiber.App      // app is the Fiber application instance serving HTTP requests.
 	middleware []fiber.Handler // middleware is a list of Fiber middleware functions to be applied globally.
 
-	// Handlers for processing incoming HTTP requests:
-	submitTransactionHandler  *ports.SubmitTransactionHandler  // submitTransactionHandler handles transaction submission requests.
-	syncAdvertisementsHandler *ports.SyncAdvertisementsHandler // advertisementsSyncHandler handles advertisement sync requests.
+	// Handlers for processing incoming HTTP requests
+	registry *ports.HandlerRegistryService
 }
 
 // SocketAddr builds the address string for binding.
@@ -147,45 +146,33 @@ func (s *ServerHTTP) Shutdown(ctx context.Context) error {
 // sets up transaction submission and advertisement synchronization handlers using the provided OverlayEngineProvider,
 // and applies any optional functional configuration options passed via opts.
 func New(opts ...ServerOption) *ServerHTTP {
-	noop := adapters.NewNoopEngineProvider()
 	srv := &ServerHTTP{
-		submitTransactionHandler:  ports.NewSubmitTransactionHandler(noop, app.DefaultSubmitTransactionTimeout),
-		syncAdvertisementsHandler: ports.NewSyncAdvertisementsHandler(noop),
-		cfg:                       DefaultConfig,
-		app:                       newFiberApp(DefaultConfig, middleware.BasicMiddlewareGroup()...),
+		registry: ports.NewHandlerRegistryService(adapters.NewNoopEngineProvider(), app.DefaultSubmitTransactionTimeout),
+		cfg:      DefaultConfig,
+		app:      newFiberApp(DefaultConfig),
 	}
 
-	for _, opt := range opts {
-		opt(srv)
+	for _, o := range opts {
+		o(srv)
 	}
 
-	srv.registerRoutes()
+	openapi.RegisterHandlersWithOptions(srv.app, srv.registry, openapi.FiberServerOptions{
+		AuthHandler: ports.BearerTokenAuthorizationHandler(srv.cfg.AdminBearerToken),
+		Middleware: middleware.BasicMiddlewareGroup(middleware.BasicMiddlewareGroupConfig{
+			OctetStreamLimit: srv.cfg.OctetStreamLimit,
+			EnableStackTrace: true,
+		}),
+	})
+
+	srv.app.Get("/metrics", monitor.New(monitor.Config{Title: "Overlay-services API"}))
+
 	return srv
-}
-
-// registerRoutes defines and registers all HTTP routes handled by the server,
-// including public and admin endpoints. It applies middleware such as request
-// body limits and bearer token authentication where appropriate.
-func (s *ServerHTTP) registerRoutes() {
-	api := s.app.Group("/api")
-	v1 := api.Group("/v1")
-
-	// HTTP GET:
-	v1.Get("/metrics", monitor.New(monitor.Config{Title: "Overlay-services API"}))
-
-	// HTTP POST:
-	v1.Post("/submit", middleware.LimitOctetStreamBodyMiddleware(s.cfg.OctetStreamLimit), s.submitTransactionHandler.Handle)
-
-	admin := v1.Group("/admin", middleware.BearerTokenAuthorizationMiddleware(s.cfg.AdminBearerToken))
-
-	// HTTP POST:
-	admin.Post("/syncAdvertisements", s.syncAdvertisementsHandler.Handle)
 }
 
 // newFiberApp creates and returns a new instance of a fiber.App with the provided configuration and middleware.
 // The app is configured with case-sensitive routing, strict routing, custom server headers, and read timeout settings.
 // Additionally, any provided middleware handlers are applied to the app.
-func newFiberApp(cfg Config, middleware ...fiber.Handler) *fiber.App {
+func newFiberApp(cfg Config) *fiber.App {
 	app := fiber.New(fiber.Config{
 		CaseSensitive: true,
 		StrictRouting: true,
@@ -194,8 +181,6 @@ func newFiberApp(cfg Config, middleware ...fiber.Handler) *fiber.App {
 		ReadTimeout:   cfg.ConnectionReadTimeout,
 		ErrorHandler:  ports.ErrorHandler(),
 	})
-	for _, m := range middleware {
-		app.Use(m)
-	}
+
 	return app
 }

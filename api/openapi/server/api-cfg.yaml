@@ -3,9 +3,13 @@ package: openapi
 output: ../pkg/server2/internal/ports/openapi/openapi_api.gen.go
 generate:
   models: true
+  fiber-server: true
 output-options:
   # to make sure that all types are generated
   skip-prune: true
+  user-templates:
+    fiber/fiber-middleware.tmpl: ../api/openapi/templates/fiber-middleware.tmpl
+    fiber/fiber-handler.tmpl: ../api/openapi/templates/fiber-handler.tmpl
 import-mapping:
   # for a given file/URL that is $ref'd, point `oapi-codegen` to the Go package that this spec is generated into, to perform Go package imports
   ../paths/admin/responses.yaml: '-'

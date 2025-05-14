@@ -10,23 +10,25 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 )
 
-// BasicMiddlewareGroup returns a slice of standard Fiber middleware handlers
-// that provide core HTTP functionality such as request ID assignment,
-// idempotency support, CORS handling, panic recovery, structured logging,
-// and optional pprof profiling under /api/v1.
-//
-// Note: Stack traces are enabled in recover middleware for debugging purposes
-// and should be disabled in production builds.
-func BasicMiddlewareGroup() []fiber.Handler {
+// BasicMiddlewareGroupConfig defines configuration options for building the middleware group.
+type BasicMiddlewareGroupConfig struct {
+	OctetStreamLimit int64 // Max allowed body size for octet-stream requests.
+	EnableStackTrace bool  // Enable stack traces in panic recovery middleware.
+}
+
+// BasicMiddlewareGroup returns a list of preconfigured middleware for the HTTP server.
+// It includes logging, CORS, request ID generation, panic recovery, PProf, request size limiting.
+func BasicMiddlewareGroup(cfg BasicMiddlewareGroupConfig) []fiber.Handler {
 	return []fiber.Handler{
 		requestid.New(),
 		idempotency.New(),
 		cors.New(),
-		recover.New(recover.Config{EnableStackTrace: true}),
+		recover.New(recover.Config{EnableStackTrace: cfg.EnableStackTrace}),
 		logger.New(logger.Config{
-			Format:     "date=${time} request_id=${locals:requestid} status=${status} method=${method} path=${path} err=${error}​\n",
+			Format:     "date=${time} request_id=${locals:requestid} status=${status} method=${method} path=${path} err=${error}\n",
 			TimeFormat: "02-Jan-2006 15:04:05",
 		}),
 		pprof.New(pprof.Config{Prefix: "/api/v1"}),
+		LimitOctetStreamBodyMiddleware(cfg.OctetStreamLimit),
 	}
 }

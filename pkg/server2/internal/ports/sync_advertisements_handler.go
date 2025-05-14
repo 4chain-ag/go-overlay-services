@@ -28,7 +28,7 @@ func (s *SyncAdvertisementsHandler) Handle(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	return c.Status(fiber.StatusOK).JSON(SyncAdvertisementsSuccessResponse)
+	return c.Status(fiber.StatusOK).JSON(NewSyncAdvertisementsSuccessResponse())
 }
 
 // NewSyncAdvertisementsHandler returns a new instance of SyncAdvertisementsHandler,
@@ -44,8 +44,10 @@ func NewSyncAdvertisementsHandler(provider app.SyncAdvertisementsProvider) *Sync
 	}
 }
 
-// SyncAdvertisementsSuccessResponse is returned when the advertisement synchronization
+// NewSyncAdvertisementsSuccessResponse is returned when the advertisement synchronization
 // request is successfully delegated to the overlay engine.
-var SyncAdvertisementsSuccessResponse = openapi.AdvertisementsSyncResponse{
-	Message: "Advertisement sync request successfully delegated to overlay engine.",
+func NewSyncAdvertisementsSuccessResponse() openapi.AdvertisementsSyncResponse {
+	return openapi.AdvertisementsSync{
+		Message: "Advertisement sync request successfully delegated to overlay engine.",
+	}
 }

@@ -1,17 +1,17 @@
-package middleware_test
+package ports_test
 
 import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
 )
 
-func TestBearerTokenAuthMiddleware_ValidCases(t *testing.T) {
+func TestBearerTokenAuthHandler_ValidCases(t *testing.T) {
 	testPaths := []struct {
 		endpoint               string
 		method                 string
@@ -88,28 +88,28 @@ func TestBearerTokenAuthMiddleware_InvalidCases(t *testing.T) {
 	}{
 		"Authorization header with ivalid HTTP server token": {
 			expectedStatus:   fiber.StatusForbidden,
-			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewInvalidBearerTokenValueError()),
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, ports.NewInvalidBearerTokenValueError()),
 			headers: map[string]string{
 				fiber.HeaderAuthorization: "Bearer " + "1234",
 			},
 		},
 		"Missing Authorization header in the HTTP request": {
 			expectedStatus:   fiber.StatusUnauthorized,
-			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewMissingAuthorizationHeaderError()),
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, ports.NewMissingAuthorizationHeaderError()),
 			headers: map[string]string{
 				"RandomHeader": "Bearer " + bearerToken,
 			},
 		},
 		"Missing Authorization header value in the HTTP request": {
 			expectedStatus:   fiber.StatusUnauthorized,
-			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewMissingAuthorizationHeaderError()),
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, ports.NewMissingAuthorizationHeaderError()),
 			headers: map[string]string{
 				fiber.HeaderAuthorization: "",
 			},
 		},
 		"Invalid Bearer scheme in the Authorization header appended to the HTTP request": {
 			expectedStatus:   fiber.StatusUnauthorized,
-			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewMissingBearerTokenValueError()),
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, ports.NewMissingBearerTokenValueError()),
 			headers: map[string]string{
 				fiber.HeaderAuthorization: "InvalidScheme " + bearerToken,
 			},

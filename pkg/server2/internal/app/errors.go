@@ -91,3 +91,11 @@ func NewRawDataProcessingError(err, slug string) Error {
 		err:       err,
 	}
 }
+
+func NewUnknownError(err, slug string) Error {
+	return Error{
+		slug:      slug,
+		errorType: ErrorTypeUnknown,
+		err:       err,
+	}
+}

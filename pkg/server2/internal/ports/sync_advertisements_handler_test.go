@@ -68,6 +68,6 @@ func TestSyncAdvertisementsHandler_ValidCase(t *testing.T) {
 
 	// then:
 	require.Equal(t, fiber.StatusOK, res.StatusCode())
-	require.Equal(t, ports.SyncAdvertisementsSuccessResponse, actualResponse)
+	require.Equal(t, ports.NewSyncAdvertisementsSuccessResponse(), actualResponse)
 	stub.AssertProvidersState()
 }
