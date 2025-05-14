@@ -1,0 +1,14 @@
+components:
+  requestBodies:
+    SubmitTransactionBody:
+      content:
+        application/octet-stream:
+          schema:
+            type: object
+            properties:
+              Transaction:
+                type: string
+                format: binary
+                description: 'Serialized transaction data (e.g., a binary format such as Protobuf or other)'
+            required:
+              - Transaction
