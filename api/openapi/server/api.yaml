@@ -21,7 +21,7 @@ paths:
         - admin
       operationId: AdvertisementsSync
       security:
-        - bearerAuth: 
+        - bearerAuth:
           - admin
       responses:
         200:
@@ -35,7 +35,7 @@ paths:
         - non-admin
       operationId: SubmitTransaction
       security:
-        - bearerAuth: 
+        - bearerAuth:
           - user
       parameters:
         - in: header
