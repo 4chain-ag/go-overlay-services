@@ -1,0 +1,27 @@
+// FiberServerOptions provides options for the Fiber server.
+type FiberServerOptions struct {
+	BaseURL     string
+	Middleware []fiber.Handler
+	AuthHandler fiber.Handler
+}
+
+// RegisterHandlers creates http.Handler with routing matching OpenAPI spec.
+func RegisterHandlers(router fiber.Router, si ServerInterface) {
+	RegisterHandlersWithOptions(router, si, FiberServerOptions{AuthHandler: func (c *fiber.Ctx) error { return nil }})
+}
+
+// RegisterHandlersWithOptions creates http.Handler with additional options
+func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, options FiberServerOptions) {
+{{if .}}wrapper := ServerInterfaceWrapper{
+Handler: si,
+AuthHandler: options.AuthHandler,
+}
+
+for _, m := range options.Middleware {
+    router.Use(fiber.Handler(m))
+}
+{{end}}
+{{range .}}
+router.{{.Method | lower | title }}(options.BaseURL+"{{.Path | swaggerUriToFiberUri}}", wrapper.{{.OperationId}})
+{{end}}
+}

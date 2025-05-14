@@ -21,7 +21,8 @@ paths:
         - admin
       operationId: AdvertisementsSync
       security:
-        - bearerAuth: []
+        - bearerAuth:
+            - admin
       responses:
         200:
           $ref: '../paths/admin/responses.yaml#/components/responses/AdvertisementsSyncResponse'
@@ -33,6 +34,9 @@ paths:
       tags:
         - non-admin
       operationId: SubmitTransaction
+      security:
+        - bearerAuth:
+            - user
       parameters:
         - in: header
           name: x-topics
