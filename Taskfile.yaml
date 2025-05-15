@@ -10,7 +10,13 @@ tasks:
       - task --list
     desc: "Display all available tasks."
 
-  swagger-cli:
+  oapi-codegen:
+    desc: "Generate HTTP server, response & request models based on OpenAPI spec."
+    cmds:
+      - go generate ./...
+    silent: true 
+
+  swagger-cli-install:
     desc: "Install swagger-cli globally using npm."
     cmds:
       - npm install -g swagger-cli
@@ -19,6 +25,7 @@ tasks:
   swagger-doc-gen:
     desc: "Bundle OpenAPI spec."
     cmds:
+      - task oapi-codegen
       - swagger-cli bundle {{.OPENAPI_FILE}} -o {{.SWAGGER_FILE}} -t yaml
     silent: true
 
