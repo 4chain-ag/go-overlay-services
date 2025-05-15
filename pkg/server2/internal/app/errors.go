@@ -92,6 +92,9 @@ func NewRawDataProcessingError(err, slug string) Error {
 	}
 }
 
+// NewUnknownError returns an error that represents an unexpected or unclassified
+// issue that doesn't fall into predefined error categories. Useful as a fallback
+// when the exact nature of the error is unclear.
 func NewUnknownError(err, slug string) Error {
 	return Error{
 		slug:      slug,
