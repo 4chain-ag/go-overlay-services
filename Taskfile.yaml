@@ -14,7 +14,7 @@ tasks:
     desc: "Generate HTTP server, response & request models based on OpenAPI spec."
     cmds:
       - go generate ./...
-    silent: true 
+    silent: true
 
   swagger-cli-install:
     desc: "Install swagger-cli globally using npm."
