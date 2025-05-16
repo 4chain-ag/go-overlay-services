@@ -25,6 +25,7 @@ func TestSubmitTransactionService_InvalidCase_ContextCancellation(t *testing.T) 
 
 	mock := testabilities.NewSubmitTransactionProviderMock(t, expectations)
 	service := app.NewSubmitTransactionService(mock)
+	expectedErr := app.NewContextCancellationError()
 
 	// when:
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -33,9 +34,9 @@ func TestSubmitTransactionService_InvalidCase_ContextCancellation(t *testing.T) 
 	STEAK, err := service.SubmitTransaction(ctx, topics, txBytes...)
 
 	// then:
-	var as app.Error
-	require.ErrorAs(t, err, &as)
-	require.Equal(t, app.ErrorTypeOperationTimeout, as.ErrorType())
+	var actualErr app.Error
+	require.ErrorAs(t, err, &actualErr)
+	require.Equal(t, expectedErr, actualErr)
 
 	require.Nil(t, STEAK)
 	mock.AssertCalled()
