@@ -1,7 +1,8 @@
 // FiberServerOptions provides options for the Fiber server.
 type FiberServerOptions struct {
 	BaseURL     string
-	Middleware []fiber.Handler
+	GlobalMiddleware []fiber.Handler
+	HandlerMiddleware []fiber.Handler 
 }
 
 // RegisterHandlers creates http.Handler with routing matching OpenAPI spec.
@@ -13,11 +14,11 @@ func RegisterHandlers(router fiber.Router, si ServerInterface) {
 func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, options FiberServerOptions) {
 {{if .}}wrapper := ServerInterfaceWrapper{
 handler: si,
-middleware: options.Middleware,
-router: router, 
+globalMiddleware: options.GlobalMiddleware,
+handlerMiddleware: options.HandlerMiddleware,
 }
 
-for _, m := range options.Middleware {
+for _, m := range options.GlobalMiddleware {
       router.Use(m)
 }
 

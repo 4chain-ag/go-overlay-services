@@ -49,9 +49,9 @@ type ServerInterface interface {
 
 // ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
-	handler    ServerInterface
-	middleware []fiber.Handler
-	router     fiber.Router
+	handler           ServerInterface
+	globalMiddleware  []fiber.Handler
+	handlerMiddleware []fiber.Handler
 }
 
 // AdvertisementsSync operation middleware
@@ -59,7 +59,7 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 
 	c.Context().SetUserValue(BearerAuthScopes, []string{"admin"})
 
-	for _, m := range siw.middleware {
+	for _, m := range siw.handlerMiddleware {
 		m(c)
 	}
 	return siw.handler.AdvertisementsSync(c)
@@ -92,7 +92,7 @@ func (siw *ServerInterfaceWrapper) SubmitTransaction(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "The submitted request does not include required header: x-topics.")
 	}
 
-	for _, m := range siw.middleware {
+	for _, m := range siw.handlerMiddleware {
 		m(c)
 	}
 	return siw.handler.SubmitTransaction(c, params)
@@ -100,8 +100,9 @@ func (siw *ServerInterfaceWrapper) SubmitTransaction(c *fiber.Ctx) error {
 
 // FiberServerOptions provides options for the Fiber server.
 type FiberServerOptions struct {
-	BaseURL    string
-	Middleware []fiber.Handler
+	BaseURL           string
+	GlobalMiddleware  []fiber.Handler
+	HandlerMiddleware []fiber.Handler
 }
 
 // RegisterHandlers creates http.Handler with routing matching OpenAPI spec.
@@ -112,12 +113,12 @@ func RegisterHandlers(router fiber.Router, si ServerInterface) {
 // RegisterHandlersWithOptions creates http.Handler with additional options
 func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, options FiberServerOptions) {
 	wrapper := ServerInterfaceWrapper{
-		handler:    si,
-		middleware: options.Middleware,
-		router:     router,
+		handler:           si,
+		globalMiddleware:  options.GlobalMiddleware,
+		handlerMiddleware: options.HandlerMiddleware,
 	}
 
-	for _, m := range options.Middleware {
+	for _, m := range options.GlobalMiddleware {
 		router.Use(m)
 	}
 

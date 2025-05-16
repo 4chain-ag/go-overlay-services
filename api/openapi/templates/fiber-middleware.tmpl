@@ -1,8 +1,8 @@
 // ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
     handler ServerInterface
-    middleware []fiber.Handler
-    router fiber.Router 
+	  globalMiddleware []fiber.Handler
+	  handlerMiddleware []fiber.Handler 
 }
 
 {{range .}}{{$opid := .OperationId}}
@@ -162,7 +162,7 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(c *fiber.Ctx) error {
     {{end}}
   {{end}}
 
-    for _, m := range siw.middleware {
+    for _, m := range siw.handlerMiddleware {
       m(c)
   }
   return siw.handler.{{.OperationId}}(c{{genParamNames .PathParams}}{{if .RequiresParamObject}}, params{{end}})
