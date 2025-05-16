@@ -102,6 +102,14 @@ issues:
         - gosec
         - wrapcheck
         - bodyclose
+    
+    - path: /ports/
+      linters:
+        - wrapcheck
+
+    - path: /server2/
+      linters:
+        - wrapcheck
 
     - path: /core/
       linters:
