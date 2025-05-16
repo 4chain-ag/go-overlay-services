@@ -12,6 +12,35 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestSubmitTransactionService_InvalidCase_ContextCancellation(t *testing.T) {
+	expectations := testabilities.SubmitTransactionProviderMockExpectations{
+		SubmitCall:           true,
+		TriggerCallbackAfter: 3 * time.Second,
+		STEAK:                nil,
+	}
+
+	// given:
+	topics := app.TransactionTopics{"topic1", "topic2"}
+	txBytes := testabilities.DummyTxBEEF(t)
+
+	mock := testabilities.NewSubmitTransactionProviderMock(t, expectations)
+	service := app.NewSubmitTransactionService(mock)
+
+	// when:
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	STEAK, err := service.SubmitTransaction(ctx, topics, txBytes...)
+
+	// then:
+	var as app.Error
+	require.ErrorAs(t, err, &as)
+	require.Equal(t, app.ErrorTypeOperationTimeout, as.ErrorType())
+
+	require.Nil(t, STEAK)
+	mock.AssertCalled()
+}
+
 func TestSubmitTransactionService_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
 		expectations      testabilities.SubmitTransactionProviderMockExpectations
@@ -20,18 +49,6 @@ func TestSubmitTransactionService_InvalidCases(t *testing.T) {
 		txBytes           []byte
 		expectedErrorType app.ErrorType
 	}{
-		"Submit transaction service fails to handle the transaction submission - timeout error": {
-			topics:  app.TransactionTopics{"topic1", "topic2"},
-			txBytes: testabilities.DummyTxBEEF(t),
-			timeout: time.Second,
-			expectations: testabilities.SubmitTransactionProviderMockExpectations{
-				SubmitCall:           true,
-				TriggerCallbackAfter: 2 * time.Second,
-				Error:                nil,
-				STEAK:                nil,
-			},
-			expectedErrorType: app.ErrorTypeOperationTimeout,
-		},
 		"Submit transaction service fails to handle the transaction submission - internal error": {
 			topics:  app.TransactionTopics{"topic1", "topic2"},
 			txBytes: testabilities.DummyTxBEEF(t),
@@ -63,7 +80,7 @@ func TestSubmitTransactionService_InvalidCases(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// given:
 			mock := testabilities.NewSubmitTransactionProviderMock(t, tc.expectations)
-			service := app.NewSubmitTransactionService(mock, tc.timeout)
+			service := app.NewSubmitTransactionService(mock)
 
 			// when:
 			STEAK, err := service.SubmitTransaction(context.Background(), tc.topics, tc.txBytes...)
@@ -93,10 +110,9 @@ func TestSubmitTransactionService_ValidCase(t *testing.T) {
 		SubmitCall: true,
 	}
 
-	timeout := time.Second
 	topics := app.TransactionTopics{"topic1", "topic2"}
 	mock := testabilities.NewSubmitTransactionProviderMock(t, expectations)
-	service := app.NewSubmitTransactionService(mock, timeout)
+	service := app.NewSubmitTransactionService(mock)
 
 	// when:
 	actualSTEAK, err := service.SubmitTransaction(context.Background(), topics)
