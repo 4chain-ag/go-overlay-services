@@ -102,7 +102,7 @@ issues:
         - gosec
         - wrapcheck
         - bodyclose
-    
+
     - path: /ports/
       linters:
         - wrapcheck
