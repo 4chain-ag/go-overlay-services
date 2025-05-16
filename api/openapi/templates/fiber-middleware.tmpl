@@ -162,9 +162,11 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(c *fiber.Ctx) error {
     {{end}}
   {{end}}
 
-    for _, m := range siw.handlerMiddleware {
-      m(c)
-  }
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err 
+		}
+	}
   return siw.handler.{{.OperationId}}(c{{genParamNames .PathParams}}{{if .RequiresParamObject}}, params{{end}})
 }
 {{end}}

@@ -60,7 +60,9 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 	c.Context().SetUserValue(BearerAuthScopes, []string{"admin"})
 
 	for _, m := range siw.handlerMiddleware {
-		m(c)
+		if err := m(c); err != nil {
+			return err
+		}
 	}
 	return siw.handler.AdvertisementsSync(c)
 }
@@ -93,7 +95,9 @@ func (siw *ServerInterfaceWrapper) SubmitTransaction(c *fiber.Ctx) error {
 	}
 
 	for _, m := range siw.handlerMiddleware {
-		m(c)
+		if err := m(c); err != nil {
+			return err
+		}
 	}
 	return siw.handler.SubmitTransaction(c, params)
 }
