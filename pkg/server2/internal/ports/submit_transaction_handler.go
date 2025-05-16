@@ -27,7 +27,6 @@ type SubmitTransactionHandler struct {
 // Handle processes an HTTP request to submit a transaction to the submit transaction service.
 // It expects the `x-topics` header to be present and valid. On success, it returns
 // HTTP 200 OK with a STEAK response (openapi.SubmitTransactionResponse).
-// If the header is missing or invalid, it returns HTTP 400 Bad Request.
 // If an error occurs during transaction submission, it returns the corresponding application error.
 func (s *SubmitTransactionHandler) Handle(c *fiber.Ctx, params openapi.SubmitTransactionParams) error {
 	steak, err := s.service.SubmitTransaction(c.UserContext(), params.XTopics, c.Body()...)
