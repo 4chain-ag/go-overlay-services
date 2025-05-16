@@ -32,6 +32,10 @@ type Config struct {
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
 
+	// OctetStreamLimit defines the maximum allowed bytes read size (in bytes).
+	// This limit by default is set to 1GB to protect against excessively large payloads.
+	OctetStreamLimit int64 `mapstructure:"octet_stream_limit"`
+
 	// ConnectionReadTimeout defines the maximum duration an active connection is allowed to stay open.
 	// Once this threshold is exceeded, the connection will be forcefully closed.
 	ConnectionReadTimeout time.Duration `mapstructure:"connection_read_timeout_limit"`
@@ -44,6 +48,7 @@ var DefaultConfig = Config{
 	Addr:                  "localhost",
 	ServerHeader:          "Overlay API",
 	AdminBearerToken:      uuid.NewString(),
+	OctetStreamLimit:      middleware.ReadBodyLimit1GB,
 	ConnectionReadTimeout: 10 * time.Second,
 }
 
@@ -73,6 +78,19 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 func WithAdminBearerToken(token string) ServerOption {
 	return func(s *ServerHTTP) {
 		s.cfg.AdminBearerToken = token
+	}
+}
+
+// WithOctetStreamLimit returns a ServerOption that sets the maximum allowed size (in bytes)
+// for incoming requests with Content-Type: application/octet-stream.
+// This is useful for controlling memory usage when clients upload large binary payloads.
+//
+// Example: To limit uploads to 512MB:
+//
+//	WithOctetStreamLimit(512 * 1024 * 1024)
+func WithOctetStreamLimit(limit int64) ServerOption {
+	return func(s *ServerHTTP) {
+		s.cfg.OctetStreamLimit = limit
 	}
 }
 
@@ -130,8 +148,9 @@ func New(opts ...ServerOption) *ServerHTTP {
 	}
 
 	openapi.RegisterHandlersWithOptions(srv.app, srv.registry, openapi.FiberServerOptions{
-		Middleware: middleware.BasicMiddlewareGroup(middleware.BasicMiddlewareGroupConfig{
+		GlobalMiddleware: middleware.BasicMiddlewareGroup(middleware.BasicMiddlewareGroupConfig{
 			EnableStackTrace: true,
+			OctetStreamLimit: srv.cfg.OctetStreamLimit,
 		}),
 	})
 

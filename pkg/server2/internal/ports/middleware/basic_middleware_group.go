@@ -12,7 +12,8 @@ import (
 
 // BasicMiddlewareGroupConfig defines configuration options for building the middleware group.
 type BasicMiddlewareGroupConfig struct {
-	EnableStackTrace bool // Enable stack traces in panic recovery middleware.
+	OctetStreamLimit int64 // Max allowed body size for octet-stream requests.
+	EnableStackTrace bool  // Enable stack traces in panic recovery middleware.
 }
 
 // BasicMiddlewareGroup returns a list of preconfigured middleware for the HTTP server.
@@ -28,5 +29,6 @@ func BasicMiddlewareGroup(cfg BasicMiddlewareGroupConfig) []fiber.Handler {
 			TimeFormat: "02-Jan-2006 15:04:05",
 		}),
 		pprof.New(pprof.Config{Prefix: "/api/v1"}),
+		LimitOctetStreamBodyMiddleware(cfg.OctetStreamLimit),
 	}
 }
