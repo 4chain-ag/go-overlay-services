@@ -44,11 +44,11 @@ func TestSubmitTransactionService_InvalidCase_ContextCancellation(t *testing.T) 
 
 func TestSubmitTransactionService_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
-		expectations      testabilities.SubmitTransactionProviderMockExpectations
-		topics            app.TransactionTopics
-		timeout           time.Duration
-		txBytes           []byte
-		expectedErrorType app.ErrorType
+		expectations  testabilities.SubmitTransactionProviderMockExpectations
+		topics        app.TransactionTopics
+		timeout       time.Duration
+		txBytes       []byte
+		expectedError app.Error
 	}{
 		"Submit transaction service fails to handle the transaction submission - internal error": {
 			topics:  app.TransactionTopics{"topic1", "topic2"},
@@ -58,22 +58,22 @@ func TestSubmitTransactionService_InvalidCases(t *testing.T) {
 				STEAK:      nil,
 				Error:      errors.New("internal submit transaction service test error"),
 			},
-			expectedErrorType: app.ErrorTypeProviderFailure,
+			expectedError: app.NewSubmitTransactionProviderError(errors.New("internal submit transaction service test error")),
 		},
 		"Submit transaction service fails to handle the transaction submission - empty topics": {
 			txBytes: testabilities.DummyTxBEEF(t),
 			expectations: testabilities.SubmitTransactionProviderMockExpectations{
 				SubmitCall: false,
 			},
-			expectedErrorType: app.ErrorTypeIncorrectInput,
+			expectedError: app.NewEmptyTransactionTopicsError(),
 		},
-		"Submit transaction service fails to handle the transaction submission - empty topic": {
+		"Submit transaction service fails to handle the transaction submission - second topic (at idx: 1) is an empty string": {
 			txBytes: testabilities.DummyTxBEEF(t),
 			topics:  app.TransactionTopics{"topic1", " "},
 			expectations: testabilities.SubmitTransactionProviderMockExpectations{
 				SubmitCall: false,
 			},
-			expectedErrorType: app.ErrorTypeIncorrectInput,
+			expectedError: app.NewErrInvalidTopicFormatError(1),
 		},
 	}
 
@@ -87,9 +87,9 @@ func TestSubmitTransactionService_InvalidCases(t *testing.T) {
 			steak, err := service.SubmitTransaction(context.Background(), tc.topics, tc.txBytes...)
 
 			// then:
-			var as app.Error
-			require.ErrorAs(t, err, &as)
-			require.Equal(t, tc.expectedErrorType, as.ErrorType())
+			var actualErr app.Error
+			require.ErrorAs(t, err, &actualErr)
+			require.Equal(t, tc.expectedError, actualErr)
 
 			require.Nil(t, steak)
 			mock.AssertCalled()
