@@ -31,14 +31,14 @@ func TestSubmitTransactionService_InvalidCase_ContextCancellation(t *testing.T) 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	STEAK, err := service.SubmitTransaction(ctx, topics, txBytes...)
+	steak, err := service.SubmitTransaction(ctx, topics, txBytes...)
 
 	// then:
 	var actualErr app.Error
 	require.ErrorAs(t, err, &actualErr)
 	require.Equal(t, expectedErr, actualErr)
 
-	require.Nil(t, STEAK)
+	require.Nil(t, steak)
 	mock.AssertCalled()
 }
 
@@ -84,14 +84,14 @@ func TestSubmitTransactionService_InvalidCases(t *testing.T) {
 			service := app.NewSubmitTransactionService(mock)
 
 			// when:
-			STEAK, err := service.SubmitTransaction(context.Background(), tc.topics, tc.txBytes...)
+			steak, err := service.SubmitTransaction(context.Background(), tc.topics, tc.txBytes...)
 
 			// then:
 			var as app.Error
 			require.ErrorAs(t, err, &as)
 			require.Equal(t, tc.expectedErrorType, as.ErrorType())
 
-			require.Nil(t, STEAK)
+			require.Nil(t, steak)
 			mock.AssertCalled()
 		})
 	}
