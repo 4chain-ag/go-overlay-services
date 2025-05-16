@@ -78,14 +78,14 @@ func (s *LookupServicesListService) ListLookupServiceProviders() LookupServicesL
 // initialized with the given provider. It returns an error if the provider is nil.
 func NewLookupServicesListService(provider LookupServicesListProvider) (*LookupServicesListService, error) {
 	if provider == nil {
-		return nil, NewNilProviderError("lookup services list provider")
+		return nil, NewLookupServicesNilProviderError("lookup services list provider")
 	}
 	return &LookupServicesListService{provider: provider}, nil
 }
 
-// NewNilProviderError returns an Error indicating that a required provider was nil,
-// which is invalid input when creating a service.
-func NewNilProviderError(providerName string) Error {
+// NewLookupServicesNilProviderError returns an Error indicating that a required lookup services provider was nil,
+// which is invalid input when creating a lookup services service.
+func NewLookupServicesNilProviderError(providerName string) Error {
 	return Error{
 		errorType: ErrorTypeIncorrectInput,
 		err:       providerName + " cannot be nil",
