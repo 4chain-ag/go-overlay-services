@@ -81,7 +81,7 @@ func TestBearerTokenAuthMiddleware_InvalidCases(t *testing.T) {
 		expectedStatus   int
 		headers          map[string]string
 	}{
-		"Authorization header with ivalid HTTP server token": {
+		"Authorization header with invalid HTTP server token": {
 			expectedStatus:   fiber.StatusForbidden,
 			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, middleware.NewInvalidBearerTokenValueError()),
 			headers: map[string]string{

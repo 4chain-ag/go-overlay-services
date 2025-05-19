@@ -27,7 +27,7 @@ func (a *AdvertisementsSyncService) SyncAdvertisements(ctx context.Context) erro
 	return nil
 }
 
-// NewAdvertisementsSyncService creates a new instance of AdvertisementsSyncServcie
+// NewAdvertisementsSyncService creates a new instance of AdvertisementsSyncService
 // using the given SyncAdvertisementsProvider. It panics if the provider is nil.
 func NewAdvertisementsSyncService(provider SyncAdvertisementsProvider) *AdvertisementsSyncService {
 	if provider == nil {
