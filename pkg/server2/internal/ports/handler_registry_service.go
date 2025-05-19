@@ -31,7 +31,7 @@ func (h *HandlerRegistryService) SubmitTransaction(c *fiber.Ctx, params openapi.
 // It initializes all handler implementations with their required dependencies.
 func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
 	return &HandlerRegistryService{
-		submitTransaction: NewSubmitTransactionHandler(provider),
+		submitTransaction:   NewSubmitTransactionHandler(provider),
 		lookupDocumentation: NewLookupProviderDocumentationHandler(provider),
 	}
 }
