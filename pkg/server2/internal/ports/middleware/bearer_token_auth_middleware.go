@@ -16,7 +16,7 @@ import (
 // security scopes.
 func BearerTokenAuthorizationMiddleware(expectedToken string) fiber.Handler {
 	const scheme = "Bearer "
-	const userScope = "user"
+	const adminScope = "admin"
 
 	return func(c *fiber.Ctx) error {
 		ctx := c.Context()
@@ -27,7 +27,7 @@ func BearerTokenAuthorizationMiddleware(expectedToken string) fiber.Handler {
 		if len(scopes) == 0 {
 			return NewEmptyAccessScopesAssertionError()
 		}
-		if slices.Contains(scopes, userScope) {
+		if !slices.Contains(scopes, adminScope) {
 			return nil
 		}
 
