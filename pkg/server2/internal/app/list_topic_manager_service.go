@@ -4,9 +4,9 @@ import (
 	"github.com/bsv-blockchain/go-sdk/overlay"
 )
 
-// TopicManagerListProvider defines the interface for retrieving
+// TopicManagersListProvider defines the interface for retrieving
 // a list of topic managers from the overlay engine.
-type TopicManagerListProvider interface {
+type TopicManagersListProvider interface {
 	ListTopicManagers() map[string]*overlay.MetaData
 }
 
@@ -19,27 +19,27 @@ type TopicManagerMetadata struct {
 	InformationURL   *string `json:"informationURL,omitempty"`
 }
 
-// TopicManagerListResponse defines the response data structure for the topic managers list.
-type TopicManagerListResponse map[string]TopicManagerMetadata
+// TopicManagersListResponse defines the response data structure for the topic managers list.
+type TopicManagersListResponse map[string]TopicManagerMetadata
 
-// TopicManagerListService provides operations for retrieving and formatting
+// TopicManagersListService provides operations for retrieving and formatting
 // topic manager metadata from the overlay engine.
-type TopicManagerListService struct {
-	provider TopicManagerListProvider
+type TopicManagersListService struct {
+	provider TopicManagersListProvider
 }
 
 // ListTopicManagers retrieves the list of topic managers
 // and formats them into a standardized response structure.
-func (s *TopicManagerListService) ListTopicManagers() TopicManagerListResponse {
+func (s *TopicManagersListService) ListTopicManagers() TopicManagersListResponse {
 	// Retrieve topic managers from the engine
 	engineTopicManagers := s.provider.ListTopicManagers()
 
 	// If nil is returned, provide an empty map
 	if engineTopicManagers == nil {
-		return make(TopicManagerListResponse)
+		return make(TopicManagersListResponse)
 	}
 
-	result := make(TopicManagerListResponse, len(engineTopicManagers))
+	result := make(TopicManagersListResponse, len(engineTopicManagers))
 
 	setIfNotEmpty := func(s string) *string {
 		if s == "" {
@@ -74,13 +74,13 @@ func (s *TopicManagerListService) ListTopicManagers() TopicManagerListResponse {
 	return result
 }
 
-// NewTopicManagerListService creates a new TopicManagerListService
+// NewTopicManagersListService creates a new TopicManagersListService
 // initialized with the given provider. It returns an error if the provider is nil.
-func NewTopicManagerListService(provider TopicManagerListProvider) (*TopicManagerListService, error) {
+func NewTopicManagersListService(provider TopicManagersListProvider) (*TopicManagersListService, error) {
 	if provider == nil {
 		return nil, NewTopicManagerNilProviderError("topic manager list provider")
 	}
-	return &TopicManagerListService{provider: provider}, nil
+	return &TopicManagersListService{provider: provider}, nil
 }
 
 // NewTopicManagerNilProviderError returns an Error indicating that a required topic manager provider was nil,

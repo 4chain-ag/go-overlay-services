@@ -43,6 +43,9 @@ type ServerInterface interface {
 	// (POST /api/v1/admin/syncAdvertisements)
 	AdvertisementsSync(c *fiber.Ctx) error
 
+	// (GET /api/v1/listTopicManagers)
+	ListTopicManagers(c *fiber.Ctx) error
+
 	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
 }
@@ -65,6 +68,17 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 		}
 	}
 	return siw.handler.AdvertisementsSync(c)
+}
+
+// ListTopicManagers operation middleware
+func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.ListTopicManagers(c)
 }
 
 // SubmitTransaction operation middleware
@@ -127,6 +141,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	}
 
 	router.Post(options.BaseURL+"/api/v1/admin/syncAdvertisements", wrapper.AdvertisementsSync)
+
+	router.Get(options.BaseURL+"/api/v1/listTopicManagers", wrapper.ListTopicManagers)
 
 	router.Post(options.BaseURL+"/api/v1/submit", wrapper.SubmitTransaction)
 
