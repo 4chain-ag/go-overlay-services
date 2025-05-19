@@ -148,6 +148,9 @@ func New(opts ...ServerOption) *ServerHTTP {
 	}
 
 	openapi.RegisterHandlersWithOptions(srv.app, srv.registry, openapi.FiberServerOptions{
+		HandlerMiddleware: []fiber.Handler{
+			middleware.BearerTokenAuthorizationMiddleware(srv.cfg.AdminBearerToken),
+		},
 		GlobalMiddleware: middleware.BasicMiddlewareGroup(middleware.BasicMiddlewareGroupConfig{
 			EnableStackTrace: true,
 			OctetStreamLimit: srv.cfg.OctetStreamLimit,
