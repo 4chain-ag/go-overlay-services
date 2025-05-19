@@ -49,8 +49,9 @@ type ServerInterface interface {
 
 // ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
-	Handler    ServerInterface
-	Middleware []fiber.Handler
+	handler           ServerInterface
+	globalMiddleware  []fiber.Handler
+	handlerMiddleware []fiber.Handler
 }
 
 // AdvertisementsSync operation middleware
@@ -58,10 +59,12 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 
 	c.Context().SetUserValue(BearerAuthScopes, []string{"admin"})
 
-	for _, middleware := range siw.Middleware {
-		middleware(c)
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
 	}
-	return siw.Handler.AdvertisementsSync(c)
+	return siw.handler.AdvertisementsSync(c)
 }
 
 // SubmitTransaction operation middleware
@@ -91,16 +94,19 @@ func (siw *ServerInterfaceWrapper) SubmitTransaction(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "The submitted request does not include required header: x-topics.")
 	}
 
-	for _, middleware := range siw.Middleware {
-		middleware(c)
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
 	}
-	return siw.Handler.SubmitTransaction(c, params)
+	return siw.handler.SubmitTransaction(c, params)
 }
 
 // FiberServerOptions provides options for the Fiber server.
 type FiberServerOptions struct {
-	BaseURL    string
-	Middleware []fiber.Handler
+	BaseURL           string
+	GlobalMiddleware  []fiber.Handler
+	HandlerMiddleware []fiber.Handler
 }
 
 // RegisterHandlers creates http.Handler with routing matching OpenAPI spec.
@@ -111,8 +117,13 @@ func RegisterHandlers(router fiber.Router, si ServerInterface) {
 // RegisterHandlersWithOptions creates http.Handler with additional options
 func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, options FiberServerOptions) {
 	wrapper := ServerInterfaceWrapper{
-		Handler:    si,
-		Middleware: options.Middleware,
+		handler:           si,
+		globalMiddleware:  options.GlobalMiddleware,
+		handlerMiddleware: options.HandlerMiddleware,
+	}
+
+	for _, m := range options.GlobalMiddleware {
+		router.Use(m)
 	}
 
 	router.Post(options.BaseURL+"/api/v1/admin/syncAdvertisements", wrapper.AdvertisementsSync)

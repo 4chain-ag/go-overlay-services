@@ -102,3 +102,14 @@ func NewUnknownError(err, slug string) Error {
 		err:       err,
 	}
 }
+
+// NewContextCancellationError returns an error indicating that the submitted request exceeded the context timeout limit or
+// that a context cancellation signal was emitted.
+func NewContextCancellationError() Error {
+	const msg = "The submitted request context has been canceled or exceeds the timeout limit."
+	return Error{
+		errorType: ErrorTypeOperationTimeout,
+		err:       msg,
+		slug:      msg,
+	}
+}
