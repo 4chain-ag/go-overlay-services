@@ -9,7 +9,7 @@ import (
 // HandlerRegistryService defines the main point for registering HTTP handler dependencies.
 // It acts as a central registry for mapping API endpoints to their handler implementations.
 type HandlerRegistryService struct {
-	submitTransaction *SubmitTransactionHandler
+	submitTransaction   *SubmitTransactionHandler
 	lookupDocumentation *LookupProviderDocumentationHandler
 }
 

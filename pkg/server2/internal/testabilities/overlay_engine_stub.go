@@ -42,19 +42,18 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 	}
 }
 
-
 func WithLookupDocumentationProvider(provider LookupServiceDocumentationProvider) TestOverlayEngineStubOption {
 	return func(stub *TestOverlayEngineStub) {
 		stub.lookupDocumentationProvider = provider
 	}
 }
 
-	// TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
+// TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
-	t                         *testing.T
-	submitTransactionProvider SubmitTransactionProvider
+	t                           *testing.T
+	submitTransactionProvider   SubmitTransactionProvider
 	lookupDocumentationProvider LookupServiceDocumentationProvider
 }
 
@@ -151,8 +150,8 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 // The options allow for configuring custom providers for transaction submission and advertisement synchronization.
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
-		t:                         t,
-		submitTransactionProvider: NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		t:                           t,
+		submitTransactionProvider:   NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 		lookupDocumentationProvider: NewLookupServiceDocumentationProviderMock(t, LookupServiceDocumentationProviderMockExpectations{DocumentationCall: false}),
 	}
 

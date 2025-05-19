@@ -13,8 +13,8 @@ import (
 func TestGetLookupServiceProviderDocumentation_Success(t *testing.T) {
 	// Given
 	expectations := testabilities.LookupServiceDocumentationProviderMockExpectations{
-		DocumentationCall: true, 
-		Documentation: "# Test Documentation\nThis is a test markdown document.",
+		DocumentationCall: true,
+		Documentation:     "# Test Documentation\nThis is a test markdown document.",
 	}
 	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, expectations)
 	service := app.NewLookupDocumentationService(mock)
@@ -31,8 +31,8 @@ func TestGetLookupServiceProviderDocumentation_Success(t *testing.T) {
 func TestGetLookupServiceProviderDocumentation_EmptyLookupServiceName(t *testing.T) {
 	// Given
 	expectations := testabilities.LookupServiceDocumentationProviderMockExpectations{
-		DocumentationCall: false, 
-		Error: errors.New("lookup service name cannot be empty"),
+		DocumentationCall: false,
+		Error:             errors.New("lookup service name cannot be empty"),
 	}
 	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, expectations)
 	service := app.NewLookupDocumentationService(mock)
@@ -53,8 +53,8 @@ func TestGetLookupServiceProviderDocumentation_EmptyLookupServiceName(t *testing
 func TestGetLookupServiceProviderDocumentation_ProviderError(t *testing.T) {
 	// Given
 	expectations := testabilities.LookupServiceDocumentationProviderMockExpectations{
-		DocumentationCall: true, 
-		Error: errors.New("lookup service name cannot be empty"),
+		DocumentationCall: true,
+		Error:             errors.New("lookup service name cannot be empty"),
 	}
 	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, expectations)
 	service := app.NewLookupDocumentationService(mock)
