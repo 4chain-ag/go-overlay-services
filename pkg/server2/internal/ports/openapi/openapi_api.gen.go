@@ -4,7 +4,9 @@
 package openapi
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/oapi-codegen/runtime"
@@ -32,6 +34,12 @@ type NotFoundResponse = Error
 // RequestTimeoutResponse defines model for RequestTimeoutResponse.
 type RequestTimeoutResponse = Error
 
+// GetTopicManagerDocumentationParams defines parameters for GetTopicManagerDocumentation.
+type GetTopicManagerDocumentationParams struct {
+	// TopicManager The name of the topic manager to retrieve documentation for
+	TopicManager string `form:"topicManager" json:"topicManager"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
@@ -42,6 +50,9 @@ type ServerInterface interface {
 
 	// (POST /api/v1/admin/syncAdvertisements)
 	AdvertisementsSync(c *fiber.Ctx) error
+
+	// (GET /api/v1/getDocumentationForTopicManager)
+	GetTopicManagerDocumentation(c *fiber.Ctx, params GetTopicManagerDocumentationParams) error
 
 	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
@@ -65,6 +76,41 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 		}
 	}
 	return siw.handler.AdvertisementsSync(c)
+}
+
+// GetTopicManagerDocumentation operation middleware
+func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) error {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetTopicManagerDocumentationParams
+
+	var query url.Values
+	query, err = url.ParseQuery(string(c.Request().URI().QueryString()))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for query string: %w", err).Error())
+	}
+
+	// ------------- Required query parameter "topicManager" -------------
+
+	if paramValue := c.Query("topicManager"); paramValue != "" {
+
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "A valid topic manager name must be provided to retrieve documentation.")
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "topicManager", query, &params.TopicManager)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter topicManager: %w", err).Error())
+	}
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.GetTopicManagerDocumentation(c, params)
 }
 
 // SubmitTransaction operation middleware
@@ -127,6 +173,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	}
 
 	router.Post(options.BaseURL+"/api/v1/admin/syncAdvertisements", wrapper.AdvertisementsSync)
+
+	router.Get(options.BaseURL+"/api/v1/getDocumentationForTopicManager", wrapper.GetTopicManagerDocumentation)
 
 	router.Post(options.BaseURL+"/api/v1/submit", wrapper.SubmitTransaction)
 

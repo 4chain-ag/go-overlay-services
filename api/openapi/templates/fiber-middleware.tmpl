@@ -71,9 +71,7 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(c *fiber.Ctx) error {
           params.{{.GoName}} = {{if not .Required}}&{{end}}value
         {{end}}
         }{{if .Required}} else {
-            err = fmt.Errorf("Query argument {{.ParamName}} is required, but not found")
-            c.Status(fiber.StatusBadRequest).JSON(err)
-            return err
+            return fiber.NewError(fiber.StatusBadRequest, "A valid topic manager name must be provided to retrieve documentation.")
         }{{end}}
       {{end}}
       {{if .IsStyled}}

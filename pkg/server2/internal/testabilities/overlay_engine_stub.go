@@ -25,6 +25,13 @@ type SubmitTransactionProvider interface {
 	ProviderStateAsserter
 }
 
+// TopicManagerDocumentationProvider extends app.TopicManagerDocumentationProvider with the ability
+// to assert whether it was called during a test.
+type TopicManagerDocumentationProvider interface {
+	app.TopicManagerDocumentationProvider
+	ProviderStateAsserter
+}
+
 // TestOverlayEngineStubOption is a functional option type used to configure a TestOverlayEngineStub.
 // It allows setting custom behaviors for different parts of the TestOverlayEngineStub.
 type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
@@ -37,12 +44,21 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 	}
 }
 
+// WithTopicManagerDocumentationProvider allows setting a custom TopicManagerDocumentationProvider in a TestOverlayEngineStub.
+// This can be used to mock topic manager documentation retrieval behavior during tests.
+func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.topicManagerDocumentationProvider = provider
+	}
+}
+
 // TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
-	t                         *testing.T
-	submitTransactionProvider SubmitTransactionProvider
+	t                                 *testing.T
+	submitTransactionProvider         SubmitTransactionProvider
+	topicManagerDocumentationProvider TopicManagerDocumentationProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
@@ -51,10 +67,12 @@ func (s *TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provide
 	panic("unimplemented")
 }
 
-// GetDocumentationForTopicManager returns documentation for a topic manager (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// GetDocumentationForTopicManager returns documentation for a topic manager.
+// It delegates to the configured topic manager documentation provider.
 func (s *TestOverlayEngineStub) GetDocumentationForTopicManager(provider string) (string, error) {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.topicManagerDocumentationProvider.GetDocumentationForTopicManager(provider)
 }
 
 // GetUTXOHistory retrieves UTXO history for the given output (unimplemented).
@@ -125,6 +143,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 
 	providers := []ProviderStateAsserter{
 		s.submitTransactionProvider,
+		s.topicManagerDocumentationProvider,
 	}
 	for _, p := range providers {
 		p.AssertCalled()
@@ -135,8 +154,9 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 // The options allow for configuring custom providers for transaction submission and advertisement synchronization.
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
-		t:                         t,
-		submitTransactionProvider: NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		t:                                 t,
+		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		topicManagerDocumentationProvider: NewTopicManagerDocumentationProviderMock(t, DefaultTopicManagerDocumentationProviderMockExpectations),
 	}
 
 	for _, opt := range opts {
