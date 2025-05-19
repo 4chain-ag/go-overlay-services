@@ -31,39 +31,49 @@ func TestLookupProviderDocumentationHandler_GetDocumentation_ShouldReturnBadRequ
 	mock.AssertCalled()
 }
 
-// TODO: Implement these tests
+func TestLookupProviderDocumentationHandler_GetDocumentation_ShouldReturnInternalServerErrorResponse(t *testing.T) {
+	// Given
+	providerError := app.NewLookupServiceProviderDocumentationError(nil)
+	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, testabilities.LookupServiceDocumentationProviderMockExpectations{
+		DocumentationCall: true,
+		Error:             providerError,
+	})
+	stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithLookupDocumentationProvider(mock))
+	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
+	expectedResponse := testabilities.NewTestOpenapiErrorResponse(t, providerError)
 
-// func TestLookupProviderDocumentationHandler_GetDocumentation_ShouldReturnInternalServerErrorResponse(t *testing.T) {
-// 	// Given
-// 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithLookupProviderDocumentationError())
-// 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine))
+	// When
+	var actualResponse openapi.Error
+	res, _ := fixture.Client().
+		R().
+		SetError(&actualResponse).
+		Get("/api/v1/getDocumentationForLookupServiceProvider?lookupService=testProvider")
 
-// 	// When
-// 	var actualResponse openapi.Error
-// 	res, _ := fixture.Client().
-// 		R().
-// 		SetError(&actualResponse).
-// 		Get("/api/v1/getDocumentationForLookupServiceProvider?lookupService=testProvider")
+	// Then
+	require.Equal(t, fiber.StatusInternalServerError, res.StatusCode())
+	require.Equal(t, expectedResponse, actualResponse)
+	mock.AssertCalled()
+}
 
-// 	// Then
-// 	require.Equal(t, fiber.StatusInternalServerError, res.StatusCode())
-// 	require.Equal(t, ports.LookupProviderError.Message, actualResponse.Message)
-// }
+func TestLookupProviderDocumentationHandler_GetDocumentation_ShouldReturnSuccessResponse(t *testing.T) {
+	// Given
+	expectedDocumentation := "# Test Documentation\nThis is a test markdown document."
+	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, testabilities.LookupServiceDocumentationProviderMockExpectations{
+		DocumentationCall: true,
+		Documentation:     expectedDocumentation,
+	})
+	stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithLookupDocumentationProvider(mock))
+	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
 
-// func TestLookupProviderDocumentationHandler_GetDocumentation_ShouldReturnSuccessResponse(t *testing.T) {
-// 	// Given
-// 	expectedDocumentation := "# Test Documentation\nThis is a test markdown document."
-// 	engine := testabilities.NewTestOverlayEngineStub(t, testabilities.WithLookupProviderDocumentation(expectedDocumentation))
-// 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(engine))
+	// When
+	var actualResponse openapi.LookupServiceDocumentationResponse
+	res, _ := fixture.Client().
+		R().
+		SetResult(&actualResponse).
+		Get("/api/v1/getDocumentationForLookupServiceProvider?lookupService=testProvider")
 
-// 	// When
-// 	var actualResponse openapi.LookupServiceDocumentationResponse
-// 	res, _ := fixture.Client().
-// 		R().
-// 		SetResult(&actualResponse).
-// 		Get("/api/v1/getDocumentationForLookupServiceProvider?lookupService=testProvider")
-
-// 	// Then
-// 	require.Equal(t, http.StatusOK, res.StatusCode())
-// 	require.Equal(t, expectedDocumentation, actualResponse.Documentation)
-// }
+	// Then
+	require.Equal(t, fiber.StatusOK, res.StatusCode())
+	require.Equal(t, expectedDocumentation, actualResponse.Documentation)
+	mock.AssertCalled()
+}
