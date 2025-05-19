@@ -71,8 +71,8 @@ func WithSyncAdvertisementsProvider(provider SyncAdvertisementsProvider) TestOve
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
-	t                         *testing.T
-	topicManagersListProvider TopicManagersListProvider
+	t                          *testing.T
+	topicManagersListProvider  TopicManagersListProvider
 	submitTransactionProvider  SubmitTransactionProvider
 	syncAdvertisementsProvider SyncAdvertisementsProvider
 }
@@ -171,9 +171,9 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 // The options allow for configuring custom providers for transaction submission and advertisement synchronization.
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
-		t:                         t,
-		submitTransactionProvider: NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
-		topicManagersListProvider: NewTopicManagersListProviderMock(t, TopicManagersListProviderMockExpectations{ListTopicManagersCall: false}),
+		t:                          t,
+		submitTransactionProvider:  NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		topicManagersListProvider:  NewTopicManagersListProviderMock(t, TopicManagersListProviderMockExpectations{ListTopicManagersCall: false}),
 		syncAdvertisementsProvider: NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
 	}
 

@@ -70,6 +70,17 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 	return siw.handler.AdvertisementsSync(c)
 }
 
+// ListTopicManagers operation middleware
+func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.ListTopicManagers(c)
+}
+
 // SubmitTransaction operation middleware
 func (siw *ServerInterfaceWrapper) SubmitTransaction(c *fiber.Ctx) error {
 

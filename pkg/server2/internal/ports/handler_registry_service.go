@@ -9,7 +9,7 @@ import (
 // HandlerRegistryService defines the main point for registering HTTP handler dependencies.
 // It acts as a central registry for mapping API endpoints to their handler implementations.
 type HandlerRegistryService struct {
-	topicManagersList *TopicManagersListHandler
+	topicManagersList  *TopicManagersListHandler
 	submitTransaction  *SubmitTransactionHandler
 	syncAdvertisements *SyncAdvertisementsHandler
 }
@@ -33,8 +33,8 @@ func (h *HandlerRegistryService) ListTopicManagers(c *fiber.Ctx) error {
 // It initializes all handler implementations with their required dependencies.
 func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
 	return &HandlerRegistryService{
-		submitTransaction: NewSubmitTransactionHandler(provider),
-		topicManagersList: NewTopicManagersListHandler(provider),
+		submitTransaction:  NewSubmitTransactionHandler(provider),
+		topicManagersList:  NewTopicManagersListHandler(provider),
 		syncAdvertisements: NewSyncAdvertisementsHandler(provider),
 	}
 }
