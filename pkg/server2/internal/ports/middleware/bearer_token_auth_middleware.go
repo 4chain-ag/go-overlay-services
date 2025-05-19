@@ -22,9 +22,12 @@ func BearerTokenAuthorizationMiddleware(expectedToken string) fiber.Handler {
 		ctx := c.Context()
 		scopes, ok := ctx.UserValue(openapi.BearerAuthScopes).([]string)
 		if !ok {
-			return NewAccessScopeAssertionError()
+			return NewBearerAuthScopesAssertionError()
 		}
-		if len(scopes) == 0 || slices.Contains(scopes, userScope) {
+		if len(scopes) == 0 {
+			return NewEmptyAccessScopesAssertionError()
+		}
+		if slices.Contains(scopes, userScope) {
 			return nil
 		}
 
@@ -67,11 +70,25 @@ func NewInvalidBearerTokenValueError() app.Error {
 	return app.NewAccessForbiddenError(str, str)
 }
 
-// NewAccessScopeAssertionError returns an app.Error indicating that the
+// NewBearerAuthScopesAssertionError returns an app.Error indicating that the
 // authorization scopes assertion failed, usually due to missing or
-// improperly formated OpenAPI scope data in the request context.
-func NewAccessScopeAssertionError() app.Error {
-	return app.NewUnknownError(
+// improperly formatted OpenAPI scope data in the request context.
+//
+// This error typically arises when the context key `openapi.BearerAuthScopes`
+// is expected to hold a `[]string`, but the value is either missing or of an unexpected type.
+func NewBearerAuthScopesAssertionError() app.Error {
+	return app.NewAuthorizationError(
 		fmt.Sprintf("Authorization scope assertion failure: expected to get string slice under %s user context key to properly extract the request scope.", openapi.BearerAuthScopes),
+		"Unable to process request to the endpoint. Please verify the request content and try again later.")
+}
+
+// NewEmptyAccessScopesAssertionError returns an app.Error indicating that the
+// authorization scope list exists in the context, but it is empty.
+//
+// This error is triggered when a `[]string` is found under the `openapi.BearerAuthScopes`
+// context key, but the slice contains no elements, preventing proper access control evaluation.
+func NewEmptyAccessScopesAssertionError() app.Error {
+	return app.NewAuthorizationError(
+		fmt.Sprintf("Authorization scope assertion failure: expected to get non empty string slice under %s user context key.", openapi.BearerAuthScopes),
 		"Unable to process request to the endpoint. Please verify the request content and try again later.")
 }
