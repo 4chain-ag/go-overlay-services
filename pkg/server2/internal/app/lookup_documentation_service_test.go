@@ -12,51 +12,62 @@ import (
 
 func TestGetLookupServiceProviderDocumentation_Success(t *testing.T) {
 	// Given
-	service := app.NewLookupServiceProviderDocumentationService(&testabilities.MockLookupServiceProviderDocumentationProvider{ShouldFail: false})
+	expectations := testabilities.LookupServiceDocumentationProviderMockExpectations{
+		DocumentationCall: true, 
+		Documentation: "# Test Documentation\nThis is a test markdown document.",
+	}
+	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, expectations)
+	service := app.NewLookupDocumentationService(mock)
 
 	// When
 	documentation, err := service.GetDocumentation(context.Background(), "test-service")
 
 	// Then
 	require.NoError(t, err)
-	require.Equal(t, "# Test Documentation\nThis is a test markdown document.", documentation)
+	require.Equal(t, expectations.Documentation, documentation)
+	mock.AssertCalled()
 }
 
 func TestGetLookupServiceProviderDocumentation_EmptyLookupServiceName(t *testing.T) {
 	// Given
-	service := app.NewLookupServiceProviderDocumentationService(&testabilities.MockLookupServiceProviderDocumentationProvider{ShouldFail: false})
-
+	expectations := testabilities.LookupServiceDocumentationProviderMockExpectations{
+		DocumentationCall: false, 
+		Error: errors.New("lookup service name cannot be empty"),
+	}
+	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, expectations)
+	service := app.NewLookupDocumentationService(mock)
+	expectedError := app.NewEmptyLookupServiceNameError()
 	// When
 	documentation, err := service.GetDocumentation(context.Background(), "")
 
 	// Then
-	require.Error(t, err)
 	require.Empty(t, documentation)
-	var target app.Error
-	require.True(t, errors.As(err, &target))
-	require.Equal(t, app.ErrorTypeIncorrectInput, target.ErrorType())
-	require.Equal(t, "lookup service name cannot be empty", target.Error())
+
+	var actualErr app.Error
+	require.True(t, errors.As(err, &actualErr))
+	require.Equal(t, expectedError, actualErr)
+
+	mock.AssertCalled()
 }
 
 func TestGetLookupServiceProviderDocumentation_ProviderError(t *testing.T) {
 	// Given
-	service := app.NewLookupServiceProviderDocumentationService(&testabilities.MockLookupServiceProviderDocumentationProvider{ShouldFail: true})
-
+	expectations := testabilities.LookupServiceDocumentationProviderMockExpectations{
+		DocumentationCall: true, 
+		Error: errors.New("lookup service name cannot be empty"),
+	}
+	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, expectations)
+	service := app.NewLookupDocumentationService(mock)
+	expectedError := app.NewLookupServiceProviderDocumentationError(expectations.Error)
 	// When
 	documentation, err := service.GetDocumentation(context.Background(), "test-service")
 
 	// Then
-	require.Error(t, err)
 	require.Empty(t, documentation)
-	var target app.Error
-	require.True(t, errors.As(err, &target))
-	require.Equal(t, app.ErrorTypeProviderFailure, target.ErrorType())
-	require.Equal(t, "unable to retrieve documentation for lookup service provider", target.Error())
-}
 
-func TestNewLookupServiceProviderDocumentationService_NilProvider(t *testing.T) {
-	// When, Then
-	require.Panics(t, func() {
-		app.NewLookupServiceProviderDocumentationService(nil)
-	})
+	var actualErr app.Error
+	require.True(t, errors.As(err, &actualErr))
+	require.Equal(t, expectedError, actualErr)
+
+	mock.AssertCalled()
 }

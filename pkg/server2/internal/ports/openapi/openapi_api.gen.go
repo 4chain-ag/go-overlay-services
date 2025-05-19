@@ -4,7 +4,9 @@
 package openapi
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/oapi-codegen/runtime"
@@ -32,6 +34,12 @@ type NotFoundResponse = Error
 // RequestTimeoutResponse defines model for RequestTimeoutResponse.
 type RequestTimeoutResponse = Error
 
+// GetLookupServiceProviderDocumentationParams defines parameters for GetLookupServiceProviderDocumentation.
+type GetLookupServiceProviderDocumentationParams struct {
+	// LookupService The name of the lookup service to retrieve documentation for
+	LookupService string `form:"lookupService" json:"lookupService"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
@@ -42,6 +50,9 @@ type ServerInterface interface {
 
 	// (POST /api/v1/admin/syncAdvertisements)
 	AdvertisementsSync(c *fiber.Ctx) error
+
+	// (GET /api/v1/getDocumentationForLookupServiceProvider)
+	GetLookupServiceProviderDocumentation(c *fiber.Ctx, params GetLookupServiceProviderDocumentationParams) error
 
 	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
@@ -65,6 +76,41 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 		}
 	}
 	return siw.handler.AdvertisementsSync(c)
+}
+
+// GetLookupServiceProviderDocumentation operation middleware
+func (siw *ServerInterfaceWrapper) GetLookupServiceProviderDocumentation(c *fiber.Ctx) error {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetLookupServiceProviderDocumentationParams
+
+	var query url.Values
+	query, err = url.ParseQuery(string(c.Request().URI().QueryString()))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for query string: %w", err).Error())
+	}
+
+	// ------------- Required query parameter "lookupService" -------------
+
+	if paramValue := c.Query("lookupService"); paramValue != "" {
+
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "A valid lookup service name must be provided to retrieve documentation.")
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "lookupService", query, &params.LookupService)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter lookupService: %w", err).Error())
+	}
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.GetLookupServiceProviderDocumentation(c, params)
 }
 
 // SubmitTransaction operation middleware
@@ -127,6 +173,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	}
 
 	router.Post(options.BaseURL+"/api/v1/admin/syncAdvertisements", wrapper.AdvertisementsSync)
+
+	router.Get(options.BaseURL+"/api/v1/getDocumentationForLookupServiceProvider", wrapper.GetLookupServiceProviderDocumentation)
 
 	router.Post(options.BaseURL+"/api/v1/submit", wrapper.SubmitTransaction)
 

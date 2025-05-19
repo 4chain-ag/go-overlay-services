@@ -41,6 +41,15 @@ components:
       required:
         - STEAK
 
+    LookupServiceDocumentation:
+      type: object
+      properties:
+        documentation:
+          type: string
+          description: Markdown-formatted documentation for the lookup service
+      required:
+        - documentation
+
   responses:
     SubmitTransactionResponse:
       description: |
@@ -49,3 +58,10 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+
+    LookupServiceDocumentationResponse:
+      description: Returns the documentation for the specified lookup service
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LookupServiceDocumentation'

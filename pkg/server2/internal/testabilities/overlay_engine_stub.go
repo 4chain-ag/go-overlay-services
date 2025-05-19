@@ -25,6 +25,11 @@ type SubmitTransactionProvider interface {
 	ProviderStateAsserter
 }
 
+type LookupServiceDocumentationProvider interface {
+	app.LookupServiceDocumentationProvider
+	ProviderStateAsserter
+}
+
 // TestOverlayEngineStubOption is a functional option type used to configure a TestOverlayEngineStub.
 // It allows setting custom behaviors for different parts of the TestOverlayEngineStub.
 type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
@@ -37,18 +42,28 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 	}
 }
 
-// TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
+
+func WithLookupDocumentationProvider(provider LookupServiceDocumentationProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.lookupDocumentationProvider = provider
+	}
+}
+
+	// TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
 	t                         *testing.T
 	submitTransactionProvider SubmitTransactionProvider
+	lookupDocumentationProvider LookupServiceDocumentationProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
 func (s *TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.lookupDocumentationProvider.GetDocumentationForLookupServiceProvider(provider)
 }
 
 // GetDocumentationForTopicManager returns documentation for a topic manager (unimplemented).
@@ -125,6 +140,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 
 	providers := []ProviderStateAsserter{
 		s.submitTransactionProvider,
+		s.lookupDocumentationProvider,
 	}
 	for _, p := range providers {
 		p.AssertCalled()
@@ -137,6 +153,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 	stub := TestOverlayEngineStub{
 		t:                         t,
 		submitTransactionProvider: NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		lookupDocumentationProvider: NewLookupServiceDocumentationProviderMock(t, LookupServiceDocumentationProviderMockExpectations{DocumentationCall: false}),
 	}
 
 	for _, opt := range opts {

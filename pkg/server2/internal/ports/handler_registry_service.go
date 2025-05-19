@@ -10,11 +10,16 @@ import (
 // It acts as a central registry for mapping API endpoints to their handler implementations.
 type HandlerRegistryService struct {
 	submitTransaction *SubmitTransactionHandler
+	lookupDocumentation *LookupProviderDocumentationHandler
 }
 
 // AdvertisementsSync method delegates the request to the configured sync advertisements handler.
 func (h *HandlerRegistryService) AdvertisementsSync(c *fiber.Ctx) error {
 	panic("not implemented")
+}
+
+func (h *HandlerRegistryService) GetLookupServiceProviderDocumentation(c *fiber.Ctx, params openapi.GetLookupServiceProviderDocumentationParams) error {
+	return h.lookupDocumentation.Handle(c, params)
 }
 
 // SubmitTransaction method delegates the request to the configured submit transaction handler.
