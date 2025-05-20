@@ -33,6 +33,9 @@ paths:
       tags:
         - non-admin
       operationId: ListTopicManagers
+      security:
+        - bearerAuth: 
+            - user
       responses:
         200:
           $ref: '../paths/non_admin/responses.yaml#/components/responses/TopicManagersListResponse'

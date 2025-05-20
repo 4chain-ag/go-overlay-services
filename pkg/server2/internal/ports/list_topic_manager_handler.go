@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -40,10 +39,4 @@ func NewTopicManagersListHandler(provider app.TopicManagersListProvider) *TopicM
 	return &TopicManagersListHandler{
 		service: service,
 	}
-}
-
-// TopicManagersListServiceInternalError is the internal server error response for topic managers list.
-// This error is returned when an internal issue occurs while retrieving the topic managers list.
-var TopicManagersListServiceInternalError = openapi.InternalServerErrorResponse{
-	Message: "Unable to retrieve topic managers list due to an error in the overlay engine.",
 }
