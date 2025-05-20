@@ -56,3 +56,10 @@ tasks:
       - docker-compose down || true
       - rm -f {{.SWAGGER_FILE}}
     silent: true
+
+  execute-linters:
+    desc: Run linters for the project.
+    cmds:
+      - golangci-lint run --config=./.golangci-lint.yml
+      - golangci-lint run --config=./.golangci-style.yml --fix
+    silent: true
