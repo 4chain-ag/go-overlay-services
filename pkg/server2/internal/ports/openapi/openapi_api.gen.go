@@ -4,7 +4,6 @@
 package openapi
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -89,7 +88,7 @@ func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) er
 	var query url.Values
 	query, err = url.ParseQuery(string(c.Request().URI().QueryString()))
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for query string: %w", err).Error())
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid format for query string")
 	}
 
 	// ------------- Required query parameter "topicManager" -------------
@@ -102,7 +101,7 @@ func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) er
 
 	err = runtime.BindQueryParameter("form", true, true, "topicManager", query, &params.TopicManager)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter topicManager: %w", err).Error())
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid format for parameter topicManager")
 	}
 
 	for _, m := range siw.handlerMiddleware {
