@@ -10,8 +10,8 @@ import (
 // It acts as a central registry for mapping API endpoints to their handler implementations.
 type HandlerRegistryService struct {
 	topicManagerDocumentation *TopicManagerDocumentationHandler
-	submitTransaction  *SubmitTransactionHandler
-	syncAdvertisements *SyncAdvertisementsHandler
+	submitTransaction         *SubmitTransactionHandler
+	syncAdvertisements        *SyncAdvertisementsHandler
 }
 
 // AdvertisementsSync method delegates the request to the configured sync advertisements handler.
@@ -34,7 +34,7 @@ func (h *HandlerRegistryService) SubmitTransaction(c *fiber.Ctx, params openapi.
 func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
 	return &HandlerRegistryService{
 		topicManagerDocumentation: NewTopicManagerDocumentationHandler(provider),
-		submitTransaction:  NewSubmitTransactionHandler(provider),
-		syncAdvertisements: NewSyncAdvertisementsHandler(provider),
+		submitTransaction:         NewSubmitTransactionHandler(provider),
+		syncAdvertisements:        NewSyncAdvertisementsHandler(provider),
 	}
 }

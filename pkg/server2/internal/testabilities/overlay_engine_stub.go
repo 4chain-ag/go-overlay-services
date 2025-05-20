@@ -59,13 +59,22 @@ func WithSyncAdvertisementsProvider(provider SyncAdvertisementsProvider) TestOve
 	}
 }
 
+// WithTopicManagerDocumentationProvider allows setting a custom TopicManagerDocumentationProvider in a TestOverlayEngineStub.
+// This can be used to mock topic manager documentation retrieval behavior during tests.
+func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.topicManagerDocumentationProvider = provider
+	}
+}
+
 // TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
-	t                          *testing.T
-	submitTransactionProvider  SubmitTransactionProvider
-	syncAdvertisementsProvider SyncAdvertisementsProvider
+	t                                 *testing.T
+	topicManagerDocumentationProvider TopicManagerDocumentationProvider
+	submitTransactionProvider         SubmitTransactionProvider
+	syncAdvertisementsProvider        SyncAdvertisementsProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
@@ -151,6 +160,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 	s.t.Helper()
 
 	providers := []ProviderStateAsserter{
+		s.topicManagerDocumentationProvider,
 		s.submitTransactionProvider,
 		s.syncAdvertisementsProvider,
 	}
@@ -163,8 +173,10 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 // The options allow for configuring custom providers for transaction submission and advertisement synchronization.
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
-		t:                         t,
-		submitTransactionProvider: NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		t:                                 t,
+		topicManagerDocumentationProvider: NewTopicManagerDocumentationProviderMock(t, TopicManagerDocumentationProviderMockExpectations{DocumentationCall: false}),
+		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		syncAdvertisementsProvider:        NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
 	}
 
 	for _, opt := range opts {
