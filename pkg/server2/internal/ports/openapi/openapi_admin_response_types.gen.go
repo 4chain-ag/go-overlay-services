@@ -5,7 +5,7 @@ package openapi
 
 // AdvertisementsSync defines model for AdvertisementsSync.
 type AdvertisementsSync struct {
-	Message *string `json:"message,omitempty"`
+	Message string `json:"message"`
 }
 
 // AdvertisementsSyncResponse defines model for AdvertisementsSyncResponse.

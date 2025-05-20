@@ -7,6 +7,7 @@ toolchain go1.24.1
 require (
 	github.com/bsv-blockchain/go-sdk v1.1.22
 	github.com/bsv-blockchain/universal-test-vectors v0.5.0
+	github.com/go-resty/resty/v2 v2.16.5
 	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/google/uuid v1.6.0
@@ -62,6 +63,7 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/mod v0.18.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
