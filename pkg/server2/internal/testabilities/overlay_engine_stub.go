@@ -104,7 +104,7 @@ func (s *TestOverlayEngineStub) HandleNewMerkleProof(ctx context.Context, txid *
 // ListLookupServiceProviders lists the available lookup service providers.
 func (s *TestOverlayEngineStub) ListLookupServiceProviders() map[string]*overlay.MetaData {
 	s.t.Helper()
-	
+
 	return s.lookupListProvider.ListLookupServiceProviders()
 }
 
