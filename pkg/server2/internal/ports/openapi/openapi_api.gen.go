@@ -43,6 +43,9 @@ type ServerInterface interface {
 	// (POST /api/v1/admin/syncAdvertisements)
 	AdvertisementsSync(c *fiber.Ctx) error
 
+	// (GET /api/v1/listLookupServiceProviders)
+	ListLookupServiceProviders(c *fiber.Ctx) error
+
 	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
 }
@@ -65,6 +68,19 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 		}
 	}
 	return siw.handler.AdvertisementsSync(c)
+}
+
+// ListLookupServiceProviders operation middleware
+func (siw *ServerInterfaceWrapper) ListLookupServiceProviders(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.ListLookupServiceProviders(c)
 }
 
 // SubmitTransaction operation middleware
@@ -127,6 +143,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	}
 
 	router.Post(options.BaseURL+"/api/v1/admin/syncAdvertisements", wrapper.AdvertisementsSync)
+
+	router.Get(options.BaseURL+"/api/v1/listLookupServiceProviders", wrapper.ListLookupServiceProviders)
 
 	router.Post(options.BaseURL+"/api/v1/submit", wrapper.SubmitTransaction)
 

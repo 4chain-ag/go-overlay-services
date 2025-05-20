@@ -28,6 +28,20 @@ paths:
         500:
           $ref: '#/components/responses/InternalServerErrorResponse'
 
+  /api/v1/listLookupServiceProviders:
+    get:
+      tags:
+        - non-admin
+      operationId: ListLookupServiceProviders
+      security:
+        - bearerAuth: 
+            - user
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupServiceProvidersListResponse'
+        500:
+          $ref: '#/components/responses/InternalServerErrorResponse'
+
   /api/v1/submit:
     post:
       tags:
