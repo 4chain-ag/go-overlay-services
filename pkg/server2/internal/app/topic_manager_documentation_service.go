@@ -26,7 +26,7 @@ func (s *TopicManagerDocumentationService) GetDocumentation(ctx context.Context,
 
 	documentation, err := s.provider.GetDocumentationForTopicManager(topicManagerName)
 	if err != nil {
-		return "", NewTopicManagerDocumentationError(err)
+		return "", NewTopicManagerDocumentationProviderError(err)
 	}
 
 	return documentation, nil
@@ -54,9 +54,9 @@ func NewEmptyTopicManagerNameError() Error {
 	}
 }
 
-// NewTopicManagerDocumentationError returns an Error indicating that the configured provider
+// NewTopicManagerDocumentationProviderError returns an Error indicating that the configured provider
 // failed to retrieve documentation for the topic manager.
-func NewTopicManagerDocumentationError(err error) Error {
+func NewTopicManagerDocumentationProviderError(err error) Error {
 	return Error{
 		errorType: ErrorTypeProviderFailure,
 		err:       "unable to retrieve documentation for topic manager",
