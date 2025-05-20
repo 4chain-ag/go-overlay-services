@@ -82,6 +82,8 @@ func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) er
 
 	var err error
 
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetTopicManagerDocumentationParams
 

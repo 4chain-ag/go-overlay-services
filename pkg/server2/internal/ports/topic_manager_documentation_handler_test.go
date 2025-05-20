@@ -12,27 +12,27 @@ import (
 )
 
 func TestTopicManagerDocumentationHandler_GetDocumentation_ShouldReturnBadRequestResponse(t *testing.T) {
-	// Given
+	// given:
 	mock := testabilities.NewTopicManagerDocumentationProviderMock(t, testabilities.TopicManagerDocumentationProviderMockExpectations{DocumentationCall: false})
 	stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithTopicManagerDocumentationProvider(mock))
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
 	expectatedResponse := testabilities.NewTestOpenapiErrorResponse(t, app.NewEmptyTopicManagerNameError())
 
-	// When
+	// when:
 	var actualResponse openapi.Error
 	res, _ := fixture.Client().
 		R().
 		SetError(&actualResponse).
 		Get("/api/v1/getDocumentationForTopicManager")
 
-	// Then
+	// then:
 	require.Equal(t, fiber.StatusBadRequest, res.StatusCode())
 	require.Equal(t, expectatedResponse, actualResponse)
 	mock.AssertCalled()
 }
 
 func TestTopicManagerDocumentationHandler_GetDocumentation_ShouldReturnInternalServerErrorResponse(t *testing.T) {
-	// Given
+	// given:
 	providerError := app.NewTopicManagerDocumentationError(nil)
 	mock := testabilities.NewTopicManagerDocumentationProviderMock(t, testabilities.TopicManagerDocumentationProviderMockExpectations{
 		DocumentationCall: true,
@@ -42,21 +42,21 @@ func TestTopicManagerDocumentationHandler_GetDocumentation_ShouldReturnInternalS
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
 	expectedResponse := testabilities.NewTestOpenapiErrorResponse(t, providerError)
 
-	// When
+	// when:
 	var actualResponse openapi.Error
 	res, _ := fixture.Client().
 		R().
 		SetError(&actualResponse).
 		Get("/api/v1/getDocumentationForTopicManager?topicManager=testProvider")
 
-	// Then
+	// then:
 	require.Equal(t, fiber.StatusInternalServerError, res.StatusCode())
 	require.Equal(t, expectedResponse, actualResponse)
 	mock.AssertCalled()
 }
 
 func TestTopicManagerDocumentationHandler_GetDocumentation_ShouldReturnSuccessResponse(t *testing.T) {
-	// Given
+	// given:
 	mock := testabilities.NewTopicManagerDocumentationProviderMock(t, testabilities.TopicManagerDocumentationProviderMockExpectations{
 		DocumentationCall: true,
 		Documentation:     testabilities.DefaultTopicManagerDocumentationProviderMockExpectations.Documentation,
@@ -64,14 +64,14 @@ func TestTopicManagerDocumentationHandler_GetDocumentation_ShouldReturnSuccessRe
 	stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithTopicManagerDocumentationProvider(mock))
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
 
-	// When
+	// when:
 	var actualResponse openapi.TopicManagerDocumentationResponse
 	res, _ := fixture.Client().
 		R().
 		SetResult(&actualResponse).
 		Get("/api/v1/getDocumentationForTopicManager?topicManager=testProvider")
 
-	// Then
+	// then:
 	require.Equal(t, fiber.StatusOK, res.StatusCode())
 	require.Equal(t, testabilities.DefaultTopicManagerDocumentationProviderMockExpectations.Documentation, actualResponse.Documentation)
 	mock.AssertCalled()

@@ -33,6 +33,9 @@ paths:
       tags:
         - non-admin
       operationId: GetTopicManagerDocumentation
+      security:
+        - bearerAuth:
+            - user
       parameters:
         - in: query
           name: topicManager

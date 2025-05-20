@@ -11,25 +11,21 @@ import (
 )
 
 func TestGetTopicManagerDocumentation_Success(t *testing.T) {
-	// Given
-	expectations := testabilities.TopicManagerDocumentationProviderMockExpectations{
-		DocumentationCall: true,
-		Documentation:     "# Test Documentation\nThis is a test markdown document.",
-	}
-	mock := testabilities.NewTopicManagerDocumentationProviderMock(t, expectations)
+	// given:
+	mock := testabilities.NewTopicManagerDocumentationProviderMock(t, testabilities.DefaultTopicManagerDocumentationProviderMockExpectations)
 	service := app.NewTopicManagerDocumentationService(mock)
 
-	// When
+	// when:
 	documentation, err := service.GetDocumentation(context.Background(), "test-topic-manager")
 
-	// Then
+	// then:
 	require.NoError(t, err)
-	require.Equal(t, expectations.Documentation, documentation)
+	require.Equal(t, testabilities.DefaultTopicManagerDocumentationProviderMockExpectations.Documentation, documentation)
 	mock.AssertCalled()
 }
 
 func TestGetTopicManagerDocumentation_EmptyTopicManagerName(t *testing.T) {
-	// Given
+	// given:
 	expectations := testabilities.TopicManagerDocumentationProviderMockExpectations{
 		DocumentationCall: false,
 		Error:             errors.New("topic manager name cannot be empty"),
@@ -37,10 +33,11 @@ func TestGetTopicManagerDocumentation_EmptyTopicManagerName(t *testing.T) {
 	mock := testabilities.NewTopicManagerDocumentationProviderMock(t, expectations)
 	service := app.NewTopicManagerDocumentationService(mock)
 	expectedError := app.NewEmptyTopicManagerNameError()
-	// When
+	
+	// when:
 	documentation, err := service.GetDocumentation(context.Background(), "")
 
-	// Then
+	// then:
 	require.Empty(t, documentation)
 
 	var actualErr app.Error
@@ -51,7 +48,7 @@ func TestGetTopicManagerDocumentation_EmptyTopicManagerName(t *testing.T) {
 }
 
 func TestGetTopicManagerDocumentation_ProviderError(t *testing.T) {
-	// Given
+	// given:
 	expectations := testabilities.TopicManagerDocumentationProviderMockExpectations{
 		DocumentationCall: true,
 		Error:             errors.New("topic manager name cannot be empty"),
@@ -59,10 +56,11 @@ func TestGetTopicManagerDocumentation_ProviderError(t *testing.T) {
 	mock := testabilities.NewTopicManagerDocumentationProviderMock(t, expectations)
 	service := app.NewTopicManagerDocumentationService(mock)
 	expectedError := app.NewTopicManagerDocumentationError(expectations.Error)
-	// When
+
+	// when:
 	documentation, err := service.GetDocumentation(context.Background(), "test-topic-manager")
 
-	// Then
+	// then:
 	require.Empty(t, documentation)
 
 	var actualErr app.Error
