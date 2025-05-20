@@ -73,6 +73,8 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 // ListTopicManagers operation middleware
 func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
 
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
 	for _, m := range siw.handlerMiddleware {
 		if err := m(c); err != nil {
 			return err
