@@ -18,6 +18,13 @@ type ProviderStateAsserter interface {
 	AssertCalled()
 }
 
+// SyncAdvertisementsProvider extends app.SyncAdvertisementsProvider with the ability
+// to assert whether it was called during a test.
+type SyncAdvertisementsProvider interface {
+	app.SyncAdvertisementsProvider
+	ProviderStateAsserter
+}
+
 // SubmitTransactionProvider extends app.SubmitTransactionProvider with the ability
 // to assert whether it was called during a test.
 type SubmitTransactionProvider interface {
@@ -44,11 +51,11 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 	}
 }
 
-// WithTopicManagerDocumentationProvider allows setting a custom TopicManagerDocumentationProvider in a TestOverlayEngineStub.
-// This can be used to mock topic manager documentation retrieval behavior during tests.
-func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationProvider) TestOverlayEngineStubOption {
+// WithSyncAdvertisementsProvider allows setting a custom SyncAdvertisementsProvider in a TestOverlayEngineStub.
+// This can be used to mock advertisement synchronization behavior during tests.
+func WithSyncAdvertisementsProvider(provider SyncAdvertisementsProvider) TestOverlayEngineStubOption {
 	return func(stub *TestOverlayEngineStub) {
-		stub.topicManagerDocumentationProvider = provider
+		stub.syncAdvertisementsProvider = provider
 	}
 }
 
@@ -56,9 +63,9 @@ func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationPro
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
-	t                                 *testing.T
-	submitTransactionProvider         SubmitTransactionProvider
-	topicManagerDocumentationProvider TopicManagerDocumentationProvider
+	t                          *testing.T
+	submitTransactionProvider  SubmitTransactionProvider
+	syncAdvertisementsProvider SyncAdvertisementsProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
@@ -134,7 +141,9 @@ func (s *TestOverlayEngineStub) Submit(ctx context.Context, taggedBEEF overlay.T
 // SyncAdvertisements synchronizes advertisements using the configured SyncAdvertisementsProvider.
 // It calls the SyncAdvertisements method of the provider and handles the result.
 func (s *TestOverlayEngineStub) SyncAdvertisements(ctx context.Context) error {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.syncAdvertisementsProvider.SyncAdvertisements(ctx)
 }
 
 // AssertProvidersState asserts that all configured providers were used as expected.
@@ -143,7 +152,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 
 	providers := []ProviderStateAsserter{
 		s.submitTransactionProvider,
-		s.topicManagerDocumentationProvider,
+		s.syncAdvertisementsProvider,
 	}
 	for _, p := range providers {
 		p.AssertCalled()
@@ -154,9 +163,8 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 // The options allow for configuring custom providers for transaction submission and advertisement synchronization.
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
-		t:                                 t,
-		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
-		topicManagerDocumentationProvider: NewTopicManagerDocumentationProviderMock(t, DefaultTopicManagerDocumentationProviderMockExpectations),
+		t:                         t,
+		submitTransactionProvider: NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 	}
 
 	for _, opt := range opts {

@@ -56,11 +56,7 @@ func TestLimitOctetStreamMiddleware_ValidCases(t *testing.T) {
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
 				// given:
-				stub := testabilities.NewTestOverlayEngineStub(t,
-					path.expectedProviderToCall,
-					// .. TODO: Update the providers list that should not be called.
-				)
-
+				stub := testabilities.NewTestOverlayEngineStub(t, path.expectedProviderToCall)
 				fixture := server2.NewServerTestFixture(t,
 					server2.WithOctetStreamLimit(octetStreamLimit),
 					server2.WithEngine(stub),
@@ -119,11 +115,7 @@ func TestLimitOctetStreamMiddleware_InvalidCases(t *testing.T) {
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
 				// given:
-				stub := testabilities.NewTestOverlayEngineStub(t,
-					// ... TODO: Update the providers list that should not be called.
-					testabilities.WithSubmitTransactionProvider(testabilities.NewSubmitTransactionProviderMock(t, testabilities.SubmitTransactionProviderMockExpectations{SubmitCall: false})),
-				)
-
+				stub := testabilities.NewTestOverlayEngineStub(t)
 				fixture := server2.NewServerTestFixture(t,
 					server2.WithOctetStreamLimit(octetStreamLimit),
 					server2.WithEngine(stub),
