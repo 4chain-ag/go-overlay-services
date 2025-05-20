@@ -38,7 +38,7 @@ func NewTopicManagerDocumentationHandler(provider app.TopicManagerDocumentationP
 	if provider == nil {
 		panic("topic manager documentation provider cannot be nil")
 	}
-	
+
 	return &TopicManagerDocumentationHandler{
 		service: app.NewTopicManagerDocumentationService(provider),
 	}

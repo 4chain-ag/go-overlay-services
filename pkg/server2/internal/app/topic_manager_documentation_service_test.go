@@ -33,7 +33,7 @@ func TestGetTopicManagerDocumentation_EmptyTopicManagerName(t *testing.T) {
 	mock := testabilities.NewTopicManagerDocumentationProviderMock(t, expectations)
 	service := app.NewTopicManagerDocumentationService(mock)
 	expectedError := app.NewEmptyTopicManagerNameError()
-	
+
 	// when:
 	documentation, err := service.GetDocumentation(context.Background(), "")
 
