@@ -5,7 +5,6 @@ info:
   description: The overlay server API
 servers:
   - url: 'http://localhost:3000'
-    description: 'Optional server description, e.g. Main (production) server'
 tags:
   - name: admin
     description: Admin API endpoints
@@ -18,7 +17,8 @@ paths:
         - admin
       operationId: AdvertisementsSync
       security:
-        - bearerAuth: []
+        - bearerAuth:
+            - admin
       responses:
         '200':
           description: |
@@ -28,10 +28,10 @@ paths:
               schema:
                 type: object
                 properties:
-                  Message:
+                  message:
                     type: string
                 required:
-                  - Message
+                  - message
         '500':
           $ref: '#/components/responses/InternalServerErrorResponse'
   /api/v1/submit:
@@ -39,6 +39,9 @@ paths:
       tags:
         - non-admin
       operationId: SubmitTransaction
+      security:
+        - bearerAuth:
+            - user
       parameters:
         - in: header
           name: x-topics
@@ -76,30 +79,30 @@ paths:
                     additionalProperties:
                       type: object
                       properties:
-                        OutputsToAdmit:
+                        outputsToAdmit:
                           type: array
                           items:
                             type: integer
                             format: uint32
-                        CoinsToRetain:
+                        coinsToRetain:
                           type: array
                           items:
                             type: integer
                             format: uint32
-                        CoinsRemoved:
+                        coinsRemoved:
                           type: array
                           items:
                             type: integer
                             format: uint32
-                        AncillaryTxIDs:
+                        ancillaryTxIDs:
                           type: array
                           items:
                             type: string
                       required:
-                        - OutputsToAdmit
-                        - CoinsToRetain
-                        - CoinsRemoved
-                        - AncillaryTxIDs
+                        - outputsToAdmit
+                        - coinsToRetain
+                        - coinsRemoved
+                        - ancillaryTxIDs
                 required:
                   - STEAK
         '400':
