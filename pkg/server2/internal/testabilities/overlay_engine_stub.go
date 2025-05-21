@@ -73,7 +73,7 @@ type TestOverlayEngineStub struct {
 	syncAdvertisementsProvider  SyncAdvertisementsProvider
 }
 
-// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider 
+// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider
 // using the configured LookupServiceDocumentationProvider.
 func (s *TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
 	s.t.Helper()
