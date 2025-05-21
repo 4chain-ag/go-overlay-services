@@ -1,9 +1,8 @@
 package ports
 
 import (
-
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -34,8 +33,8 @@ func NewTopicManagersListHandler(provider app.TopicManagersListProvider) *TopicM
 	if provider == nil {
 		panic("topic manager list provider is nil")
 	}
-	
-	return &TopicManagersListHandler{ service: app.NewTopicManagersListService(provider) }
+
+	return &TopicManagersListHandler{service: app.NewTopicManagersListService(provider)}
 }
 
 func NewTopicManagersListSuccessResponse(topicManagers app.TopicManagers) openapi.TopicManagersListResponse {

@@ -7,16 +7,14 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
-	"github.com/stretchr/testify/require"
 	"github.com/gofiber/fiber/v2"
-
+	"github.com/stretchr/testify/require"
 )
-
 
 func TestTopicManagersListHandler_ValidCases(t *testing.T) {
 	tests := map[string]struct {
-		expectations testabilities.TopicManagersListProviderMockExpectations
-		expected     openapi.TopicManagersListResponse
+		expectations       testabilities.TopicManagersListProviderMockExpectations
+		expected           openapi.TopicManagersListResponse
 		expectedStatusCode int
 	}{
 		"empty list": {
@@ -24,7 +22,7 @@ func TestTopicManagersListHandler_ValidCases(t *testing.T) {
 				MetadataList:          testabilities.EmptyMetadata,
 				ListTopicManagersCall: true,
 			},
-			expected: ports.NewTopicManagersListSuccessResponse(testabilities.EmptyExpectedResponse),
+			expected:           ports.NewTopicManagersListSuccessResponse(testabilities.EmptyExpectedResponse),
 			expectedStatusCode: fiber.StatusOK,
 		},
 		"default list": {
@@ -32,7 +30,7 @@ func TestTopicManagersListHandler_ValidCases(t *testing.T) {
 				MetadataList:          testabilities.DefaultMetadata,
 				ListTopicManagersCall: true,
 			},
-			expected: ports.NewTopicManagersListSuccessResponse(testabilities.DefaultExpectedResponse),
+			expected:           ports.NewTopicManagersListSuccessResponse(testabilities.DefaultExpectedResponse),
 			expectedStatusCode: fiber.StatusOK,
 		},
 	}
@@ -40,9 +38,8 @@ func TestTopicManagersListHandler_ValidCases(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			// given:
-			stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithTopicManagersListProvider(testabilities.NewTopicManagersListProviderMock(t, tc.expectations))) 
+			stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithTopicManagersListProvider(testabilities.NewTopicManagersListProviderMock(t, tc.expectations)))
 			fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
-
 
 			// when:
 			var actualResponse openapi.TopicManagersListResponse
