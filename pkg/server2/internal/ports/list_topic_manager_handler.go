@@ -1,9 +1,8 @@
 package ports
 
 import (
-	"fmt"
-	"net/http"
 
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/gofiber/fiber/v2"
 )
@@ -11,7 +10,7 @@ import (
 // TopicManagersListService defines the interface for a service responsible for retrieving
 // and formatting topic manager metadata.
 type TopicManagersListService interface {
-	ListTopicManagers() app.TopicManagersListResponse
+	ListTopicManagers() app.TopicManagers
 }
 
 // TopicManagersListHandler handles incoming requests for topic manager information.
@@ -24,19 +23,33 @@ type TopicManagersListHandler struct {
 // Handle processes an HTTP request to list all topic managers.
 // It returns an HTTP 200 OK with a TopicManagersListResponse.
 func (h *TopicManagersListHandler) Handle(c *fiber.Ctx) error {
-	response := h.service.ListTopicManagers()
-	return c.Status(http.StatusOK).JSON(response)
+
+	return c.Status(fiber.StatusOK).JSON(h.service.ListTopicManagers())
 }
 
 // NewTopicManagersListHandler creates a new TopicManagersListHandler with the given provider.
 // It initializes the internal TopicManagersListService.
 // Panics if the provider is nil.
 func NewTopicManagersListHandler(provider app.TopicManagersListProvider) *TopicManagersListHandler {
-	service, err := app.NewTopicManagersListService(provider)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create topic managers list service: %v", err))
+	if provider == nil {
+		panic("topic manager list provider is nil")
 	}
-	return &TopicManagersListHandler{
-		service: service,
+	
+	return &TopicManagersListHandler{ service: app.NewTopicManagersListService(provider) }
+}
+
+func NewTopicManagersListSuccessResponse(topicManagers app.TopicManagers) openapi.TopicManagersListResponse {
+	response := make(openapi.TopicManagersList, len(topicManagers))
+
+	for name, metadata := range topicManagers {
+		response[name] = openapi.TopicManagerMetadata{
+			Name:             metadata.Name,
+			ShortDescription: metadata.ShortDescription,
+			IconURL:          &metadata.IconURL,
+			Version:          &metadata.Version,
+			InformationURL:   &metadata.InformationURL,
+		}
 	}
+
+	return response
 }

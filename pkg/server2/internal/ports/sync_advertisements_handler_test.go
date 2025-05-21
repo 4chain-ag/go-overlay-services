@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	server2 "github.com/4chain-ag/go-overlay-services/pkg/server2/internal"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"

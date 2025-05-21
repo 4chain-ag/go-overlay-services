@@ -8,76 +8,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTopicManagersListService_EmptyList(t *testing.T) {
-	// given:
-	expectations := testabilities.TopicManagersListProviderMockExpectations{
-		MetadataList:          testabilities.EmptyMetadata,
-		ListTopicManagersCall: true,
+func TestTopicManagersListService_ValidCases(t *testing.T) {
+	tests := map[string]struct {
+		expectations testabilities.TopicManagersListProviderMockExpectations
+		expected     app.TopicManagers
+	}{
+		"List topic manager service success - empty list": {
+			expectations: testabilities.TopicManagersListProviderMockExpectations{
+				MetadataList:          testabilities.EmptyMetadata,
+				ListTopicManagersCall: true,
+			},
+			expected: testabilities.EmptyExpectedResponse,
+		},
+		"List topic manager service success - default list": {
+			expectations: testabilities.TopicManagersListProviderMockExpectations{
+				MetadataList:          testabilities.DefaultMetadata,
+				ListTopicManagersCall: true,
+			},
+			expected: testabilities.DefaultExpectedResponse,
+		},
 	}
-	mock := testabilities.NewTopicManagersListProviderMock(t, expectations)
-	service, err := app.NewTopicManagersListService(mock)
-	require.NoError(t, err)
 
-	// when:
-	response := service.ListTopicManagers()
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			// given:
+			mock := testabilities.NewTopicManagersListProviderMock(t, tc.expectations)
+			service := app.NewTopicManagersListService(mock)
 
-	// then:
-	require.Equal(t, testabilities.EmptyExpectedResponse, response)
-	mock.AssertCalled()
-}
+			// when:
+			response := service.ListTopicManagers()
 
-func TestTopicManagersListService_WithProviders(t *testing.T) {
-	// given:
-	expectations := testabilities.TopicManagersListProviderMockExpectations{
-		MetadataList:          testabilities.DefaultMetadata,
-		ListTopicManagersCall: true,
+			// then:
+			require.Equal(t, tc.expected, response)
+			mock.AssertCalled()
+		})
 	}
-	mock := testabilities.NewTopicManagersListProviderMock(t, expectations)
-	service, err := app.NewTopicManagersListService(mock)
-	require.NoError(t, err)
-
-	// when:
-	response := service.ListTopicManagers()
-
-	// then:
-	require.Equal(t, testabilities.DefaultExpectedResponse, response)
-	mock.AssertCalled()
-}
-
-func TestTopicManagersListService_WithGenericSuccessProvider(t *testing.T) {
-	// given:
-	provider := &testabilities.TopicManagersListProviderAlwaysSuccess{}
-	service, err := app.NewTopicManagersListService(provider)
-	require.NoError(t, err)
-
-	// when:
-	response := service.ListTopicManagers()
-
-	// then:
-	require.Equal(t, testabilities.DefaultExpectedResponse, response)
-}
-
-func TestTopicManagersListService_WithGenericEmptyProvider(t *testing.T) {
-	// given:
-	provider := &testabilities.TopicManagersListProviderAlwaysEmpty{}
-	service, err := app.NewTopicManagersListService(provider)
-	require.NoError(t, err)
-
-	// when:
-	response := service.ListTopicManagers()
-
-	// then:
-	require.Equal(t, testabilities.EmptyExpectedResponse, response)
-}
-
-func TestNewTopicManagersListService_WithNilProvider(t *testing.T) {
-	// given/when:
-	service, err := app.NewTopicManagersListService(nil)
-
-	// then:
-	require.Error(t, err)
-	var appError app.Error
-	require.ErrorAs(t, err, &appError)
-	require.Equal(t, app.ErrorTypeIncorrectInput, appError.ErrorType())
-	require.Nil(t, service)
 }
