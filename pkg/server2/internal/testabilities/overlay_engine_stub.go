@@ -32,6 +32,8 @@ type SubmitTransactionProvider interface {
 	ProviderStateAsserter
 }
 
+// LookupServiceDocumentationProvider extends app.LookupServiceDocumentationProvider with the ability
+// to assert whether it was called during a test.
 type LookupServiceDocumentationProvider interface {
 	app.LookupServiceDocumentationProvider
 	ProviderStateAsserter
@@ -49,6 +51,8 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 	}
 }
 
+// WithLookupDocumentationProvider allows setting a custom LookupServiceDocumentationProvider in a TestOverlayEngineStub.
+// This can be used to mock lookup service documentation retrieval behavior during tests.
 func WithLookupDocumentationProvider(provider LookupServiceDocumentationProvider) TestOverlayEngineStubOption {
 	return func(stub *TestOverlayEngineStub) {
 		stub.lookupDocumentationProvider = provider
