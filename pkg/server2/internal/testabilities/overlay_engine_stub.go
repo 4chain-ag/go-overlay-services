@@ -18,6 +18,13 @@ type ProviderStateAsserter interface {
 	AssertCalled()
 }
 
+// SyncAdvertisementsProvider extends app.SyncAdvertisementsProvider with the ability
+// to assert whether it was called during a test.
+type SyncAdvertisementsProvider interface {
+	app.SyncAdvertisementsProvider
+	ProviderStateAsserter
+}
+
 // SubmitTransactionProvider extends app.SubmitTransactionProvider with the ability
 // to assert whether it was called during a test.
 type SubmitTransactionProvider interface {
@@ -45,6 +52,11 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 func WithLookupDocumentationProvider(provider LookupServiceDocumentationProvider) TestOverlayEngineStubOption {
 	return func(stub *TestOverlayEngineStub) {
 		stub.lookupDocumentationProvider = provider
+// WithSyncAdvertisementsProvider allows setting a custom SyncAdvertisementsProvider in a TestOverlayEngineStub.
+// This can be used to mock advertisement synchronization behavior during tests.
+func WithSyncAdvertisementsProvider(provider SyncAdvertisementsProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.syncAdvertisementsProvider = provider
 	}
 }
 
@@ -55,6 +67,7 @@ type TestOverlayEngineStub struct {
 	t                           *testing.T
 	submitTransactionProvider   SubmitTransactionProvider
 	lookupDocumentationProvider LookupServiceDocumentationProvider
+	syncAdvertisementsProvider SyncAdvertisementsProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
@@ -130,7 +143,9 @@ func (s *TestOverlayEngineStub) Submit(ctx context.Context, taggedBEEF overlay.T
 // SyncAdvertisements synchronizes advertisements using the configured SyncAdvertisementsProvider.
 // It calls the SyncAdvertisements method of the provider and handles the result.
 func (s *TestOverlayEngineStub) SyncAdvertisements(ctx context.Context) error {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.syncAdvertisementsProvider.SyncAdvertisements(ctx)
 }
 
 // AssertProvidersState asserts that all configured providers were used as expected.
@@ -140,6 +155,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 	providers := []ProviderStateAsserter{
 		s.submitTransactionProvider,
 		s.lookupDocumentationProvider,
+		s.syncAdvertisementsProvider,
 	}
 	for _, p := range providers {
 		p.AssertCalled()
@@ -153,6 +169,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		t:                           t,
 		submitTransactionProvider:   NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 		lookupDocumentationProvider: NewLookupServiceDocumentationProviderMock(t, LookupServiceDocumentationProviderMockExpectations{DocumentationCall: false}),
+		syncAdvertisementsProvider: NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
 	}
 
 	for _, opt := range opts {

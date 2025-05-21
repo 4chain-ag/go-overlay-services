@@ -9,13 +9,14 @@ import (
 // HandlerRegistryService defines the main point for registering HTTP handler dependencies.
 // It acts as a central registry for mapping API endpoints to their handler implementations.
 type HandlerRegistryService struct {
-	submitTransaction   *SubmitTransactionHandler
 	lookupDocumentation *LookupProviderDocumentationHandler
+	submitTransaction  *SubmitTransactionHandler
+	syncAdvertisements *SyncAdvertisementsHandler
 }
 
 // AdvertisementsSync method delegates the request to the configured sync advertisements handler.
 func (h *HandlerRegistryService) AdvertisementsSync(c *fiber.Ctx) error {
-	panic("not implemented")
+	return h.syncAdvertisements.Handle(c)
 }
 
 func (h *HandlerRegistryService) GetLookupServiceProviderDocumentation(c *fiber.Ctx, params openapi.GetLookupServiceProviderDocumentationParams) error {
@@ -33,5 +34,6 @@ func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRe
 	return &HandlerRegistryService{
 		submitTransaction:   NewSubmitTransactionHandler(provider),
 		lookupDocumentation: NewLookupProviderDocumentationHandler(provider),
+		syncAdvertisements: NewSyncAdvertisementsHandler(provider),
 	}
 }

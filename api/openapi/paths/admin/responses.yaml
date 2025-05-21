@@ -5,7 +5,7 @@ components:
       properties:
         message:
           type: string
-      message:
+      required:
         - message
 
   responses:
