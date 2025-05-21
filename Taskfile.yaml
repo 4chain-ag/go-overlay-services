@@ -13,7 +13,7 @@ tasks:
   execute-unit-tests:
     desc: Execute all unit test suites to verify functionality.
     cmds:
-      - go test ./... -failfast -vet=all
+      - go test ./... -failfast -vet=all -count=1
     silent: true
 
   oapi-codegen:
