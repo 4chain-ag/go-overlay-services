@@ -42,7 +42,7 @@ func (m *LookupServiceDocumentationProviderMock) GetDocumentationForLookupServic
 	return m.expectations.Documentation, nil
 }
 
-// AssertCalled checks if the GetDocumentationForLookupServiceProvider method was called 
+// AssertCalled checks if the GetDocumentationForLookupServiceProvider method was called
 // with the expected arguments.
 func (m *LookupServiceDocumentationProviderMock) AssertCalled() {
 	m.t.Helper()
