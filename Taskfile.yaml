@@ -8,29 +8,35 @@ tasks:
   default:
     cmds:
       - task --list
-    desc: "Display all available tasks."
+    desc: Display all available tasks.
+
+  execute-unit-tests:
+    desc: Execute all unit test suites to verify functionality.
+    cmds:
+      - go test ./... -failfast -count=1
+    silent: true
 
   oapi-codegen:
-    desc: "Generate HTTP server, response & request models based on OpenAPI spec."
+    desc: Generate HTTP server, response & request models based on OpenAPI spec.
     cmds:
       - go generate ./...
     silent: true
 
   swagger-cli-install:
-    desc: "Install swagger-cli globally using npm."
+    desc: Install swagger-cli globally using npm.
     cmds:
       - npm install -g swagger-cli
     silent: true
 
   swagger-doc-gen:
-    desc: "Bundle OpenAPI spec."
+    desc: Bundle OpenAPI spec.
     cmds:
       - task oapi-codegen
       - swagger-cli bundle {{.OPENAPI_FILE}} -o {{.SWAGGER_FILE}} -t yaml
     silent: true
 
   swagger-ui-up:
-    desc: "Bundle OpenAPI spec and start Swagger UI with Docker Compose."
+    desc: Bundle OpenAPI spec and start Swagger UI with Docker Compose.
     cmds:
       - task swagger-doc-gen
       - swagger-cli validate {{.OPENAPI_FILE}}
@@ -38,14 +44,14 @@ tasks:
     silent: true
 
   swagger-ui-down:
-    desc: "Bundle OpenAPI spec and stop Swagger UI containers."
+    desc: Bundle OpenAPI spec and stop Swagger UI containers.
     cmds:
       - task swagger-doc-gen
       - docker-compose down
     silent: true
 
   swagger-cleanup:
-    desc: "Remove generated Swagger files and stop running containers if needed."
+    desc: Remove generated Swagger files and stop running containers if needed.
     cmds:
       - docker-compose down || true
       - rm -f {{.SWAGGER_FILE}}

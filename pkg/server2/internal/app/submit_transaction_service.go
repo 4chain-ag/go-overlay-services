@@ -4,15 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 )
-
-// DefaultSubmitTransactionTimeout defines the default maximum duration allowed
-// for submitting a transaction before timing out.
-const DefaultSubmitTransactionTimeout = 5 * time.Second
 
 // SubmitTransactionProvider defines the interface for sending a tagged transaction
 // to the overlay engine for processing.
@@ -20,11 +15,9 @@ type SubmitTransactionProvider interface {
 	Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error)
 }
 
-// SubmitTransactionService coordinates the transaction submission process
-// using a SubmitTransactionProvider with a configurable timeout for awaiting a response.
+// SubmitTransactionService coordinates the transaction submission process using configured SubmitTransactionProvider.
 type SubmitTransactionService struct {
-	provider          SubmitTransactionProvider
-	submitCallTimeout time.Duration
+	provider SubmitTransactionProvider
 }
 
 // SubmitTransaction submits a transaction to the configured provider.
@@ -48,22 +41,19 @@ func (s *SubmitTransactionService) SubmitTransaction(ctx context.Context, topics
 	select {
 	case steak := <-ch:
 		return steak, nil
-	case <-time.After(s.submitCallTimeout):
-		return nil, NewSubmitTransactionServiceTimeoutError(s.submitCallTimeout)
+	case <-ctx.Done():
+		return nil, NewContextCancellationError()
 	}
 }
 
 // NewSubmitTransactionService creates a new SubmitTransactionService with the given provider and timeout.
 // Panics if the provider is nil.
-func NewSubmitTransactionService(provider SubmitTransactionProvider, timeout time.Duration) *SubmitTransactionService {
+func NewSubmitTransactionService(provider SubmitTransactionProvider) *SubmitTransactionService {
 	if provider == nil {
 		panic("submit transaction service provider is nil")
 	}
 
-	return &SubmitTransactionService{
-		provider:          provider,
-		submitCallTimeout: timeout,
-	}
+	return &SubmitTransactionService{provider: provider}
 }
 
 // TransactionTopics represents a list of topics that must be provided when submitting a transaction.
@@ -113,15 +103,5 @@ func NewSubmitTransactionProviderError(err error) Error {
 		errorType: ErrorTypeProviderFailure,
 		err:       err.Error(),
 		slug:      "Unable to process submitted transaction octet-stream due to an internal error. Please try again later or contact the support team.",
-	}
-}
-
-// NewSubmitTransactionServiceTimeoutError returns an Error indicating that the submit transaction
-// request exceeded the configured timeout limit.
-func NewSubmitTransactionServiceTimeoutError(timeout time.Duration) Error {
-	return Error{
-		errorType: ErrorTypeOperationTimeout,
-		err:       fmt.Sprintf("Submit transaction timeout occurred - limit set to %f seconds", timeout.Seconds()),
-		slug:      "The submitted request exceeded the timeout limit",
 	}
 }
