@@ -4,10 +4,6 @@ import (
 	"context"
 )
 
-// startGASPSyncServiceDescriptor is the service descriptor label used for identifying
-// the start GASP sync service in logs, metrics, or tracing contexts.
-const startGASPSyncServiceDescriptor = "start-gasp-sync-service"
-
 // StartGASPSyncProvider defines the interface for triggering GASP sync.
 type StartGASPSyncProvider interface {
 	StartGASPSync(ctx context.Context) error
@@ -29,14 +25,12 @@ func (s *StartGASPSyncService) StartGASPSync(ctx context.Context) error {
 
 // NewStartGASPSyncService creates a new StartGASPSyncService with the given provider.
 // Returns an error if the provider is nil.
-func NewStartGASPSyncService(provider StartGASPSyncProvider) (*StartGASPSyncService, error) {
+func NewStartGASPSyncService(provider StartGASPSyncProvider) *StartGASPSyncService {
 	if provider == nil {
-		return nil, NewStartGASPSyncNilProviderError()
+		panic("provider is nil")
 	}
 
-	return &StartGASPSyncService{
-		provider: provider,
-	}, nil
+	return &StartGASPSyncService{ provider: provider }
 }
 
 // NewStartGASPSyncProviderError returns an Error indicating that the configured provider
@@ -46,15 +40,5 @@ func NewStartGASPSyncProviderError(err error) Error {
 		errorType: ErrorTypeProviderFailure,
 		err:       err.Error(),
 		slug:      "Unable to synchronize GASP due to an internal error. Please try again later or contact the support team.",
-	}
-}
-
-// NewStartGASPSyncNilProviderError returns an Error indicating that the required provider was nil,
-// which is invalid input when creating the service.
-func NewStartGASPSyncNilProviderError() Error {
-	return Error{
-		errorType: ErrorTypeIncorrectInput,
-		err:       "start GASP sync service provider cannot be nil",
-		slug:      "The required provider was not properly initialized",
 	}
 }

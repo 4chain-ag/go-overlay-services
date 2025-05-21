@@ -40,6 +40,9 @@ type SubmitTransactionParams struct {
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
+	// (POST /api/v1/admin/startGASPSync)
+	StartGASPSync(c *fiber.Ctx) error
+
 	// (POST /api/v1/admin/syncAdvertisements)
 	AdvertisementsSync(c *fiber.Ctx) error
 
@@ -52,6 +55,19 @@ type ServerInterfaceWrapper struct {
 	handler           ServerInterface
 	globalMiddleware  []fiber.Handler
 	handlerMiddleware []fiber.Handler
+}
+
+// StartGASPSync operation middleware
+func (siw *ServerInterfaceWrapper) StartGASPSync(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"admin"})
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.StartGASPSync(c)
 }
 
 // AdvertisementsSync operation middleware
@@ -125,6 +141,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	for _, m := range options.GlobalMiddleware {
 		router.Use(m)
 	}
+
+	router.Post(options.BaseURL+"/api/v1/admin/startGASPSync", wrapper.StartGASPSync)
 
 	router.Post(options.BaseURL+"/api/v1/admin/syncAdvertisements", wrapper.AdvertisementsSync)
 

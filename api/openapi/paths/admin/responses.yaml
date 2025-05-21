@@ -8,6 +8,14 @@ components:
       required:
         - message
 
+    StartGASPSync:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
   responses:
     AdvertisementsSyncResponse:
       description: |
@@ -16,3 +24,11 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/AdvertisementsSync'
+
+    StartGASPSyncResponse:
+      description: |
+         GASP sync request successfully started.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StartGASPSync'

@@ -34,6 +34,29 @@ paths:
                   - message
         '500':
           $ref: '#/components/responses/InternalServerErrorResponse'
+  /api/v1/admin/startGASPSync:
+    post:
+      tags:
+        - admin
+      operationId: StartGASPSync
+      security:
+        - bearerAuth:
+            - admin
+      responses:
+        '200':
+          description: |
+            GASP sync request successfully started.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
   /api/v1/submit:
     post:
       tags:

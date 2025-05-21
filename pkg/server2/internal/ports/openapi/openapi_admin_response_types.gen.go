@@ -8,5 +8,13 @@ type AdvertisementsSync struct {
 	Message string `json:"message"`
 }
 
+// StartGASPSync defines model for StartGASPSync.
+type StartGASPSync struct {
+	Message string `json:"message"`
+}
+
 // AdvertisementsSyncResponse defines model for AdvertisementsSyncResponse.
 type AdvertisementsSyncResponse = AdvertisementsSync
+
+// StartGASPSyncResponse defines model for StartGASPSyncResponse.
+type StartGASPSyncResponse = StartGASPSync
