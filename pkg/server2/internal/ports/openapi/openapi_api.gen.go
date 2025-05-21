@@ -83,6 +83,8 @@ func (siw *ServerInterfaceWrapper) GetLookupServiceProviderDocumentation(c *fibe
 
 	var err error
 
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetLookupServiceProviderDocumentationParams
 
@@ -102,7 +104,7 @@ func (siw *ServerInterfaceWrapper) GetLookupServiceProviderDocumentation(c *fibe
 
 	err = runtime.BindQueryParameter("form", true, true, "lookupService", query, &params.LookupService)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter lookupService: %w", err).Error())
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid format for parameter lookupService")
 	}
 
 	for _, m := range siw.handlerMiddleware {

@@ -65,7 +65,7 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(c *fiber.Ctx) error {
           var value {{.TypeDef}}
           err = json.Unmarshal([]byte(paramValue), &value)
           if err != nil {
-            return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Error unmarshaling parameter '{{.ParamName}}' as JSON: %w", err).Error())
+            return fiber.NewError(fiber.StatusBadRequest, "Invalid format for parameter {{.ParamName}}")
           }
 
           params.{{.GoName}} = {{if not .Required}}&{{end}}value
@@ -77,7 +77,7 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(c *fiber.Ctx) error {
       {{if .IsStyled}}
       err = runtime.BindQueryParameter("{{.Style}}", {{.Explode}}, {{.Required}}, "{{.ParamName}}", query, &params.{{.GoName}})
       if err != nil {
-        return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter {{.ParamName}}: %w", err).Error())
+        return fiber.NewError(fiber.StatusBadRequest, "Invalid format for parameter {{.ParamName}}")
       }
       {{end}}
   {{end}}

@@ -33,6 +33,9 @@ paths:
       tags:
         - non-admin
       operationId: GetLookupServiceProviderDocumentation
+      security:
+        - bearerAuth:
+            - user
       parameters:
         - in: query
           name: lookupService
