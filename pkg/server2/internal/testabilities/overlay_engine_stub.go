@@ -52,6 +52,9 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 func WithLookupDocumentationProvider(provider LookupServiceDocumentationProvider) TestOverlayEngineStubOption {
 	return func(stub *TestOverlayEngineStub) {
 		stub.lookupDocumentationProvider = provider
+	}
+}
+
 // WithSyncAdvertisementsProvider allows setting a custom SyncAdvertisementsProvider in a TestOverlayEngineStub.
 // This can be used to mock advertisement synchronization behavior during tests.
 func WithSyncAdvertisementsProvider(provider SyncAdvertisementsProvider) TestOverlayEngineStubOption {

@@ -20,10 +20,7 @@ type LookupProviderDocumentationHandler struct {
 
 // GetDocumentation handles HTTP requests to retrieve documentation for a specific lookup service provider.
 // It extracts the lookupService query parameter, invokes the service, and returns the documentation as JSON.
-// Returns:
-//   - 200 OK with documentation on success
-//   - 400 Bad Request if lookupService parameter is missing or empty
-//   - 500 Internal Server Error if the service fails to retrieve documentation
+// Returns 200 OK with documentation on success.
 func (h *LookupProviderDocumentationHandler) Handle(c *fiber.Ctx, params openapi.GetLookupServiceProviderDocumentationParams) error {
 	documentation, err := h.service.GetDocumentation(c.UserContext(), c.Query("lookupService"))
 	if err != nil {

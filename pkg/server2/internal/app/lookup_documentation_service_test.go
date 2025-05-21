@@ -10,64 +10,59 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestLookupDocumentationService_InvalidCases(t *testing.T) {
+	tests := map[string]struct {
+		expectedError app.Error
+		expectations  testabilities.LookupServiceDocumentationProviderMockExpectations
+		lookupService  string
+	}{
+		"Lookup documentation service fails to handle request - empty lookup service name": {
+			lookupService: "",
+			expectations: testabilities.LookupServiceDocumentationProviderMockExpectations{
+				DocumentationCall: false,
+			},
+			expectedError: app.NewEmptyLookupServiceNameError(),
+		},
+		"Lookup manager documentation service fails to handle request - internal error": {
+			lookupService: "test-lookup-service",
+			expectations: testabilities.LookupServiceDocumentationProviderMockExpectations{
+				DocumentationCall: true,
+				Error:             errors.New("internal lookup service documentation provider test error"),
+			},
+			expectedError: app.NewLookupServiceProviderDocumentationError(errors.New("internal lookup service documentation provider test error")),
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			// given:
+			mock := testabilities.NewLookupServiceDocumentationProviderMock(t, tc.expectations)
+			service := app.NewLookupDocumentationService(mock)
+
+			// when:
+			document, err := service.GetDocumentation(context.Background(), tc.lookupService)
+
+			// then:
+			var actualErr app.Error
+			require.ErrorAs(t, err, &actualErr)
+			require.Equal(t, tc.expectedError, actualErr)
+
+			require.Empty(t, document)
+			mock.AssertCalled()
+		})
+	}
+}
+
 func TestGetLookupServiceProviderDocumentation_Success(t *testing.T) {
-	// Given
-	expectations := testabilities.LookupServiceDocumentationProviderMockExpectations{
-		DocumentationCall: true,
-		Documentation:     "# Test Documentation\nThis is a test markdown document.",
-	}
-	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, expectations)
+	// given:
+	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, testabilities.DefaultLookupServiceDocumentationProviderMockExpectations)
 	service := app.NewLookupDocumentationService(mock)
 
-	// When
+	// when:
 	documentation, err := service.GetDocumentation(context.Background(), "test-service")
 
-	// Then
+	// then:
 	require.NoError(t, err)
-	require.Equal(t, expectations.Documentation, documentation)
-	mock.AssertCalled()
-}
-
-func TestGetLookupServiceProviderDocumentation_EmptyLookupServiceName(t *testing.T) {
-	// Given
-	expectations := testabilities.LookupServiceDocumentationProviderMockExpectations{
-		DocumentationCall: false,
-		Error:             errors.New("lookup service name cannot be empty"),
-	}
-	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, expectations)
-	service := app.NewLookupDocumentationService(mock)
-	expectedError := app.NewEmptyLookupServiceNameError()
-	// When
-	documentation, err := service.GetDocumentation(context.Background(), "")
-
-	// Then
-	require.Empty(t, documentation)
-
-	var actualErr app.Error
-	require.True(t, errors.As(err, &actualErr))
-	require.Equal(t, expectedError, actualErr)
-
-	mock.AssertCalled()
-}
-
-func TestGetLookupServiceProviderDocumentation_ProviderError(t *testing.T) {
-	// Given
-	expectations := testabilities.LookupServiceDocumentationProviderMockExpectations{
-		DocumentationCall: true,
-		Error:             errors.New("lookup service name cannot be empty"),
-	}
-	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, expectations)
-	service := app.NewLookupDocumentationService(mock)
-	expectedError := app.NewLookupServiceProviderDocumentationError(expectations.Error)
-	// When
-	documentation, err := service.GetDocumentation(context.Background(), "test-service")
-
-	// Then
-	require.Empty(t, documentation)
-
-	var actualErr app.Error
-	require.True(t, errors.As(err, &actualErr))
-	require.Equal(t, expectedError, actualErr)
-
+	require.Equal(t, testabilities.DefaultLookupServiceDocumentationProviderMockExpectations.Documentation, documentation)
 	mock.AssertCalled()
 }
