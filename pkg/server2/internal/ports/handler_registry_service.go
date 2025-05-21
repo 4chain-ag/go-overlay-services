@@ -10,8 +10,8 @@ import (
 // It acts as a central registry for mapping API endpoints to their handler implementations.
 type HandlerRegistryService struct {
 	lookupDocumentation *LookupProviderDocumentationHandler
-	submitTransaction  *SubmitTransactionHandler
-	syncAdvertisements *SyncAdvertisementsHandler
+	submitTransaction   *SubmitTransactionHandler
+	syncAdvertisements  *SyncAdvertisementsHandler
 }
 
 // AdvertisementsSync method delegates the request to the configured sync advertisements handler.
@@ -34,6 +34,6 @@ func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRe
 	return &HandlerRegistryService{
 		submitTransaction:   NewSubmitTransactionHandler(provider),
 		lookupDocumentation: NewLookupProviderDocumentationHandler(provider),
-		syncAdvertisements: NewSyncAdvertisementsHandler(provider),
+		syncAdvertisements:  NewSyncAdvertisementsHandler(provider),
 	}
 }

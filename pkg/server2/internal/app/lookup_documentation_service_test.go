@@ -14,7 +14,7 @@ func TestLookupDocumentationService_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
 		expectedError app.Error
 		expectations  testabilities.LookupServiceDocumentationProviderMockExpectations
-		lookupService  string
+		lookupService string
 	}{
 		"Lookup documentation service fails to handle request - empty lookup service name": {
 			lookupService: "",
