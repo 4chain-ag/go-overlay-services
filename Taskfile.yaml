@@ -13,7 +13,7 @@ tasks:
   execute-unit-tests:
     desc: Execute all unit test suites to verify functionality.
     cmds:
-      - go test ./... -failfast -count=1
+      - go test ./... -failfast -vet=all -count=1
     silent: true
 
   oapi-codegen:
@@ -55,4 +55,11 @@ tasks:
     cmds:
       - docker-compose down || true
       - rm -f {{.SWAGGER_FILE}}
+    silent: true
+
+  execute-linters:
+    desc: Run linters for the project.
+    cmds:
+      - golangci-lint run --config=./.golangci-lint.yml
+      - golangci-lint run --config=./.golangci-style.yml --fix
     silent: true

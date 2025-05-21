@@ -39,6 +39,27 @@ paths:
       responses:
         200:
           $ref: '../paths/admin/responses.yaml#/components/responses/StartGASPSyncResponse'
+
+  /api/v1/getDocumentationForTopicManager:
+    get:
+      tags:
+        - non-admin
+      operationId: GetTopicManagerDocumentation
+      security:
+        - bearerAuth:
+            - user
+      parameters:
+        - in: query
+          name: topicManager
+          schema:
+            type: string
+          required: true
+          description: The name of the topic manager to retrieve documentation for
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/TopicManagerDocumentationResponse'
+        400:
+          $ref: '#/components/responses/BadRequestResponse'
         500:
           $ref: '#/components/responses/InternalServerErrorResponse'
 

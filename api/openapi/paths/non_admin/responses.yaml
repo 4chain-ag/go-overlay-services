@@ -41,6 +41,15 @@ components:
       required:
         - STEAK
 
+    TopicManagerDocumentation:
+      type: object
+      properties:
+        documentation:
+          type: string
+          description: Markdown-formatted documentation for the topic manager
+      required:
+        - documentation
+
   responses:
     SubmitTransactionResponse:
       description: |
@@ -49,3 +58,10 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
+
+    TopicManagerDocumentationResponse:
+      description: Returns the documentation for the specified topic manager
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TopicManagerDocumentation'
