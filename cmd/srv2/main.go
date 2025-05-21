@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/config"
@@ -43,6 +44,9 @@ func execute() error {
 		signal.Notify(sigint, os.Interrupt)
 		<-sigint
 
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
 		// We received an interrupt signal, shut down.
 		if err := srv.Shutdown(ctx); err != nil {
 			log.Printf("http server shutdown err: %v", err)
@@ -51,10 +55,10 @@ func execute() error {
 	}()
 
 	err = srv.ListenAndServe(ctx)
+	<-done
 	if !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("http server listen and serve op failure: %w", err)
 	}
-	<-done
 
 	return nil
 }
