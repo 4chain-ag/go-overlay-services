@@ -3,7 +3,7 @@ package middleware_test
 import (
 	"testing"
 
-	server2 "github.com/4chain-ag/go-overlay-services/pkg/server2/internal"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
