@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestLookupProviderDocumentationHandler_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
 		expectedStatusCode int
@@ -23,7 +22,7 @@ func TestLookupProviderDocumentationHandler_InvalidCases(t *testing.T) {
 			expectedStatusCode: fiber.StatusBadRequest,
 			queryParams:        map[string]string{"lookupService": ""},
 			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewEmptyLookupServiceNameError()),
-			expectations:       testabilities.LookupServiceDocumentationProviderMockExpectations{
+			expectations: testabilities.LookupServiceDocumentationProviderMockExpectations{
 				DocumentationCall: false,
 			},
 		},
@@ -31,7 +30,7 @@ func TestLookupProviderDocumentationHandler_InvalidCases(t *testing.T) {
 			expectedStatusCode: fiber.StatusInternalServerError,
 			queryParams:        map[string]string{"lookupService": "test-lookup-service"},
 			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewLookupServiceProviderDocumentationError(nil)),
-			expectations:       testabilities.LookupServiceDocumentationProviderMockExpectations{
+			expectations: testabilities.LookupServiceDocumentationProviderMockExpectations{
 				DocumentationCall: true,
 				Error:             app.NewLookupServiceProviderDocumentationError(nil),
 			},
@@ -59,7 +58,7 @@ func TestLookupProviderDocumentationHandler_InvalidCases(t *testing.T) {
 			stub.AssertProvidersState()
 		})
 	}
-	
+
 }
 
 func TestLookupProviderDocumentationHandler_GetDocumentation_ShouldReturnSuccessResponse(t *testing.T) {
