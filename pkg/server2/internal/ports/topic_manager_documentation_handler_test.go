@@ -19,7 +19,7 @@ func TestTopicManagerDocumentationHandler_InvalidCases(t *testing.T) {
 		expectedResponse   openapi.Error
 		expectations       testabilities.TopicManagerDocumentationProviderMockExpectations
 	}{
-		"Empty topic manager name": {
+		"Topic manager documentation service fails to handle request - empty topic manager name": {
 			expectedStatusCode: fiber.StatusBadRequest,
 			queryParams:        map[string]string{"topicManager": ""},
 			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewEmptyTopicManagerNameError()),
