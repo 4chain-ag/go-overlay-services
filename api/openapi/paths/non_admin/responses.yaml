@@ -65,6 +65,15 @@ components:
       type: object
       additionalProperties:
         $ref: "#/components/schemas/LookupServiceProviderMetadata"
+        
+    TopicManagerDocumentation:
+      type: object
+      properties:
+        documentation:
+          type: string
+          description: Markdown-formatted documentation for the topic manager
+      required:
+        - documentation
 
   responses:
     SubmitTransactionResponse:
@@ -76,9 +85,17 @@ components:
             $ref: '#/components/schemas/SubmitTransaction'
     
     LookupServiceProvidersListResponse:
-      description: |
+      description:
         A list of lookup service providers with their metadata.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/LookupServiceProvidersList'
+
+    TopicManagerDocumentationResponse:
+      description:
+        Returns the documentation for the specified topic manager
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TopicManagerDocumentation'

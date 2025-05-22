@@ -10,8 +10,10 @@ import (
 // It acts as a central registry for mapping API endpoints to their handler implementations.
 type HandlerRegistryService struct {
 	lookupList         *LookupListHandler
-	submitTransaction  *SubmitTransactionHandler
-	syncAdvertisements *SyncAdvertisementsHandler
+	startGASPSync             *StartGASPSyncHandler
+	topicManagerDocumentation *TopicManagerDocumentationHandler
+	submitTransaction         *SubmitTransactionHandler
+	syncAdvertisements        *SyncAdvertisementsHandler
 }
 
 // ListLookupServiceProviders method delegates the request to the configured lookup list handler.
@@ -24,9 +26,19 @@ func (h *HandlerRegistryService) AdvertisementsSync(c *fiber.Ctx) error {
 	return h.syncAdvertisements.Handle(c)
 }
 
+// GetTopicManagerDocumentation method delegates the request to the configured topic manager documentation handler.
+func (h *HandlerRegistryService) GetTopicManagerDocumentation(c *fiber.Ctx, params openapi.GetTopicManagerDocumentationParams) error {
+	return h.topicManagerDocumentation.Handle(c, params)
+}
+
 // SubmitTransaction method delegates the request to the configured submit transaction handler.
 func (h *HandlerRegistryService) SubmitTransaction(c *fiber.Ctx, params openapi.SubmitTransactionParams) error {
 	return h.submitTransaction.Handle(c, params)
+}
+
+// StartGASPSync method delegates the request to the configured start GASP sync handler.
+func (h *HandlerRegistryService) StartGASPSync(c *fiber.Ctx) error {
+	return h.startGASPSync.Handle(c)
 }
 
 // NewHandlerRegistryService creates and returns a new HandlerRegistryService instance.
@@ -34,7 +46,9 @@ func (h *HandlerRegistryService) SubmitTransaction(c *fiber.Ctx, params openapi.
 func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
 	return &HandlerRegistryService{
 		lookupList:         NewLookupListHandler(provider),
-		submitTransaction:  NewSubmitTransactionHandler(provider),
-		syncAdvertisements: NewSyncAdvertisementsHandler(provider),
+		startGASPSync:             NewStartGASPSyncHandler(provider),
+		topicManagerDocumentation: NewTopicManagerDocumentationHandler(provider),
+		submitTransaction:         NewSubmitTransactionHandler(provider),
+		syncAdvertisements:        NewSyncAdvertisementsHandler(provider),
 	}
 }

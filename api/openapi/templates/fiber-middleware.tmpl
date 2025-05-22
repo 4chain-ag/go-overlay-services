@@ -46,7 +46,7 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(c *fiber.Ctx) error {
     var query url.Values
     query, err = url.ParseQuery(string(c.Request().URI().QueryString()))
     if err != nil {
-      return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for query string: %w", err).Error())
+      return fiber.NewError(fiber.StatusBadRequest, "Invalid format for query string")
     }
     {{end}}
 
@@ -65,21 +65,19 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(c *fiber.Ctx) error {
           var value {{.TypeDef}}
           err = json.Unmarshal([]byte(paramValue), &value)
           if err != nil {
-            return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Error unmarshaling parameter '{{.ParamName}}' as JSON: %w", err).Error())
+            return fiber.NewError(fiber.StatusBadRequest, "Invalid format for parameter {{.ParamName}}")
           }
 
           params.{{.GoName}} = {{if not .Required}}&{{end}}value
         {{end}}
         }{{if .Required}} else {
-            err = fmt.Errorf("Query argument {{.ParamName}} is required, but not found")
-            c.Status(fiber.StatusBadRequest).JSON(err)
-            return err
+            return fiber.NewError(fiber.StatusBadRequest, "A valid topic manager name must be provided to retrieve documentation.")
         }{{end}}
       {{end}}
       {{if .IsStyled}}
       err = runtime.BindQueryParameter("{{.Style}}", {{.Explode}}, {{.Required}}, "{{.ParamName}}", query, &params.{{.GoName}})
       if err != nil {
-        return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter {{.ParamName}}: %w", err).Error())
+        return fiber.NewError(fiber.StatusBadRequest, "Invalid format for parameter {{.ParamName}}")
       }
       {{end}}
   {{end}}
