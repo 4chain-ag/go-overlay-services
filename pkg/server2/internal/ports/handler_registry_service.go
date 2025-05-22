@@ -9,7 +9,7 @@ import (
 // HandlerRegistryService defines the main point for registering HTTP handler dependencies.
 // It acts as a central registry for mapping API endpoints to their handler implementations.
 type HandlerRegistryService struct {
-	lookupList         *LookupListHandler
+	lookupList                *LookupListHandler
 	startGASPSync             *StartGASPSyncHandler
 	topicManagerDocumentation *TopicManagerDocumentationHandler
 	submitTransaction         *SubmitTransactionHandler
@@ -45,7 +45,7 @@ func (h *HandlerRegistryService) StartGASPSync(c *fiber.Ctx) error {
 // It initializes all handler implementations with their required dependencies.
 func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
 	return &HandlerRegistryService{
-		lookupList:         NewLookupListHandler(provider),
+		lookupList:                NewLookupListHandler(provider),
 		startGASPSync:             NewStartGASPSyncHandler(provider),
 		topicManagerDocumentation: NewTopicManagerDocumentationHandler(provider),
 		submitTransaction:         NewSubmitTransactionHandler(provider),

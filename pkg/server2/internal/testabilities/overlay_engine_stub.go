@@ -102,7 +102,7 @@ func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationPro
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
 	t                                 *testing.T
-	lookupListProvider         LookupListProvider
+	lookupListProvider                LookupListProvider
 	topicManagerDocumentationProvider TopicManagerDocumentationProvider
 	startGASPSyncProvider             StartGASPSyncProvider
 	submitTransactionProvider         SubmitTransactionProvider
@@ -211,7 +211,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
 		t:                                 t,
-		lookupListProvider:         NewLookupListProviderMock(t, LookupListProviderMockExpectations{ListLookupServiceProvidersCall: false}),
+		lookupListProvider:                NewLookupListProviderMock(t, LookupListProviderMockExpectations{ListLookupServiceProvidersCall: false}),
 		topicManagerDocumentationProvider: NewTopicManagerDocumentationProviderMock(t, TopicManagerDocumentationProviderMockExpectations{DocumentationCall: false}),
 		startGASPSyncProvider:             NewStartGASPSyncProviderMock(t, StartGASPSyncProviderMockExpectations{StartGASPSyncCall: false}),
 		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),

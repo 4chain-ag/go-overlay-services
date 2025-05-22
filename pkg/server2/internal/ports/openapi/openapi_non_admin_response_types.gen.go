@@ -31,14 +31,14 @@ type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
 
-// LookupServiceProvidersListResponse defines model for LookupServiceProvidersListResponse.
-type LookupServiceProvidersListResponse = LookupServiceProvidersList
-
 // TopicManagerDocumentation defines model for TopicManagerDocumentation.
 type TopicManagerDocumentation struct {
 	// Documentation Markdown-formatted documentation for the topic manager
 	Documentation string `json:"documentation"`
 }
+
+// LookupServiceProvidersListResponse defines model for LookupServiceProvidersListResponse.
+type LookupServiceProvidersListResponse = LookupServiceProvidersList
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction
