@@ -10,17 +10,14 @@ type LookupListProvider interface {
 	ListLookupServiceProviders() map[string]*overlay.MetaData
 }
 
-// LookupServiceProviderMetadata represents the metadata for a lookup service provider.
-type LookupServiceProviderMetadata struct {
-	Name             string  `json:"name"`
-	ShortDescription string  `json:"shortDescription"`
-	IconURL          *string `json:"iconURL,omitempty"`
-	Version          *string `json:"version,omitempty"`
-	InformationURL   *string `json:"informationURL,omitempty"`
+// LookupMetadata represents the metadata for a lookup service provider.
+type LookupMetadata struct {
+	Name             string
+	ShortDescription string
+	IconURL          string
+	Version          string
+	InformationURL   string
 }
-
-// LookupListResponse defines the response data structure for the lookup service providers list.
-type LookupListResponse map[string]LookupServiceProviderMetadata
 
 // LookupListService provides operations for retrieving and formatting
 // lookup service provider metadata from the overlay engine.
@@ -28,26 +25,17 @@ type LookupListService struct {
 	provider LookupListProvider
 }
 
-// ListLookup retrieves the list of lookup service providers
+type LookupServiceProviders map[string]LookupMetadata
+
+// ListLookupServiceProviders retrieves the list of lookup service providers
 // and formats them into a standardized response structure.
-func (s *LookupListService) ListLookup() LookupListResponse {
-	// Retrieve lookup service providers from the engine
-	engineLookupServiceProviders := s.provider.ListLookupServiceProviders()
-
-	// If nil is returned, provide an empty map
-	if engineLookupServiceProviders == nil {
-		return make(LookupListResponse)
+func (s *LookupListService) ListLookupServiceProviders() LookupServiceProviders {
+	engineLookupList := s.provider.ListLookupServiceProviders()
+	if engineLookupList == nil {
+		return make(LookupServiceProviders)
 	}
 
-	result := make(LookupListResponse, len(engineLookupServiceProviders))
-
-	setIfNotEmpty := func(s string) *string {
-		if s == "" {
-			return nil
-		}
-		return &s
-	}
-
+	result := make(LookupServiceProviders, len(engineLookupList))
 	coalesce := func(primary, fallback string) string {
 		if primary != "" {
 			return primary
@@ -55,20 +43,20 @@ func (s *LookupListService) ListLookup() LookupListResponse {
 		return fallback
 	}
 
-	for name, metadata := range engineLookupServiceProviders {
-		lookupServiceProviderMetadata := LookupServiceProviderMetadata{
+	for name, metadata := range engineLookupList {
+		lookupMetadata := LookupMetadata{
 			Name:             name,
 			ShortDescription: "No description available",
 		}
 
 		if metadata != nil {
-			lookupServiceProviderMetadata.ShortDescription = coalesce(metadata.Description, "No description available")
-			lookupServiceProviderMetadata.IconURL = setIfNotEmpty(metadata.Icon)
-			lookupServiceProviderMetadata.Version = setIfNotEmpty(metadata.Version)
-			lookupServiceProviderMetadata.InformationURL = setIfNotEmpty(metadata.InfoUrl)
+			lookupMetadata.ShortDescription = coalesce(metadata.Description, "No description available")
+			lookupMetadata.IconURL = metadata.Icon
+			lookupMetadata.Version = metadata.Version
+			lookupMetadata.InformationURL = metadata.InfoUrl
 		}
 
-		result[name] = lookupServiceProviderMetadata
+		result[name] = lookupMetadata
 	}
 
 	return result
@@ -76,19 +64,9 @@ func (s *LookupListService) ListLookup() LookupListResponse {
 
 // NewLookupListService creates a new LookupListService
 // initialized with the given provider. It returns an error if the provider is nil.
-func NewLookupListService(provider LookupListProvider) (*LookupListService, error) {
+func NewLookupListService(provider LookupListProvider) *LookupListService {
 	if provider == nil {
-		return nil, NewLookupNilProviderError("lookup service provider list provider")
+		panic("lookup list provider is nil")
 	}
-	return &LookupListService{provider: provider}, nil
-}
-
-// NewLookupNilProviderError returns an Error indicating that a required lookup service provider was nil,
-// which is invalid input when creating a lookup service provider service.
-func NewLookupNilProviderError(providerName string) Error {
-	return Error{
-		errorType: ErrorTypeIncorrectInput,
-		err:       providerName + " cannot be nil",
-		slug:      "The required provider was not properly initialized",
-	}
+	return &LookupListService{provider: provider}
 }

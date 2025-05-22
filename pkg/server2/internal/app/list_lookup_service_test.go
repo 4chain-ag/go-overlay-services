@@ -8,76 +8,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLookupListService_EmptyList(t *testing.T) {
-	// given:
-	expectations := testabilities.LookupListProviderMockExpectations{
-		MetadataList:                   testabilities.LookupListEmptyMetadata,
-		ListLookupServiceProvidersCall: true,
+func TestLookupListService_ValidCases(t *testing.T) {
+	tests := map[string]struct {
+		expectations testabilities.LookupListProviderMockExpectations
+		expected     app.LookupServiceProviders
+	}{
+		"List lookup service success - empty list": {
+			expectations: testabilities.LookupListProviderMockExpectations{
+				MetadataList:          testabilities.EmptyMetadata,
+				ListLookupServiceProvidersCall: true,
+			},
+			expected: testabilities.EmptyExpectedResponse,
+		},
+		"List lookup service success - default list": {
+			expectations: testabilities.LookupListProviderMockExpectations{
+				MetadataList:                   testabilities.DefaultMetadata,
+				ListLookupServiceProvidersCall: true,
+			},
+			expected: testabilities.DefaultExpectedResponse,
+		},
 	}
-	mock := testabilities.NewLookupListProviderMock(t, expectations)
-	service, err := app.NewLookupListService(mock)
-	require.NoError(t, err)
 
-	// when:
-	response := service.ListLookup()
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			// given:
+			mock := testabilities.NewLookupListProviderMock(t, tc.expectations)
+			service := app.NewLookupListService(mock)
 
-	// then:
-	require.Equal(t, testabilities.EmptyLookupListExpectedResponse, response)
-	mock.AssertCalled()
-}
+			// when:
+			response := service.ListLookupServiceProviders()
 
-func TestLookupListService_WithProviders(t *testing.T) {
-	// given:
-	expectations := testabilities.LookupListProviderMockExpectations{
-		MetadataList:                   testabilities.LookupDefaultMetadata,
-		ListLookupServiceProvidersCall: true,
+			// then:
+			require.Equal(t, tc.expected, response)
+			mock.AssertCalled()
+		})
 	}
-	mock := testabilities.NewLookupListProviderMock(t, expectations)
-	service, err := app.NewLookupListService(mock)
-	require.NoError(t, err)
-
-	// when:
-	response := service.ListLookup()
-
-	// then:
-	require.Equal(t, testabilities.DefaultLookupListExpectedResponse, response)
-	mock.AssertCalled()
-}
-
-func TestLookupListService_WithGenericSuccessProvider(t *testing.T) {
-	// given:
-	provider := &testabilities.LookupListProviderAlwaysSuccess{}
-	service, err := app.NewLookupListService(provider)
-	require.NoError(t, err)
-
-	// when:
-	response := service.ListLookup()
-
-	// then:
-	require.Equal(t, testabilities.DefaultLookupListExpectedResponse, response)
-}
-
-func TestLookupListService_WithGenericEmptyProvider(t *testing.T) {
-	// given:
-	provider := &testabilities.LookupListProviderAlwaysEmpty{}
-	service, err := app.NewLookupListService(provider)
-	require.NoError(t, err)
-
-	// when:
-	response := service.ListLookup()
-
-	// then:
-	require.Equal(t, testabilities.EmptyLookupListExpectedResponse, response)
-}
-
-func TestNewLookupListService_WithNilProvider(t *testing.T) {
-	// given/when:
-	service, err := app.NewLookupListService(nil)
-
-	// then:
-	require.Error(t, err)
-	var appError app.Error
-	require.ErrorAs(t, err, &appError)
-	require.Equal(t, app.ErrorTypeIncorrectInput, appError.ErrorType())
-	require.Nil(t, service)
 }

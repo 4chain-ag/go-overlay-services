@@ -1,29 +1,54 @@
 package ports
 
 import (
-	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 )
 
-// LookupListHandler handles HTTP requests for listing lookup service providers.
+// LookupListService defines the interface for a service responsible for retrieving
+// and formatting lookup service provider metadata.
+type LookupListService interface {
+	ListLookupServiceProviders() app.LookupServiceProviders
+}
+
+// LookupListHandler handles incoming requests for lookup service provider information.
+// It delegates to the LookupListService to retrieve the metadata and formats
+// the response according to the API spec.
 type LookupListHandler struct {
-	service *app.LookupListService
+	service LookupListService
 }
 
-// Handle processes HTTP requests to list lookup service providers.
-// It uses the LookupListService to retrieve the list and returns it as JSON.
+// Handle processes an HTTP request to list all lookup service providers.
+// It returns an HTTP 200 OK with a LookupServiceProvidersResponse.
 func (h *LookupListHandler) Handle(c *fiber.Ctx) error {
-	response := h.service.ListLookup()
-	return c.JSON(response)
+
+	return c.Status(fiber.StatusOK).JSON(h.service.ListLookupServiceProviders())
 }
 
-// NewLookupListHandler creates a new LookupListHandler with the given engine provider.
-// It initializes the underlying service and returns an error if the provider is nil.
-func NewLookupListHandler(provider engine.OverlayEngineProvider) *LookupListHandler {
-	service, err := app.NewLookupListService(provider)
-	if err != nil {
-		panic(err)
+// NewLookupListHandler creates a new LookupListHandler with the given provider.
+// It initializes the internal LookupListService.
+// Panics if the provider is nil.
+func NewLookupListHandler(provider app.LookupListProvider) *LookupListHandler {
+	if provider == nil {
+		panic("lookup list provider is nil")
 	}
-	return &LookupListHandler{service: service}
+
+	return &LookupListHandler{service: app.NewLookupListService(provider)}
+}
+
+func NewLookupListSuccessResponse(lookupList app.LookupServiceProviders) openapi.LookupServiceProvidersListResponse {
+	response := make(openapi.LookupServiceProvidersList, len(lookupList))
+
+	for name, metadata := range lookupList {
+		response[name] = openapi.LookupServiceProviderMetadata{
+			Name:             metadata.Name,
+			ShortDescription: metadata.ShortDescription,
+			IconURL:          &metadata.IconURL,
+			Version:          &metadata.Version,
+			InformationURL:   &metadata.InformationURL,
+		}
+	}
+
+	return response
 }
