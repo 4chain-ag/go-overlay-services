@@ -56,8 +56,8 @@ var (
 
 // LookupListProviderMockExpectations defines the expected behavior of the LookupListProviderMock during a test.
 type LookupListProviderMockExpectations struct {
-	MetadataList          map[string]*overlay.MetaData
-	Error                 error
+	MetadataList                   map[string]*overlay.MetaData
+	Error                          error
 	ListLookupServiceProvidersCall bool
 }
 
