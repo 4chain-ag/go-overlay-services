@@ -15,17 +15,17 @@ func TestLookupListService_ValidCases(t *testing.T) {
 	}{
 		"List lookup service success - empty list": {
 			expectations: testabilities.LookupListProviderMockExpectations{
-				MetadataList:                   testabilities.EmptyMetadata,
+				MetadataList:                   testabilities.LookupListEmptyMetadata,
 				ListLookupServiceProvidersCall: true,
 			},
-			expected: testabilities.EmptyExpectedResponse,
+			expected: testabilities.LookupListEmptyExpectedResponse,
 		},
 		"List lookup service success - default list": {
 			expectations: testabilities.LookupListProviderMockExpectations{
-				MetadataList:                   testabilities.DefaultMetadata,
+				MetadataList:                   testabilities.LookupListDefaultMetadata,
 				ListLookupServiceProvidersCall: true,
 			},
-			expected: testabilities.DefaultExpectedResponse,
+			expected: testabilities.LookupListDefaultExpectedResponse,
 		},
 	}
 

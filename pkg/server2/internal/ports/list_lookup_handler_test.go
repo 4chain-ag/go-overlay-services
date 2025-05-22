@@ -19,18 +19,18 @@ func TestLookupListHandler_ValidCases(t *testing.T) {
 	}{
 		"empty list": {
 			expectations: testabilities.LookupListProviderMockExpectations{
-				MetadataList:                   testabilities.EmptyMetadata,
+				MetadataList:                   testabilities.LookupListEmptyMetadata,
 				ListLookupServiceProvidersCall: true,
 			},
-			expected:           ports.NewLookupListSuccessResponse(testabilities.EmptyExpectedResponse),
+			expected:           ports.NewLookupListSuccessResponse(testabilities.LookupListEmptyExpectedResponse),
 			expectedStatusCode: fiber.StatusOK,
 		},
 		"default list": {
 			expectations: testabilities.LookupListProviderMockExpectations{
-				MetadataList:                   testabilities.DefaultMetadata,
+				MetadataList:                   testabilities.LookupListDefaultMetadata,
 				ListLookupServiceProvidersCall: true,
 			},
-			expected:           ports.NewLookupListSuccessResponse(testabilities.DefaultExpectedResponse),
+			expected:           ports.NewLookupListSuccessResponse(testabilities.LookupListDefaultExpectedResponse),
 			expectedStatusCode: fiber.StatusOK,
 		},
 	}
