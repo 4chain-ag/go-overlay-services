@@ -31,6 +31,18 @@ type TopicManagerDocumentation struct {
 	Documentation string `json:"documentation"`
 }
 
+// TopicManagerMetadata defines model for TopicManagerMetadata.
+type TopicManagerMetadata struct {
+	IconURL          *string `json:"iconURL"`
+	InformationURL   *string `json:"informationURL"`
+	Name             string  `json:"name"`
+	ShortDescription string  `json:"shortDescription"`
+	Version          *string `json:"version"`
+}
+
+// TopicManagersList defines model for TopicManagersList.
+type TopicManagersList map[string]TopicManagerMetadata
+
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
 
@@ -39,3 +51,6 @@ type SubmitTransactionResponse = SubmitTransaction
 
 // TopicManagerDocumentationResponse defines model for TopicManagerDocumentationResponse.
 type TopicManagerDocumentationResponse = TopicManagerDocumentation
+
+// TopicManagersListResponse defines model for TopicManagersListResponse.
+type TopicManagersListResponse = TopicManagersList
