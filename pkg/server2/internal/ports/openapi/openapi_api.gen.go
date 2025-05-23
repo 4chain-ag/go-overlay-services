@@ -35,8 +35,8 @@ type RequestTimeoutResponse = Error
 
 // GetLookupServiceProviderDocumentationParams defines parameters for GetLookupServiceProviderDocumentation.
 type GetLookupServiceProviderDocumentationParams struct {
-	// LookupServiceProvider The name of the lookup service provider to retrieve documentation for
-	LookupServiceProvider string `form:"lookupServiceProvider" json:"lookupServiceProvider"`
+	// LookupService The name of the lookup service provider to retrieve documentation for
+	LookupService string `form:"lookupService" json:"lookupService"`
 }
 
 // GetTopicManagerDocumentationParams defines parameters for GetTopicManagerDocumentation.
@@ -118,17 +118,17 @@ func (siw *ServerInterfaceWrapper) GetLookupServiceProviderDocumentation(c *fibe
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid format for query string")
 	}
 
-	// ------------- Required query parameter "lookupServiceProvider" -------------
+	// ------------- Required query parameter "lookupService" -------------
 
-	if paramValue := c.Query("lookupServiceProvider"); paramValue != "" {
+	if paramValue := c.Query("lookupService"); paramValue != "" {
 
 	} else {
-		return fiber.NewError(fiber.StatusBadRequest, "A valid topic manager name must be provided to retrieve documentation.")
+		return fiber.NewError(fiber.StatusBadRequest, "A valid lookupService must be provided to retrieve documentation.")
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "lookupServiceProvider", query, &params.LookupServiceProvider)
+	err = runtime.BindQueryParameter("form", true, true, "lookupService", query, &params.LookupService)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Invalid format for parameter lookupServiceProvider")
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid format for parameter lookupService")
 	}
 
 	for _, m := range siw.handlerMiddleware {
@@ -160,7 +160,7 @@ func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) er
 	if paramValue := c.Query("topicManager"); paramValue != "" {
 
 	} else {
-		return fiber.NewError(fiber.StatusBadRequest, "A valid topic manager name must be provided to retrieve documentation.")
+		return fiber.NewError(fiber.StatusBadRequest, "A valid topicManager must be provided to retrieve documentation.")
 	}
 
 	err = runtime.BindQueryParameter("form", true, true, "topicManager", query, &params.TopicManager)

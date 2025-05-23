@@ -38,7 +38,7 @@ paths:
             - user
       parameters:
         - in: query
-          name: lookupServiceProvider
+          name: lookupService
           schema:
             type: string
           required: true

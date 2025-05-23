@@ -50,7 +50,7 @@ func NewEmptyLookupServiceNameError() Error {
 	return Error{
 		errorType: ErrorTypeIncorrectInput,
 		err:       "lookup service name cannot be empty",
-		slug:      "A valid lookup service name must be provided to retrieve documentation.",
+		slug:      "A valid lookupService must be provided to retrieve documentation.",
 	}
 }
 

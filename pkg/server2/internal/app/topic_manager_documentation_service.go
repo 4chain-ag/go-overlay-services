@@ -50,7 +50,7 @@ func NewEmptyTopicManagerNameError() Error {
 	return Error{
 		errorType: ErrorTypeIncorrectInput,
 		err:       "topic manager name cannot be empty",
-		slug:      "A valid topic manager name must be provided to retrieve documentation.",
+		slug:      "A valid topicManager must be provided to retrieve documentation.",
 	}
 }
 

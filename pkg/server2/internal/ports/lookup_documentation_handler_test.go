@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLookupProviderDocumentationHandler_InvalidCases(t *testing.T) {
+func TestLookupServiceProviderDocumentationHandler_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
 		expectedStatusCode int
 		queryParams        map[string]string
@@ -61,7 +61,7 @@ func TestLookupProviderDocumentationHandler_InvalidCases(t *testing.T) {
 
 }
 
-func TestLookupProviderDocumentationHandler_GetDocumentation_ShouldReturnSuccessResponse(t *testing.T) {
+func TestLookupServiceProviderDocumentationHandler_ValidCase(t *testing.T) {
 	// given:
 	mock := testabilities.NewLookupServiceDocumentationProviderMock(t, testabilities.LookupServiceDocumentationProviderMockExpectations{
 		DocumentationCall: true,
