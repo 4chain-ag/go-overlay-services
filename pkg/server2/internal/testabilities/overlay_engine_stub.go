@@ -39,6 +39,13 @@ type TopicManagersListProvider interface {
 	ProviderStateAsserter
 }
 
+// LookupServiceDocumentationProvider extends app.LookupServiceDocumentationProvider with the ability
+// to assert whether it was called during a test.
+type LookupServiceDocumentationProvider interface {
+	app.LookupServiceDocumentationProvider
+	ProviderStateAsserter
+}
+
 // StartGASPSyncProvider extends app.StartGASPSyncProvider with the ability
 // to assert whether it was called during a test.
 type StartGASPSyncProvider interface {
@@ -73,6 +80,14 @@ func WithTopicManagersListProvider(provider TopicManagersListProvider) TestOverl
 	}
 }
 
+// WithLookupDocumentationProvider allows setting a custom LookupServiceDocumentationProvider in a TestOverlayEngineStub.
+// This can be used to mock lookup service documentation retrieval behavior during tests.
+func WithLookupDocumentationProvider(provider LookupServiceDocumentationProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.lookupDocumentationProvider = provider
+	}
+}
+
 // WithSyncAdvertisementsProvider allows setting a custom SyncAdvertisementsProvider in a TestOverlayEngineStub.
 // This can be used to mock advertisement synchronization behavior during tests.
 func WithSyncAdvertisementsProvider(provider SyncAdvertisementsProvider) TestOverlayEngineStubOption {
@@ -103,16 +118,19 @@ func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationPro
 type TestOverlayEngineStub struct {
 	t                                 *testing.T
 	topicManagersListProvider         TopicManagersListProvider
+	lookupDocumentationProvider       LookupServiceDocumentationProvider
 	topicManagerDocumentationProvider TopicManagerDocumentationProvider
 	startGASPSyncProvider             StartGASPSyncProvider
 	submitTransactionProvider         SubmitTransactionProvider
 	syncAdvertisementsProvider        SyncAdvertisementsProvider
 }
 
-// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider
+// using the configured LookupServiceDocumentationProvider.
 func (s *TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.lookupDocumentationProvider.GetDocumentationForLookupServiceProvider(provider)
 }
 
 // GetDocumentationForTopicManager returns documentation for a topic manager.
@@ -197,6 +215,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 		s.topicManagerDocumentationProvider,
 		s.submitTransactionProvider,
 		s.topicManagersListProvider,
+		s.lookupDocumentationProvider,
 		s.syncAdvertisementsProvider,
 		s.startGASPSyncProvider,
 	}
@@ -211,6 +230,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 	stub := TestOverlayEngineStub{
 		t:                                 t,
 		topicManagersListProvider:         NewTopicManagersListProviderMock(t, TopicManagersListProviderMockExpectations{ListTopicManagersCall: false}),
+		lookupDocumentationProvider:       NewLookupServiceDocumentationProviderMock(t, LookupServiceDocumentationProviderMockExpectations{DocumentationCall: false}),
 		topicManagerDocumentationProvider: NewTopicManagerDocumentationProviderMock(t, TopicManagerDocumentationProviderMockExpectations{DocumentationCall: false}),
 		startGASPSyncProvider:             NewStartGASPSyncProviderMock(t, StartGASPSyncProviderMockExpectations{StartGASPSyncCall: false}),
 		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),

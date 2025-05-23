@@ -71,7 +71,7 @@ func (siw *ServerInterfaceWrapper) {{$opid}}(c *fiber.Ctx) error {
           params.{{.GoName}} = {{if not .Required}}&{{end}}value
         {{end}}
         }{{if .Required}} else {
-            return fiber.NewError(fiber.StatusBadRequest, "A valid topic manager name must be provided to retrieve documentation.")
+            return fiber.NewError(fiber.StatusBadRequest, "A valid {{.ParamName}} must be provided to retrieve documentation.")
         }{{end}}
       {{end}}
       {{if .IsStyled}}

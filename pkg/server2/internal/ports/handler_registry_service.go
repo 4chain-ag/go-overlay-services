@@ -10,6 +10,7 @@ import (
 // It acts as a central registry for mapping API endpoints to their handler implementations.
 type HandlerRegistryService struct {
 	topicManagersList         *TopicManagersListHandler
+	lookupDocumentation       *LookupProviderDocumentationHandler
 	startGASPSync             *StartGASPSyncHandler
 	topicManagerDocumentation *TopicManagerDocumentationHandler
 	submitTransaction         *SubmitTransactionHandler
@@ -19,6 +20,11 @@ type HandlerRegistryService struct {
 // AdvertisementsSync method delegates the request to the configured sync advertisements handler.
 func (h *HandlerRegistryService) AdvertisementsSync(c *fiber.Ctx) error {
 	return h.syncAdvertisements.Handle(c)
+}
+
+// GetLookupServiceProviderDocumentation method delegates the request to the configured lookup service provider documentation handler.
+func (h *HandlerRegistryService) GetLookupServiceProviderDocumentation(c *fiber.Ctx, params openapi.GetLookupServiceProviderDocumentationParams) error {
+	return h.lookupDocumentation.Handle(c, params)
 }
 
 // GetTopicManagerDocumentation method delegates the request to the configured topic manager documentation handler.
@@ -46,6 +52,7 @@ func (h *HandlerRegistryService) StartGASPSync(c *fiber.Ctx) error {
 func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
 	return &HandlerRegistryService{
 		topicManagersList:         NewTopicManagersListHandler(provider),
+		lookupDocumentation:       NewLookupProviderDocumentationHandler(provider),
 		startGASPSync:             NewStartGASPSyncHandler(provider),
 		topicManagerDocumentation: NewTopicManagerDocumentationHandler(provider),
 		submitTransaction:         NewSubmitTransactionHandler(provider),
