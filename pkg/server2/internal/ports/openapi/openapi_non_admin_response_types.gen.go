@@ -19,6 +19,12 @@ type SubmitTransaction struct {
 	STEAK STEAK `json:"STEAK"`
 }
 
+// TopicManagerDocumentation defines model for TopicManagerDocumentation.
+type TopicManagerDocumentation struct {
+	// Documentation Markdown-formatted documentation for the topic manager
+	Documentation string `json:"documentation"`
+}
+
 // TopicManagerMetadata defines model for TopicManagerMetadata.
 type TopicManagerMetadata struct {
 	IconURL          *string `json:"iconURL"`
@@ -31,16 +37,11 @@ type TopicManagerMetadata struct {
 // TopicManagersList defines model for TopicManagersList.
 type TopicManagersList map[string]TopicManagerMetadata
 
-// TopicManagersListResponse defines model for TopicManagersListResponse.
-type TopicManagersListResponse = TopicManagersList
-// TopicManagerDocumentation defines model for TopicManagerDocumentation.
-type TopicManagerDocumentation struct {
-	// Documentation Markdown-formatted documentation for the topic manager
-	Documentation string `json:"documentation"`
-}
-
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction
 
 // TopicManagerDocumentationResponse defines model for TopicManagerDocumentationResponse.
 type TopicManagerDocumentationResponse = TopicManagerDocumentation
+
+// TopicManagersListResponse defines model for TopicManagersListResponse.
+type TopicManagersListResponse = TopicManagersList
