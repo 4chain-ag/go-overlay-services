@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/advertiser"
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
@@ -218,7 +217,7 @@ func (m *LookupResolverMock) SetSLAPTrackers(trackers []string) {
 }
 
 // Query simulates a resolver query and captures the input question.
-func (m *LookupResolverMock) Query(ctx context.Context, question *lookup.LookupQuestion, timeout time.Duration) (*lookup.LookupAnswer, error) {
+func (m *LookupResolverMock) Query(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
 	m.QueryCalled = true
 	m.ReceivedQuestion = question
 

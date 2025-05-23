@@ -31,7 +31,7 @@ func (r *OverlayGASPRemote) GetInitialResponse(ctx context.Context, request *cor
 		if resp, err := r.HttpClient.Do(req); err != nil {
 			return nil, err
 		} else {
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			if resp.StatusCode != http.StatusOK {
 				return nil, &util.HTTPError{
 					StatusCode: resp.StatusCode,
@@ -63,7 +63,7 @@ func (r *OverlayGASPRemote) RequestNode(ctx context.Context, graphID *overlay.Ou
 		if resp, err := r.HttpClient.Do(req); err != nil {
 			return nil, err
 		} else {
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			if resp.StatusCode != http.StatusOK {
 				return nil, &util.HTTPError{
 					StatusCode: resp.StatusCode,

@@ -51,7 +51,7 @@ type OnSteakReady func(steak *overlay.Steak)
 type LookupResolverProvider interface {
 	SLAPTrackers() []string
 	SetSLAPTrackers(trackers []string)
-	Query(ctx context.Context, question *lookup.LookupQuestion, timeout time.Duration) (*lookup.LookupAnswer, error)
+	Query(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error)
 }
 
 type GASPProvider interface {
@@ -197,12 +197,20 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 			continue
 		} else {
 			topicInputs[topic] = make(map[uint32]*Output, len(tx.Inputs))
-			previousCoins := make(map[uint32][]byte, len(tx.Inputs))
-			for vin, outpoint := range inpoints {
-				if output, err := e.Storage.FindOutput(ctx, outpoint, &topic, nil, true); err != nil {
-					return nil, err
-				} else if output != nil {
-					previousCoins[uint32(vin)] = output.Beef
+			previousCoins := make(map[uint32]*transaction.TransactionOutput, len(tx.Inputs))
+			outputs, err := e.Storage.FindOutputs(ctx, inpoints, topic, nil, false)
+			if err != nil {
+				if e.PanicOnError {
+					log.Panicln(err)
+				}
+				return nil, err
+			}
+			for vin, output := range outputs {
+				if output != nil {
+					previousCoins[uint32(vin)] = &transaction.TransactionOutput{
+						LockingScript: output.Script,
+						Satoshis:      output.Satoshis,
+					}
 					topicInputs[topic][uint32(vin)] = output
 				}
 			}
@@ -246,22 +254,27 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 		if _, ok := dupeTopics[topic]; ok {
 			continue
 		}
-		for _, outpoint := range inpoints {
-			if err := e.Storage.MarkUTXOAsSpent(ctx, outpoint, topic); err != nil {
-				if e.PanicOnError {
-					log.Panicln(err)
-				}
-				return nil, err
-			} else {
-				for _, l := range e.LookupServices {
-					for _, inpoint := range inpoints {
-						if err := l.OutputSpent(ctx, inpoint, topic, taggedBEEF.Beef); err != nil {
-							if e.PanicOnError {
-								log.Panicln(err)
-							}
-							return nil, err
-						}
+		if err := e.Storage.MarkUTXOsAsSpent(ctx, inpoints, topic, txid); err != nil {
+			if e.PanicOnError {
+				log.Panicln(err)
+			}
+			return nil, err
+		}
+		for vin, outpoint := range inpoints {
+			for _, l := range e.LookupServices {
+				if err := l.OutputSpent(ctx, &OutputSpent{
+					Outpoint:           outpoint,
+					Topic:              topic,
+					SpendingTxid:       txid,
+					InputIndex:         uint32(vin),
+					UnlockingScript:    tx.Inputs[vin].UnlockingScript,
+					SequenceNumber:     tx.Inputs[vin].SequenceNumber,
+					SpendingAtomicBEEF: taggedBEEF.Beef,
+				}); err != nil {
+					if e.PanicOnError {
+						log.Panicln(err)
 					}
+					return nil, err
 				}
 			}
 		}
@@ -344,7 +357,13 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 			}
 			newOutpoints = append(newOutpoints, &output.Outpoint)
 			for _, l := range e.LookupServices {
-				if err := l.OutputAdded(ctx, &output.Outpoint, topic, output.Beef); err != nil {
+				if err := l.OutputAdmittedByTopic(ctx, &OutputAdmittedByTopic{
+					Topic:         topic,
+					Outpoint:      &output.Outpoint,
+					Satoshis:      output.Satoshis,
+					LockingScript: output.Script,
+					AtomicBEEF:    taggedBEEF.Beef,
+				}); err != nil {
 					if e.PanicOnError {
 						log.Panicln(err)
 					}
@@ -596,7 +615,9 @@ func (e *Engine) StartGASPSync(ctx context.Context) error {
 				return err
 			}
 
-			lookupAnswer, err := e.LookupResolver.Query(ctx, &lookup.LookupQuestion{Service: "ls_ship", Query: query}, 10*time.Second)
+			timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+			lookupAnswer, err := e.LookupResolver.Query(timeoutCtx, &lookup.LookupQuestion{Service: "ls_ship", Query: query})
 			if err != nil {
 				return err
 			}
@@ -721,7 +742,7 @@ func (e *Engine) deleteUTXODeep(ctx context.Context, output *Output) error {
 			return err
 		}
 		for _, l := range e.LookupServices {
-			if err := l.OutputDeleted(ctx, &output.Outpoint, output.Topic); err != nil {
+			if err := l.OutputNoLongerRetainedInHistory(ctx, &output.Outpoint, output.Topic); err != nil {
 				return err
 			}
 		}
@@ -851,17 +872,28 @@ func (e *Engine) updateMerkleProof(ctx context.Context, output *Output, txid cha
 func (e *Engine) HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error {
 	if outputs, err := e.Storage.FindOutputsForTransaction(ctx, txid, true); err != nil {
 		return err
-	} else {
+	} else if len(outputs) > 0 {
+		var blockIdx *uint64
+		for _, leaf := range proof.Path[0] {
+			if leaf.Hash != nil && leaf.Hash.Equal(*txid) {
+				blockIdx = &leaf.Offset
+				break
+			}
+		}
+		if blockIdx == nil {
+			return fmt.Errorf("not found in proof: %s", txid)
+		}
+		blockHeight := proof.BlockHeight
 		for _, output := range outputs {
 			if err := e.updateMerkleProof(ctx, output, *txid, proof); err != nil {
 				return err
 			} else if err := e.Storage.UpdateOutputBlockHeight(ctx, &output.Outpoint, output.Topic, output.BlockHeight, output.BlockIdx, output.AncillaryBeef); err != nil {
 				return err
 			}
-			for _, l := range e.LookupServices {
-				if err := l.OutputBlockHeightUpdated(ctx, &output.Outpoint, output.BlockHeight, output.BlockIdx); err != nil {
-					return err
-				}
+		}
+		for _, l := range e.LookupServices {
+			if err := l.OutputBlockHeightUpdated(ctx, txid, blockHeight, *blockIdx); err != nil {
+				return err
 			}
 		}
 	}
