@@ -38,14 +38,49 @@ paths:
             - user
       parameters:
         - in: query
-          name: lookupService
+          name: lookupServiceProvider
           schema:
             type: string
           required: true
-          description: The name of the lookup service to retrieve documentation for
+          description: The name of the lookup service provider to retrieve documentation for
       responses:
         200:
-          $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupServiceDocumentationResponse'
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupServiceProviderDocumentationResponse'
+        400:
+          $ref: '#/components/responses/BadRequestResponse'
+        500:
+          $ref: '#/components/responses/InternalServerErrorResponse'
+          
+  /api/v1/admin/startGASPSync:
+    post:
+      tags:
+        - admin
+      operationId: StartGASPSync
+      security:
+        - bearerAuth:
+            - admin
+      responses:
+        200:
+          $ref: '../paths/admin/responses.yaml#/components/responses/StartGASPSyncResponse'
+
+  /api/v1/getDocumentationForTopicManager:
+    get:
+      tags:
+        - non-admin
+      operationId: GetTopicManagerDocumentation
+      security:
+        - bearerAuth:
+            - user
+      parameters:
+        - in: query
+          name: topicManager
+          schema:
+            type: string
+          required: true
+          description: The name of the topic manager to retrieve documentation for
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/TopicManagerDocumentationResponse'
         400:
           $ref: '#/components/responses/BadRequestResponse'
         500:

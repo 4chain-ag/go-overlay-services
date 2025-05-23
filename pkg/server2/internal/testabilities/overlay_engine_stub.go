@@ -39,6 +39,20 @@ type LookupServiceDocumentationProvider interface {
 	ProviderStateAsserter
 }
 
+// StartGASPSyncProvider extends app.StartGASPSyncProvider with the ability
+// to assert whether it was called during a test.
+type StartGASPSyncProvider interface {
+	app.StartGASPSyncProvider
+	ProviderStateAsserter
+}
+
+// TopicManagerDocumentationProvider extends app.TopicManagerDocumentationProvider with the ability
+// to assert whether it was called during a test.
+type TopicManagerDocumentationProvider interface {
+	app.TopicManagerDocumentationProvider
+	ProviderStateAsserter
+}
+
 // TestOverlayEngineStubOption is a functional option type used to configure a TestOverlayEngineStub.
 // It allows setting custom behaviors for different parts of the TestOverlayEngineStub.
 type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
@@ -67,14 +81,32 @@ func WithSyncAdvertisementsProvider(provider SyncAdvertisementsProvider) TestOve
 	}
 }
 
+// WithStartGASPSyncProvider allows setting a custom StartGASPSyncProvider in a TestOverlayEngineStub.
+// This can be used to mock GASP synchronization behavior during tests.
+func WithStartGASPSyncProvider(provider StartGASPSyncProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.startGASPSyncProvider = provider
+	}
+}
+
+// WithTopicManagerDocumentationProvider allows setting a custom TopicManagerDocumentationProvider in a TestOverlayEngineStub.
+// This can be used to mock topic manager documentation retrieval behavior during tests.
+func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.topicManagerDocumentationProvider = provider
+	}
+}
+
 // TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
 	t                           *testing.T
-	submitTransactionProvider   SubmitTransactionProvider
 	lookupDocumentationProvider LookupServiceDocumentationProvider
-	syncAdvertisementsProvider  SyncAdvertisementsProvider
+	topicManagerDocumentationProvider TopicManagerDocumentationProvider
+	startGASPSyncProvider             StartGASPSyncProvider
+	submitTransactionProvider         SubmitTransactionProvider
+	syncAdvertisementsProvider        SyncAdvertisementsProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider
@@ -85,10 +117,12 @@ func (s *TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provide
 	return s.lookupDocumentationProvider.GetDocumentationForLookupServiceProvider(provider)
 }
 
-// GetDocumentationForTopicManager returns documentation for a topic manager (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// GetDocumentationForTopicManager returns documentation for a topic manager.
+// It delegates to the configured topic manager documentation provider.
 func (s *TestOverlayEngineStub) GetDocumentationForTopicManager(provider string) (string, error) {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.topicManagerDocumentationProvider.GetDocumentationForTopicManager(provider)
 }
 
 // GetUTXOHistory retrieves UTXO history for the given output (unimplemented).
@@ -133,10 +167,12 @@ func (s *TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, 
 	panic("unimplemented")
 }
 
-// StartGASPSync starts the GASP synchronization process (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// StartGASPSync starts the GASP synchronization process.
+// It calls the StartGASPSync method of the configured StartGASPSyncProvider.
 func (s *TestOverlayEngineStub) StartGASPSync(ctx context.Context) error {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.startGASPSyncProvider.StartGASPSync(ctx)
 }
 
 // Submit processes a transaction submission and returns a steak or error based on the provided inputs.
@@ -160,9 +196,11 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 	s.t.Helper()
 
 	providers := []ProviderStateAsserter{
+		s.topicManagerDocumentationProvider,
 		s.submitTransactionProvider,
 		s.lookupDocumentationProvider,
 		s.syncAdvertisementsProvider,
+		s.startGASPSyncProvider,
 	}
 	for _, p := range providers {
 		p.AssertCalled()
@@ -174,9 +212,11 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
 		t:                           t,
-		submitTransactionProvider:   NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 		lookupDocumentationProvider: NewLookupServiceDocumentationProviderMock(t, LookupServiceDocumentationProviderMockExpectations{DocumentationCall: false}),
-		syncAdvertisementsProvider:  NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
+		topicManagerDocumentationProvider: NewTopicManagerDocumentationProviderMock(t, TopicManagerDocumentationProviderMockExpectations{DocumentationCall: false}),
+		startGASPSyncProvider:             NewStartGASPSyncProviderMock(t, StartGASPSyncProviderMockExpectations{StartGASPSyncCall: false}),
+		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		syncAdvertisementsProvider:        NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
 	}
 
 	for _, opt := range opts {

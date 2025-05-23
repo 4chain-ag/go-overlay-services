@@ -41,6 +41,15 @@ components:
       required:
         - STEAK
 
+    TopicManagerDocumentation:
+      type: object
+      properties:
+        documentation:
+          type: string
+          description: Markdown-formatted documentation for the topic manager
+      required:
+        - documentation
+
     LookupServiceDocumentation:
       type: object
       properties:
@@ -65,3 +74,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/LookupServiceDocumentation'
+    TopicManagerDocumentationResponse:
+      description: Returns the documentation for the specified topic manager
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TopicManagerDocumentation'

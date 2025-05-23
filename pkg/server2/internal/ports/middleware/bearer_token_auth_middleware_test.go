@@ -3,7 +3,7 @@ package middleware_test
 import (
 	"testing"
 
-	server2 "github.com/4chain-ag/go-overlay-services/pkg/server2/internal"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
@@ -21,6 +21,11 @@ func TestBearerTokenAuthMiddleware_ValidCases(t *testing.T) {
 			endpoint:               "/api/v1/admin/syncAdvertisements",
 			method:                 fiber.MethodPost,
 			expectedProviderToCall: testabilities.WithSyncAdvertisementsProvider(testabilities.NewSyncAdvertisementsProviderMock(t, testabilities.SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: true})),
+		},
+		{
+			endpoint:               "/api/v1/admin/startGASPSync",
+			method:                 fiber.MethodPost,
+			expectedProviderToCall: testabilities.WithStartGASPSyncProvider(testabilities.NewStartGASPSyncProviderMock(t, testabilities.StartGASPSyncProviderMockExpectations{StartGASPSyncCall: true})),
 		},
 	}
 
@@ -70,6 +75,10 @@ func TestBearerTokenAuthMiddleware_InvalidCases(t *testing.T) {
 	}{
 		{
 			endpoint: "/api/v1/admin/syncAdvertisements",
+			method:   fiber.MethodPost,
+		},
+		{
+			endpoint: "/api/v1/admin/startGASPSync",
 			method:   fiber.MethodPost,
 		},
 	}
