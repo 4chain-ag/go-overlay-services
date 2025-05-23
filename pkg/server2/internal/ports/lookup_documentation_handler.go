@@ -27,7 +27,7 @@ func (h *LookupProviderDocumentationHandler) Handle(c *fiber.Ctx, params openapi
 		return err
 	}
 
-	return c.Status(fiber.StatusOK).JSON(openapi.LookupServiceDocumentationResponse{
+	return c.Status(fiber.StatusOK).JSON(openapi.LookupServiceProviderDocumentationResponse{
 		Documentation: documentation,
 	})
 }

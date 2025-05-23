@@ -68,12 +68,13 @@ components:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
 
-    LookupServiceDocumentationResponse:
+    LookupServiceProviderDocumentationResponse:
       description: Returns the documentation for the specified lookup service
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/LookupServiceDocumentation'
+
     TopicManagerDocumentationResponse:
       description: Returns the documentation for the specified topic manager
       content:

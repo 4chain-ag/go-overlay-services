@@ -3,7 +3,7 @@ package ports_test
 import (
 	"testing"
 
-	server2 "github.com/4chain-ag/go-overlay-services/pkg/server2/internal"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
@@ -71,7 +71,7 @@ func TestLookupProviderDocumentationHandler_GetDocumentation_ShouldReturnSuccess
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
 
 	// when:
-	var actualResponse openapi.LookupServiceDocumentationResponse
+	var actualResponse openapi.LookupServiceProviderDocumentationResponse
 	res, _ := fixture.Client().
 		R().
 		SetResult(&actualResponse).

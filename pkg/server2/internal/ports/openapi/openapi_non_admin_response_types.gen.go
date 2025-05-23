@@ -31,6 +31,9 @@ type TopicManagerDocumentation struct {
 	Documentation string `json:"documentation"`
 }
 
+// LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
+type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
+
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction
 
