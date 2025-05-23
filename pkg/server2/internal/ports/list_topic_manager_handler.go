@@ -23,7 +23,7 @@ type TopicManagersListHandler struct {
 // It returns an HTTP 200 OK with a TopicManagersListResponse.
 func (h *TopicManagersListHandler) Handle(c *fiber.Ctx) error {
 
-	return c.Status(fiber.StatusOK).JSON(h.service.ListTopicManagers())
+	return c.Status(fiber.StatusOK).JSON(NewTopicManagersListSuccessResponse(h.service.ListTopicManagers()))
 }
 
 // NewTopicManagersListHandler creates a new TopicManagersListHandler with the given provider.
