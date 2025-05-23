@@ -15,17 +15,17 @@ func TestTopicManagersListService_ValidCases(t *testing.T) {
 	}{
 		"List topic manager service success - empty list": {
 			expectations: testabilities.TopicManagersListProviderMockExpectations{
-				MetadataList:          testabilities.EmptyMetadata,
+				MetadataList:          testabilities.TopicManagerEmptyMetadata,
 				ListTopicManagersCall: true,
 			},
-			expected: testabilities.EmptyExpectedResponse,
+			expected: testabilities.TopicManagerEmptyExpectedResponse,
 		},
 		"List topic manager service success - default list": {
 			expectations: testabilities.TopicManagersListProviderMockExpectations{
-				MetadataList:          testabilities.DefaultMetadata,
+				MetadataList:          testabilities.TopicManagerDefaultMetadata,
 				ListTopicManagersCall: true,
 			},
-			expected: testabilities.DefaultExpectedResponse,
+			expected: testabilities.TopicManagerDefaultExpectedResponse,
 		},
 	}
 

@@ -10,11 +10,11 @@ import (
 
 // Standard metadata maps that can be used for testing
 var (
-	// EmptyMetadata is an empty metadata map
-	EmptyMetadata = map[string]*overlay.MetaData{}
+	// TopicManagerEmptyMetadata is an empty metadata map
+	TopicManagerEmptyMetadata = map[string]*overlay.MetaData{}
 
-	// DefaultMetadata contains standard metadata for testing
-	DefaultMetadata = map[string]*overlay.MetaData{
+	// TopicManagerDefaultMetadata contains standard metadata for testing
+	TopicManagerDefaultMetadata = map[string]*overlay.MetaData{
 		"topic_manager1": {
 			Description: "Description 1",
 			Icon:        "https://example.com/icon.png",
@@ -32,11 +32,11 @@ var (
 
 // Standard expected responses that can be used for testing
 var (
-	// EmptyExpectedResponse is an empty response
-	EmptyExpectedResponse = app.TopicManagers{}
+	// TopicManagerEmptyExpectedResponse is an empty response
+	TopicManagerEmptyExpectedResponse = app.TopicManagers{}
 
-	// DefaultExpectedResponse contains the standard expected response matching DefaultMetadata
-	DefaultExpectedResponse = app.TopicManagers{
+	// TopicManagerDefaultExpectedResponse contains the standard expected response matching TopicManagerDefaultMetadata
+	TopicManagerDefaultExpectedResponse = app.TopicManagers{
 		"topic_manager1": app.TopicManagerMetadata{
 			Name:             "topic_manager1",
 			ShortDescription: "Description 1",

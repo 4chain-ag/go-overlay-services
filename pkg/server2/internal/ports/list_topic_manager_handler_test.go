@@ -19,18 +19,18 @@ func TestTopicManagersListHandler_ValidCases(t *testing.T) {
 	}{
 		"empty list": {
 			expectations: testabilities.TopicManagersListProviderMockExpectations{
-				MetadataList:          testabilities.EmptyMetadata,
+				MetadataList:          testabilities.TopicManagerEmptyMetadata,
 				ListTopicManagersCall: true,
 			},
-			expected:           ports.NewTopicManagersListSuccessResponse(testabilities.EmptyExpectedResponse),
+			expected:           ports.NewTopicManagersListSuccessResponse(testabilities.TopicManagerEmptyExpectedResponse),
 			expectedStatusCode: fiber.StatusOK,
 		},
 		"default list": {
 			expectations: testabilities.TopicManagersListProviderMockExpectations{
-				MetadataList:          testabilities.DefaultMetadata,
+				MetadataList:          testabilities.TopicManagerDefaultMetadata,
 				ListTopicManagersCall: true,
 			},
-			expected:           ports.NewTopicManagersListSuccessResponse(testabilities.DefaultExpectedResponse),
+			expected:           ports.NewTopicManagersListSuccessResponse(testabilities.TopicManagerDefaultExpectedResponse),
 			expectedStatusCode: fiber.StatusOK,
 		},
 	}
@@ -60,7 +60,7 @@ func TestTopicManagersListHandler_ValidCases(t *testing.T) {
 // func TestTopicManagersListHandler_EmptyList(t *testing.T) {
 // 	// given:
 // 	expectations := testabilities.TopicManagersListProviderMockExpectations{
-// 		MetadataList:          testabilities.EmptyMetadata,
+// 		MetadataList:          testabilities.TopicManagerEmptyMetadata,
 // 		ListTopicManagersCall: true,
 // 	}
 // 	mock := testabilities.NewTopicManagersListProviderMock(t, expectations)
@@ -77,14 +77,14 @@ func TestTopicManagersListHandler_ValidCases(t *testing.T) {
 // 	// then:
 // 	require.NoError(t, err)
 // 	require.Equal(t, fiber.StatusOK, res.StatusCode())
-// 	require.Equal(t, testabilities.EmptyExpectedResponse, actualResponse)
+// 	require.Equal(t, testabilities.TopicManagerEmptyExpectedResponse, actualResponse)
 // 	stub.AssertProvidersState()
 // }
 
 // func TestTopicManagersListHandler_ValidCase(t *testing.T) {
 // 	// given:
 // 	expectations := testabilities.TopicManagersListProviderMockExpectations{
-// 		MetadataList:          testabilities.DefaultMetadata,
+// 		MetadataList:          testabilities.TopicManagerDefaultMetadata,
 // 		ListTopicManagersCall: true,
 // 	}
 // 	mock := testabilities.NewTopicManagersListProviderMock(t, expectations)
