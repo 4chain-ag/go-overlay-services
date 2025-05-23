@@ -65,6 +65,14 @@ components:
       type: object
       additionalProperties:
         $ref: "#/components/schemas/TopicManagerMetadata"
+    TopicManagerDocumentation:
+      type: object
+      properties:
+        documentation:
+          type: string
+          description: Markdown-formatted documentation for the topic manager
+      required:
+        - documentation
 
   responses:
     SubmitTransactionResponse:
@@ -82,3 +90,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/TopicManagersList'
+    TopicManagerDocumentationResponse:
+      description: Returns the documentation for the specified topic manager
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TopicManagerDocumentation'
