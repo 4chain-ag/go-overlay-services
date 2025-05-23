@@ -34,7 +34,7 @@ paths:
         - non-admin
       operationId: ListTopicManagers
       security:
-        - bearerAuth: 
+        - bearerAuth:
             - user
       responses:
         200:
