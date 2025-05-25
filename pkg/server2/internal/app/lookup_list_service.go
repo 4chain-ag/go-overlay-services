@@ -63,7 +63,7 @@ func (s *LookupListService) ListLookupServiceProviders() LookupServiceProviders 
 }
 
 // NewLookupListService creates a new LookupListService
-// initialized with the given provider. It returns an error if the provider is nil.
+// initialized with the given provider. It panics if the provider is nil.
 func NewLookupListService(provider LookupListProvider) *LookupListService {
 	if provider == nil {
 		panic("lookup list provider is nil")

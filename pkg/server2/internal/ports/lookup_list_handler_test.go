@@ -17,7 +17,7 @@ func TestLookupListHandler_ValidCases(t *testing.T) {
 		expected           openapi.LookupServiceProvidersListResponse
 		expectedStatusCode int
 	}{
-		"empty list": {
+		"List lookup service success - empty list": {
 			expectations: testabilities.LookupListProviderMockExpectations{
 				MetadataList:                   testabilities.LookupListEmptyMetadata,
 				ListLookupServiceProvidersCall: true,
@@ -25,7 +25,7 @@ func TestLookupListHandler_ValidCases(t *testing.T) {
 			expected:           ports.NewLookupListSuccessResponse(testabilities.LookupListEmptyExpectedResponse),
 			expectedStatusCode: fiber.StatusOK,
 		},
-		"default list": {
+		"List lookup service success - default list": {
 			expectations: testabilities.LookupListProviderMockExpectations{
 				MetadataList:                   testabilities.LookupListDefaultMetadata,
 				ListLookupServiceProvidersCall: true,

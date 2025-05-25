@@ -22,7 +22,7 @@ type LookupListHandler struct {
 // Handle processes an HTTP request to list all lookup service providers.
 // It returns an HTTP 200 OK with a LookupServiceProvidersResponse.
 func (h *LookupListHandler) Handle(c *fiber.Ctx) error {
-	return c.Status(fiber.StatusOK).JSON(h.service.ListLookupServiceProviders())
+	return c.Status(fiber.StatusOK).JSON(NewLookupListSuccessResponse(h.service.ListLookupServiceProviders()))
 }
 
 // NewLookupListHandler creates a new LookupListHandler with the given provider.
@@ -35,6 +35,7 @@ func NewLookupListHandler(provider app.LookupListProvider) *LookupListHandler {
 	return &LookupListHandler{service: app.NewLookupListService(provider)}
 }
 
+// NewLookupListSuccessResponse creates a new LookupListSuccessResponse with the given lookup list.
 func NewLookupListSuccessResponse(lookupList app.LookupServiceProviders) openapi.LookupServiceProvidersListResponse {
 	response := make(openapi.LookupServiceProvidersList, len(lookupList))
 
