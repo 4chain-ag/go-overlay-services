@@ -11,6 +11,12 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"outputsToAdmit"`
 }
 
+// ArcIngest defines model for ArcIngest.
+type ArcIngest struct {
+	Message string `json:"message"`
+	Status  string `json:"status"`
+}
+
 // LookupServiceDocumentation defines model for LookupServiceDocumentation.
 type LookupServiceDocumentation struct {
 	// Documentation Markdown-formatted documentation for the lookup service
@@ -30,6 +36,9 @@ type TopicManagerDocumentation struct {
 	// Documentation Markdown-formatted documentation for the topic manager
 	Documentation string `json:"documentation"`
 }
+
+// ArcIngestResponse defines model for ArcIngestResponse.
+type ArcIngestResponse = ArcIngest
 
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
