@@ -64,7 +64,7 @@ func (s *TopicManagersListService) ListTopicManagers() TopicManagers {
 
 // NewTopicManagersListService creates a new TopicManagersListService
 // initialized with the given provider. It panics if the provider is nil.
-func NewTopicManagersListService(provider TopicManagersListProvider) (*TopicManagersListService) {
+func NewTopicManagersListService(provider TopicManagersListProvider) *TopicManagersListService {
 	if provider == nil {
 		panic("topic manager list provider is nil")
 	}

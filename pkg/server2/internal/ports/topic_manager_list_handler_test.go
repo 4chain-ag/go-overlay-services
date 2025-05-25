@@ -43,7 +43,6 @@ func TestTopicManagersListHandler_ValidCases(t *testing.T) {
 
 			// when:
 			var actualResponse openapi.TopicManagersListResponse
-
 			res, _ := fixture.Client().
 				R().
 				SetResult(&actualResponse).

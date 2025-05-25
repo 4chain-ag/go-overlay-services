@@ -22,7 +22,6 @@ type TopicManagersListHandler struct {
 // Handle processes an HTTP request to list all topic managers.
 // It returns an HTTP 200 OK with a TopicManagersListResponse.
 func (h *TopicManagersListHandler) Handle(c *fiber.Ctx) error {
-
 	return c.Status(fiber.StatusOK).JSON(NewTopicManagersListSuccessResponse(h.service.ListTopicManagers()))
 }
 
@@ -33,13 +32,11 @@ func NewTopicManagersListHandler(provider app.TopicManagersListProvider) *TopicM
 	if provider == nil {
 		panic("topic manager list provider is nil")
 	}
-
 	return &TopicManagersListHandler{service: app.NewTopicManagersListService(provider)}
 }
 
 func NewTopicManagersListSuccessResponse(topicManagers app.TopicManagers) openapi.TopicManagersListResponse {
 	response := make(openapi.TopicManagersList, len(topicManagers))
-
 	for name, metadata := range topicManagers {
 		response[name] = openapi.TopicManagerMetadata{
 			Name:             metadata.Name,
@@ -49,6 +46,5 @@ func NewTopicManagersListSuccessResponse(topicManagers app.TopicManagers) openap
 			InformationURL:   &metadata.InformationURL,
 		}
 	}
-
 	return response
 }
