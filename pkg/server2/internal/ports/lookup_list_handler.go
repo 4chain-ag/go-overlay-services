@@ -22,7 +22,6 @@ type LookupListHandler struct {
 // Handle processes an HTTP request to list all lookup service providers.
 // It returns an HTTP 200 OK with a LookupServiceProvidersResponse.
 func (h *LookupListHandler) Handle(c *fiber.Ctx) error {
-
 	return c.Status(fiber.StatusOK).JSON(h.service.ListLookupServiceProviders())
 }
 
@@ -33,7 +32,6 @@ func NewLookupListHandler(provider app.LookupListProvider) *LookupListHandler {
 	if provider == nil {
 		panic("lookup list provider is nil")
 	}
-
 	return &LookupListHandler{service: app.NewLookupListService(provider)}
 }
 

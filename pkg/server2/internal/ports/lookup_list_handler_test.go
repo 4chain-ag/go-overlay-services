@@ -43,7 +43,6 @@ func TestLookupListHandler_ValidCases(t *testing.T) {
 
 			// when:
 			var actualResponse openapi.LookupServiceProvidersListResponse
-
 			res, _ := fixture.Client().
 				R().
 				SetResult(&actualResponse).
