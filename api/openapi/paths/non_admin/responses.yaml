@@ -85,7 +85,7 @@ components:
       type: object
       additionalProperties:
         $ref: "#/components/schemas/LookupServiceProviderMetadata"
- 
+
     TopicManagersList:
       type: object
       additionalProperties:
@@ -117,7 +117,7 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
-    
+
     LookupServiceProvidersListResponse:
       description: |
         A list of lookup service providers with their metadata.

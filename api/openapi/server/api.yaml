@@ -34,7 +34,7 @@ paths:
         - non-admin
       operationId: ListLookupServiceProviders
       security:
-        - bearerAuth: 
+        - bearerAuth:
             - user
       responses:
         200:
