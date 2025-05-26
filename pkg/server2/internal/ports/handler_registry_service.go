@@ -14,6 +14,7 @@ type HandlerRegistryService struct {
 	topicManagerDocumentation *TopicManagerDocumentationHandler
 	submitTransaction         *SubmitTransactionHandler
 	syncAdvertisements        *SyncAdvertisementsHandler
+	requestForeignGASPNode    *RequestForeignGASPNodeHandler
 }
 
 // AdvertisementsSync method delegates the request to the configured sync advertisements handler.
@@ -41,6 +42,11 @@ func (h *HandlerRegistryService) StartGASPSync(c *fiber.Ctx) error {
 	return h.startGASPSync.Handle(c)
 }
 
+// RequestForeignGASPNode method delegates the request to the configured request foreign GASP node handler.
+func (h *HandlerRegistryService) RequestForeignGASPNode(c *fiber.Ctx, params openapi.RequestForeignGASPNodeParams) error {
+	return h.requestForeignGASPNode.Handle(c, params)
+}
+
 // NewHandlerRegistryService creates and returns a new HandlerRegistryService instance.
 // It initializes all handler implementations with their required dependencies.
 func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
@@ -50,5 +56,6 @@ func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRe
 		topicManagerDocumentation: NewTopicManagerDocumentationHandler(provider),
 		submitTransaction:         NewSubmitTransactionHandler(provider),
 		syncAdvertisements:        NewSyncAdvertisementsHandler(provider),
+		requestForeignGASPNode:    NewRequestForeignGASPNodeHandler(provider),
 	}
 }
