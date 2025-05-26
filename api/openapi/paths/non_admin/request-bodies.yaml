@@ -12,3 +12,27 @@ components:
                 description: 'Serialized transaction data (e.g., a binary format such as Protobuf or other)'
             required:
               - Transaction
+
+    RequestForeignGASPNodeBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - graphID
+              - txID
+              - outputIndex
+            properties:
+              graphID:
+                type: string
+                description: The graph ID in the format of "txID.outputIndex"
+                example: "0000000000000000000000000000000000000000000000000000000000000000.1"
+              txID:
+                type: string
+                description: The transaction ID
+                example: "0000000000000000000000000000000000000000000000000000000000000000"
+              outputIndex:
+                type: integer
+                description: The output index
+                format: uint32
+                example: 1

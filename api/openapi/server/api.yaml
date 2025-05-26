@@ -117,6 +117,31 @@ paths:
         409:
           $ref: '#/components/responses/RequestTimeoutResponse'
 
+  /api/v1/requestForeignGASPNode:
+    post:
+      tags:
+        - non-admin
+      operationId: RequestForeignGASPNode
+      security:
+        - bearerAuth:
+            - user
+      parameters:
+        - in: header
+          name: X-BSV-Topic
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/RequestForeignGASPNodeBody'
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/RequestForeignGASPNodeResponse'
+        400:
+          $ref: '#/components/responses/BadRequestResponse'
+        500:
+          $ref: '#/components/responses/InternalServerErrorResponse'
+
 components:
   schemas:
     Error:
