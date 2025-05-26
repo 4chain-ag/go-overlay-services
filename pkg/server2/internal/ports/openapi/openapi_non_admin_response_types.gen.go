@@ -17,6 +17,20 @@ type LookupServiceDocumentation struct {
 	Documentation string `json:"documentation"`
 }
 
+// RequestSyncRes defines model for RequestSyncRes.
+type RequestSyncRes struct {
+	UTXOList []struct {
+		// Txid Transaction ID in hexadecimal format
+		Txid string `json:"txid"`
+
+		// Vout Output index number
+		Vout int `json:"vout"`
+	} `json:"UTXOList"`
+
+	// Since Timestamp or sequence number from which synchronization data was generated
+	Since int `json:"since"`
+}
+
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
 
@@ -33,6 +47,9 @@ type TopicManagerDocumentation struct {
 
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
+
+// RequestSyncResResponse defines model for RequestSyncResResponse.
+type RequestSyncResResponse = RequestSyncRes
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction

@@ -45,10 +45,28 @@ type GetTopicManagerDocumentationParams struct {
 	TopicManager string `form:"topicManager" json:"topicManager"`
 }
 
+// RequestSyncResponseJSONBody defines parameters for RequestSyncResponse.
+type RequestSyncResponseJSONBody struct {
+	// Since Timestamp or sequence number from which to start synchronization
+	Since int `json:"since"`
+
+	// Version The version number of the GASP protocol
+	Version int `json:"version"`
+}
+
+// RequestSyncResponseParams defines parameters for RequestSyncResponse.
+type RequestSyncResponseParams struct {
+	// XBSVTopic Topic identifier for the sync response request
+	XBSVTopic string `json:"X-BSV-Topic"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
+
+// RequestSyncResponseJSONRequestBody defines body for RequestSyncResponse for application/json ContentType.
+type RequestSyncResponseJSONRequestBody RequestSyncResponseJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -64,6 +82,9 @@ type ServerInterface interface {
 
 	// (GET /api/v1/getDocumentationForTopicManager)
 	GetTopicManagerDocumentation(c *fiber.Ctx, params GetTopicManagerDocumentationParams) error
+
+	// (POST /api/v1/requestSyncResponse)
+	RequestSyncResponse(c *fiber.Ctx, params RequestSyncResponseParams) error
 
 	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
@@ -176,6 +197,41 @@ func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) er
 	return siw.handler.GetTopicManagerDocumentation(c, params)
 }
 
+// RequestSyncResponse operation middleware
+func (siw *ServerInterfaceWrapper) RequestSyncResponse(c *fiber.Ctx) error {
+
+	var err error
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RequestSyncResponseParams
+
+	headers := c.GetReqHeaders()
+
+	// ------------- Required header parameter "X-BSV-Topic" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-BSV-Topic")]; found {
+		var XBSVTopic string
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-BSV-Topic", valueList[0], &XBSVTopic, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "One or more topics are in an invalid format. Empty string values are not allowed.")
+		}
+
+		params.XBSVTopic = XBSVTopic
+
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "The submitted request does not include required header: X-BSV-Topic.")
+	}
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.RequestSyncResponse(c, params)
+}
+
 // SubmitTransaction operation middleware
 func (siw *ServerInterfaceWrapper) SubmitTransaction(c *fiber.Ctx) error {
 
@@ -242,6 +298,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Get(options.BaseURL+"/api/v1/getDocumentationForLookupServiceProvider", wrapper.GetLookupServiceProviderDocumentation)
 
 	router.Get(options.BaseURL+"/api/v1/getDocumentationForTopicManager", wrapper.GetTopicManagerDocumentation)
+
+	router.Post(options.BaseURL+"/api/v1/requestSyncResponse", wrapper.RequestSyncResponse)
 
 	router.Post(options.BaseURL+"/api/v1/submit", wrapper.SubmitTransaction)
 
