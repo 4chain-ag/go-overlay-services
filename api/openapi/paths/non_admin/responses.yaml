@@ -42,6 +42,26 @@ components:
         - STEAK
 
     LookupServiceProviderMetadata:
+     type: object
+      properties:
+        name:
+          type: string
+        shortDescription:
+          type: string
+        iconURL:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        informationURL:
+          type: string
+          nullable: true
+      required:
+        - name
+        - shortDescription
+
+    TopicManagerMetadata:
       type: object
       properties:
         name:
@@ -66,12 +86,26 @@ components:
       additionalProperties:
         $ref: "#/components/schemas/LookupServiceProviderMetadata"
         
+    TopicManagersList:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/TopicManagerMetadata"
+
     TopicManagerDocumentation:
       type: object
       properties:
         documentation:
           type: string
           description: Markdown-formatted documentation for the topic manager
+      required:
+        - documentation
+
+    LookupServiceDocumentation:
+      type: object
+      properties:
+        documentation:
+          type: string
+          description: Markdown-formatted documentation for the lookup service
       required:
         - documentation
 
@@ -91,6 +125,21 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/LookupServiceProvidersList'
+
+    TopicManagersListResponse:
+      description: |
+        A list of topic managers with their metadata.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TopicManagersList'
+
+    LookupServiceProviderDocumentationResponse:
+      description: Returns the documentation for the specified lookup service
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LookupServiceDocumentation'
 
     TopicManagerDocumentationResponse:
       description:

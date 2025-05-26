@@ -33,6 +33,12 @@ type NotFoundResponse = Error
 // RequestTimeoutResponse defines model for RequestTimeoutResponse.
 type RequestTimeoutResponse = Error
 
+// GetLookupServiceProviderDocumentationParams defines parameters for GetLookupServiceProviderDocumentation.
+type GetLookupServiceProviderDocumentationParams struct {
+	// LookupService The name of the lookup service provider to retrieve documentation for
+	LookupService string `form:"lookupService" json:"lookupService"`
+}
+
 // GetTopicManagerDocumentationParams defines parameters for GetTopicManagerDocumentation.
 type GetTopicManagerDocumentationParams struct {
 	// TopicManager The name of the topic manager to retrieve documentation for
@@ -53,11 +59,17 @@ type ServerInterface interface {
 	// (POST /api/v1/admin/syncAdvertisements)
 	AdvertisementsSync(c *fiber.Ctx) error
 
+	// (GET /api/v1/getDocumentationForLookupServiceProvider)
+	GetLookupServiceProviderDocumentation(c *fiber.Ctx, params GetLookupServiceProviderDocumentationParams) error
+
 	// (GET /api/v1/getDocumentationForTopicManager)
 	GetTopicManagerDocumentation(c *fiber.Ctx, params GetTopicManagerDocumentationParams) error
 
 	// (GET /api/v1/listLookupServiceProviders)
 	ListLookupServiceProviders(c *fiber.Ctx) error
+
+	// (GET /api/v1/listTopicManagers)
+	ListTopicManagers(c *fiber.Ctx) error
 
 	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
@@ -96,6 +108,43 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 	return siw.handler.AdvertisementsSync(c)
 }
 
+// GetLookupServiceProviderDocumentation operation middleware
+func (siw *ServerInterfaceWrapper) GetLookupServiceProviderDocumentation(c *fiber.Ctx) error {
+
+	var err error
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetLookupServiceProviderDocumentationParams
+
+	var query url.Values
+	query, err = url.ParseQuery(string(c.Request().URI().QueryString()))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid format for query string")
+	}
+
+	// ------------- Required query parameter "lookupService" -------------
+
+	if paramValue := c.Query("lookupService"); paramValue != "" {
+
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "A valid lookupService must be provided to retrieve documentation.")
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "lookupService", query, &params.LookupService)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid format for parameter lookupService")
+	}
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.GetLookupServiceProviderDocumentation(c, params)
+}
+
 // GetTopicManagerDocumentation operation middleware
 func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) error {
 
@@ -117,7 +166,7 @@ func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) er
 	if paramValue := c.Query("topicManager"); paramValue != "" {
 
 	} else {
-		return fiber.NewError(fiber.StatusBadRequest, "A valid topic manager name must be provided to retrieve documentation.")
+		return fiber.NewError(fiber.StatusBadRequest, "A valid topicManager must be provided to retrieve documentation.")
 	}
 
 	err = runtime.BindQueryParameter("form", true, true, "topicManager", query, &params.TopicManager)
@@ -133,8 +182,8 @@ func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) er
 	return siw.handler.GetTopicManagerDocumentation(c, params)
 }
 
-// ListLookupServiceProviders operation middleware
-func (siw *ServerInterfaceWrapper) ListLookupServiceProviders(c *fiber.Ctx) error {
+// ListTopicManagers operation middleware
+func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
 
 	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
 
@@ -143,7 +192,7 @@ func (siw *ServerInterfaceWrapper) ListLookupServiceProviders(c *fiber.Ctx) erro
 			return err
 		}
 	}
-	return siw.handler.ListLookupServiceProviders(c)
+	return siw.handler.ListTopicManagers(c)
 }
 
 // SubmitTransaction operation middleware
@@ -209,9 +258,11 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 
 	router.Post(options.BaseURL+"/api/v1/admin/syncAdvertisements", wrapper.AdvertisementsSync)
 
+	router.Get(options.BaseURL+"/api/v1/getDocumentationForLookupServiceProvider", wrapper.GetLookupServiceProviderDocumentation)
+
 	router.Get(options.BaseURL+"/api/v1/getDocumentationForTopicManager", wrapper.GetTopicManagerDocumentation)
 
-	router.Get(options.BaseURL+"/api/v1/listLookupServiceProviders", wrapper.ListLookupServiceProviders)
+	router.Get(options.BaseURL+"/api/v1/listTopicManagers", wrapper.ListTopicManagers)
 
 	router.Post(options.BaseURL+"/api/v1/submit", wrapper.SubmitTransaction)
 

@@ -103,6 +103,6 @@ func TestEngine_ProvideForeignGASPNode_TransactionNotFound_ShouldReturnError(t *
 	node, err := sut.ProvideForeignGASPNode(ctx, graphID, outpoint, "test-topic")
 
 	// then:
-	require.ErrorContains(t, err, "invalid-atomic-beef") // temp solution
+	require.ErrorContains(t, err, "invalid-version") // temp solution
 	require.Nil(t, node)
 }

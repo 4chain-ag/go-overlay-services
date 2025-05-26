@@ -39,6 +39,20 @@ type LookupListProvider interface {
 	ProviderStateAsserter
 }
 
+// TopicManagersListProvider extends app.TopicManagersListProvider with the ability
+// to assert whether it was called during a test.
+type TopicManagersListProvider interface {
+	app.TopicManagersListProvider
+	ProviderStateAsserter
+}
+
+// LookupServiceDocumentationProvider extends app.LookupServiceDocumentationProvider with the ability
+// to assert whether it was called during a test.
+type LookupServiceDocumentationProvider interface {
+	app.LookupServiceDocumentationProvider
+	ProviderStateAsserter
+}
+
 // StartGASPSyncProvider extends app.StartGASPSyncProvider with the ability
 // to assert whether it was called during a test.
 type StartGASPSyncProvider interface {
@@ -73,6 +87,22 @@ func WithLookupListProvider(provider LookupListProvider) TestOverlayEngineStubOp
 	}
 }
 
+// WithTopicManagersListProvider allows setting a custom TopicManagersListProvider in a TestOverlayEngineStub.
+// This can be used to mock topic managers list behavior during tests.
+func WithTopicManagersListProvider(provider TopicManagersListProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.topicManagersListProvider = provider
+	}
+}
+
+// WithLookupDocumentationProvider allows setting a custom LookupServiceDocumentationProvider in a TestOverlayEngineStub.
+// This can be used to mock lookup service documentation retrieval behavior during tests.
+func WithLookupDocumentationProvider(provider LookupServiceDocumentationProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.lookupDocumentationProvider = provider
+	}
+}
+
 // WithSyncAdvertisementsProvider allows setting a custom SyncAdvertisementsProvider in a TestOverlayEngineStub.
 // This can be used to mock advertisement synchronization behavior during tests.
 func WithSyncAdvertisementsProvider(provider SyncAdvertisementsProvider) TestOverlayEngineStubOption {
@@ -103,16 +133,20 @@ func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationPro
 type TestOverlayEngineStub struct {
 	t                                 *testing.T
 	lookupListProvider                LookupListProvider
+	topicManagersListProvider         TopicManagersListProvider
+	lookupDocumentationProvider       LookupServiceDocumentationProvider
 	topicManagerDocumentationProvider TopicManagerDocumentationProvider
 	startGASPSyncProvider             StartGASPSyncProvider
 	submitTransactionProvider         SubmitTransactionProvider
 	syncAdvertisementsProvider        SyncAdvertisementsProvider
 }
 
-// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider
+// using the configured LookupServiceDocumentationProvider.
 func (s *TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.lookupDocumentationProvider.GetDocumentationForLookupServiceProvider(provider)
 }
 
 // GetDocumentationForTopicManager returns documentation for a topic manager.
@@ -143,9 +177,9 @@ func (s *TestOverlayEngineStub) ListLookupServiceProviders() map[string]*overlay
 }
 
 // ListTopicManagers lists the available topic managers.
-// This is a placeholder function meant to be overridden in actual implementations.
 func (s *TestOverlayEngineStub) ListTopicManagers() map[string]*overlay.MetaData {
-	panic("unimplemented")
+	s.t.Helper()
+	return s.topicManagersListProvider.ListTopicManagers()
 }
 
 // Lookup performs a lookup query based on the provided LookupQuestion (unimplemented).
@@ -198,6 +232,8 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 		s.topicManagerDocumentationProvider,
 		s.submitTransactionProvider,
 		s.lookupListProvider,
+		s.topicManagersListProvider,
+		s.lookupDocumentationProvider,
 		s.syncAdvertisementsProvider,
 		s.startGASPSyncProvider,
 	}
@@ -212,6 +248,8 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 	stub := TestOverlayEngineStub{
 		t:                                 t,
 		lookupListProvider:                NewLookupListProviderMock(t, LookupListProviderMockExpectations{ListLookupServiceProvidersCall: false}),
+		topicManagersListProvider:         NewTopicManagersListProviderMock(t, TopicManagersListProviderMockExpectations{ListTopicManagersCall: false}),
+		lookupDocumentationProvider:       NewLookupServiceDocumentationProviderMock(t, LookupServiceDocumentationProviderMockExpectations{DocumentationCall: false}),
 		topicManagerDocumentationProvider: NewTopicManagerDocumentationProviderMock(t, TopicManagerDocumentationProviderMockExpectations{DocumentationCall: false}),
 		startGASPSyncProvider:             NewStartGASPSyncProviderMock(t, StartGASPSyncProviderMockExpectations{StartGASPSyncCall: false}),
 		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),

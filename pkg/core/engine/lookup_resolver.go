@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 )
@@ -40,6 +39,6 @@ func (l *LookupResolver) SLAPTrackers() []string {
 }
 
 // Query performs a lookup using the configured resolver with the given question and timeout.
-func (l *LookupResolver) Query(ctx context.Context, question *lookup.LookupQuestion, timeout time.Duration) (*lookup.LookupAnswer, error) {
-	return l.resolver.Query(ctx, question, timeout)
+func (l *LookupResolver) Query(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
+	return l.resolver.Query(ctx, question)
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
@@ -22,8 +23,10 @@ type OverlayGASPRemote struct {
 func (r *OverlayGASPRemote) GetInitialResponse(ctx context.Context, request *core.GASPInitialRequest) (*core.GASPInitialResponse, error) {
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(request); err != nil {
+		slog.Error("failed to encode GASP initial request", "endpoint", r.EndpointUrl, "topic", r.Topic, "error", err)
 		return nil, err
 	} else if req, err := http.NewRequest("POST", r.EndpointUrl+"/requestSyncResponse", io.NopCloser(&buf)); err != nil {
+		slog.Error("failed to create HTTP request for GASP initial response", "endpoint", r.EndpointUrl, "topic", r.Topic, "error", err)
 		return nil, err
 	} else {
 		req.Header.Set("Content-Type", "application/json")
@@ -31,7 +34,7 @@ func (r *OverlayGASPRemote) GetInitialResponse(ctx context.Context, request *cor
 		if resp, err := r.HttpClient.Do(req); err != nil {
 			return nil, err
 		} else {
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			if resp.StatusCode != http.StatusOK {
 				return nil, &util.HTTPError{
 					StatusCode: resp.StatusCode,
@@ -63,7 +66,7 @@ func (r *OverlayGASPRemote) RequestNode(ctx context.Context, graphID *overlay.Ou
 		if resp, err := r.HttpClient.Do(req); err != nil {
 			return nil, err
 		} else {
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			if resp.StatusCode != http.StatusOK {
 				return nil, &util.HTTPError{
 					StatusCode: resp.StatusCode,

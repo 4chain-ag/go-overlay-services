@@ -105,16 +105,24 @@ func (s *OverlayGASPStorage) FindNeededInputs(ctx context.Context, gaspTx *core.
 				return nil, err
 			}
 		}
-		previousCoins := make(map[uint32][]byte, len(tx.Inputs))
+		inpoints := make([]*overlay.Outpoint, len(tx.Inputs))
 		for vin, input := range tx.Inputs {
-			outpoint := &overlay.Outpoint{
+			inpoints[vin] = &overlay.Outpoint{
 				Txid:        *input.SourceTXID,
 				OutputIndex: input.SourceTxOutIndex,
 			}
-			if output, err := s.Engine.Storage.FindOutput(ctx, outpoint, &s.Topic, nil, true); err != nil {
-				return nil, err
-			} else if output != nil {
-				previousCoins[uint32(vin)] = output.Beef
+		}
+		previousCoins := make(map[uint32]*transaction.TransactionOutput, len(tx.Inputs))
+		if outputs, err := s.Engine.Storage.FindOutputs(ctx, inpoints, s.Topic, nil, false); err != nil {
+			return nil, err
+		} else {
+			for vin, output := range outputs {
+				if output != nil {
+					previousCoins[uint32(vin)] = &transaction.TransactionOutput{
+						LockingScript: output.Script,
+						Satoshis:      output.Satoshis,
+					}
+				}
 			}
 		}
 
@@ -218,16 +226,24 @@ func (s *OverlayGASPStorage) ValidateGraphAnchor(ctx context.Context, graphID *o
 			if tx, err := transaction.NewTransactionFromBEEF(beefBytes); err != nil {
 				return err
 			} else {
-				previousCoins := make(map[uint32][]byte, len(tx.Inputs))
+				inpoints := make([]*overlay.Outpoint, len(tx.Inputs))
 				for vin, input := range tx.Inputs {
-					outpoint := &overlay.Outpoint{
+					inpoints[vin] = &overlay.Outpoint{
 						Txid:        *input.SourceTXID,
 						OutputIndex: input.SourceTxOutIndex,
 					}
-					if output, err := s.Engine.Storage.FindOutput(ctx, outpoint, &s.Topic, nil, true); err != nil {
-						return err
-					} else if output != nil {
-						previousCoins[uint32(vin)] = output.Beef
+				}
+				previousCoins := make(map[uint32]*transaction.TransactionOutput, len(tx.Inputs))
+				if outputs, err := s.Engine.Storage.FindOutputs(ctx, inpoints, s.Topic, nil, false); err != nil {
+					return err
+				} else {
+					for vin, output := range outputs {
+						if output != nil {
+							previousCoins[uint32(vin)] = &transaction.TransactionOutput{
+								LockingScript: output.Script,
+								Satoshis:      output.Satoshis,
+							}
+						}
 					}
 				}
 				if admit, err := s.Engine.Managers[s.Topic].IdentifyAdmissableOutputs(ctx, beef, previousCoins); err != nil {

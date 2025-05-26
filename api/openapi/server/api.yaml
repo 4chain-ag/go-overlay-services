@@ -39,7 +39,42 @@ paths:
       responses:
         200:
           $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupServiceProvidersListResponse'
-          
+
+  /api/v1/listTopicManagers:
+    get:
+      tags:
+        - non-admin
+      operationId: ListTopicManagers
+      security:
+        - bearerAuth:
+            - user
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/TopicManagersListResponse'
+
+  /api/v1/getDocumentationForLookupServiceProvider:
+    get:
+      tags:
+        - non-admin
+      operationId: GetLookupServiceProviderDocumentation
+      security:
+        - bearerAuth:
+            - user
+      parameters:
+        - in: query
+          name: lookupService
+          schema:
+            type: string
+          required: true
+          description: The name of the lookup service provider to retrieve documentation for
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupServiceProviderDocumentationResponse'
+        400:
+          $ref: '#/components/responses/BadRequestResponse'
+        500:
+          $ref: '#/components/responses/InternalServerErrorResponse'
+
   /api/v1/admin/startGASPSync:
     post:
       tags:

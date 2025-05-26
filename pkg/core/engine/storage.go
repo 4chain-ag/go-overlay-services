@@ -17,7 +17,7 @@ type Storage interface {
 	// Finds an output from storage
 	FindOutput(ctx context.Context, outpoint *overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) (*Output, error)
 
-	FindOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic *string, spent *bool, includeBEEF bool) ([]*Output, error)
+	FindOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic string, spent *bool, includeBEEF bool) ([]*Output, error)
 
 	// Finds outputs with a matching transaction ID from storage
 	FindOutputsForTransaction(ctx context.Context, txid *chainhash.Hash, includeBEEF bool) ([]*Output, error)
@@ -28,13 +28,8 @@ type Storage interface {
 	// Deletes an output from storage
 	DeleteOutput(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
 
-	// Deletes an output from storage
-	// DeleteOutputs(ctx context.Context, outpoints []*overlay.Outpoint, topic string) error
-
-	// Updates a UTXO as spent
-	MarkUTXOAsSpent(ctx context.Context, outpoint *overlay.Outpoint, topic string) error
-
-	// MarkUTXOsAsSpent(ctx context.Context, outpoints []*overlay.Outpoint, topic string, beef []byte) error
+	// Updates UTXOs as spent
+	MarkUTXOsAsSpent(ctx context.Context, outpoints []*overlay.Outpoint, topic string, spendTxid *chainhash.Hash) error
 
 	// Updates which outputs are consumed by this output
 	UpdateConsumedBy(ctx context.Context, outpoint *overlay.Outpoint, topic string, consumedBy []*overlay.Outpoint) error
