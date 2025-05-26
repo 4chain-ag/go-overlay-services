@@ -12,3 +12,19 @@ components:
                 description: 'Serialized transaction data (e.g., a binary format such as Protobuf or other)'
             required:
               - Transaction
+
+    RequestSyncResponseBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              version:
+                type: integer
+                description: 'The version number of the GASP protocol'
+              since:
+                type: integer
+                description: 'Timestamp or sequence number from which to start synchronization'
+            required:
+              - version
+              - since
