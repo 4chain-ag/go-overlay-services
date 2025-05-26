@@ -11,6 +11,9 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"outputsToAdmit"`
 }
 
+// GASPNode A GASP node representation from the overlay engine
+type GASPNode = map[string]interface{}
+
 // LookupServiceDocumentation defines model for LookupServiceDocumentation.
 type LookupServiceDocumentation struct {
 	// Documentation Markdown-formatted documentation for the lookup service
@@ -33,6 +36,9 @@ type TopicManagerDocumentation struct {
 
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
+
+// RequestForeignGASPNodeResponse A GASP node representation from the overlay engine
+type RequestForeignGASPNodeResponse = GASPNode
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction

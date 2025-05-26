@@ -45,10 +45,30 @@ type GetTopicManagerDocumentationParams struct {
 	TopicManager string `form:"topicManager" json:"topicManager"`
 }
 
+// RequestForeignGASPNodeJSONBody defines parameters for RequestForeignGASPNode.
+type RequestForeignGASPNodeJSONBody struct {
+	// GraphID The graph ID in the format of "txID.outputIndex"
+	GraphID string `json:"graphID"`
+
+	// OutputIndex The output index
+	OutputIndex uint32 `json:"outputIndex"`
+
+	// TxID The transaction ID
+	TxID string `json:"txID"`
+}
+
+// RequestForeignGASPNodeParams defines parameters for RequestForeignGASPNode.
+type RequestForeignGASPNodeParams struct {
+	XBSVTopic string `json:"X-BSV-Topic"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
+
+// RequestForeignGASPNodeJSONRequestBody defines body for RequestForeignGASPNode for application/json ContentType.
+type RequestForeignGASPNodeJSONRequestBody RequestForeignGASPNodeJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -64,6 +84,9 @@ type ServerInterface interface {
 
 	// (GET /api/v1/getDocumentationForTopicManager)
 	GetTopicManagerDocumentation(c *fiber.Ctx, params GetTopicManagerDocumentationParams) error
+
+	// (POST /api/v1/requestForeignGASPNode)
+	RequestForeignGASPNode(c *fiber.Ctx, params RequestForeignGASPNodeParams) error
 
 	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
@@ -176,6 +199,41 @@ func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) er
 	return siw.handler.GetTopicManagerDocumentation(c, params)
 }
 
+// RequestForeignGASPNode operation middleware
+func (siw *ServerInterfaceWrapper) RequestForeignGASPNode(c *fiber.Ctx) error {
+
+	var err error
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RequestForeignGASPNodeParams
+
+	headers := c.GetReqHeaders()
+
+	// ------------- Required header parameter "X-BSV-Topic" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-BSV-Topic")]; found {
+		var XBSVTopic string
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-BSV-Topic", valueList[0], &XBSVTopic, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "One or more topics are in an invalid format. Empty string values are not allowed.")
+		}
+
+		params.XBSVTopic = XBSVTopic
+
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "The submitted request does not include required header: X-BSV-Topic.")
+	}
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.RequestForeignGASPNode(c, params)
+}
+
 // SubmitTransaction operation middleware
 func (siw *ServerInterfaceWrapper) SubmitTransaction(c *fiber.Ctx) error {
 
@@ -242,6 +300,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Get(options.BaseURL+"/api/v1/getDocumentationForLookupServiceProvider", wrapper.GetLookupServiceProviderDocumentation)
 
 	router.Get(options.BaseURL+"/api/v1/getDocumentationForTopicManager", wrapper.GetTopicManagerDocumentation)
+
+	router.Post(options.BaseURL+"/api/v1/requestForeignGASPNode", wrapper.RequestForeignGASPNode)
 
 	router.Post(options.BaseURL+"/api/v1/submit", wrapper.SubmitTransaction)
 
