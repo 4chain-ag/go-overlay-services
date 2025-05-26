@@ -182,6 +182,19 @@ func (siw *ServerInterfaceWrapper) GetTopicManagerDocumentation(c *fiber.Ctx) er
 	return siw.handler.GetTopicManagerDocumentation(c, params)
 }
 
+// ListLookupServiceProviders operation middleware
+func (siw *ServerInterfaceWrapper) ListLookupServiceProviders(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.ListLookupServiceProviders(c)
+}
+
 // ListTopicManagers operation middleware
 func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
 
@@ -261,6 +274,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Get(options.BaseURL+"/api/v1/getDocumentationForLookupServiceProvider", wrapper.GetLookupServiceProviderDocumentation)
 
 	router.Get(options.BaseURL+"/api/v1/getDocumentationForTopicManager", wrapper.GetTopicManagerDocumentation)
+
+	router.Get(options.BaseURL+"/api/v1/listLookupServiceProviders", wrapper.ListLookupServiceProviders)
 
 	router.Get(options.BaseURL+"/api/v1/listTopicManagers", wrapper.ListTopicManagers)
 
