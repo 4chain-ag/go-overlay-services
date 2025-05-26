@@ -57,7 +57,6 @@ var (
 // TopicManagersListProviderMockExpectations defines the expected behavior of the TopicManagersListProviderMock during a test.
 type TopicManagersListProviderMockExpectations struct {
 	MetadataList          map[string]*overlay.MetaData
-	Error                 error
 	ListTopicManagersCall bool
 }
 

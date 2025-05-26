@@ -17,7 +17,7 @@ func TestTopicManagersListHandler_ValidCases(t *testing.T) {
 		expected           openapi.TopicManagersListResponse
 		expectedStatusCode int
 	}{
-		"List topic manager service success - empty list": {
+		"List topic manager service returns an empty topic mangers list.": {
 			expectations: testabilities.TopicManagersListProviderMockExpectations{
 				MetadataList:          testabilities.TopicManagerEmptyMetadata,
 				ListTopicManagersCall: true,
@@ -25,7 +25,7 @@ func TestTopicManagersListHandler_ValidCases(t *testing.T) {
 			expected:           ports.NewTopicManagersListSuccessResponse(testabilities.TopicManagerEmptyExpectedResponse),
 			expectedStatusCode: fiber.StatusOK,
 		},
-		"List topic manager service success - default list": {
+		"List topic manager service returns default topic managers list.": {
 			expectations: testabilities.TopicManagersListProviderMockExpectations{
 				MetadataList:          testabilities.TopicManagerDefaultMetadata,
 				ListTopicManagersCall: true,
