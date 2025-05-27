@@ -34,7 +34,7 @@ func TestRequestSyncResponseService_InvalidCases(t *testing.T) {
 		topic          string
 		initialRequest *core.GASPInitialRequest
 	}{
-		"Request sync response service fails to handle request - empty topic": {
+		" Request sync response service fails due to invalid input ": {
 			topic: "",
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				ProvideForeignSyncResponseCall: false,
@@ -45,7 +45,7 @@ func TestRequestSyncResponseService_InvalidCases(t *testing.T) {
 			},
 			expectedError: app.NewRequestSyncResponseInvalidInputError(),
 		},
-		"Request sync response service fails to handle request - provider error": {
+		"Request sync response service fails due to provider error": {
 			topic: "test-topic",
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				ProvideForeignSyncResponseCall: true,

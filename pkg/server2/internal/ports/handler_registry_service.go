@@ -16,6 +16,7 @@ type HandlerRegistryService struct {
 	topicManagerDocumentation *TopicManagerDocumentationHandler
 	submitTransaction         *SubmitTransactionHandler
 	syncAdvertisements        *SyncAdvertisementsHandler
+	requestSyncResponse       *RequestSyncResponseHandler
 }
 
 // ListLookupServiceProviders method delegates the request to the configured lookup list handler.
@@ -53,6 +54,11 @@ func (h *HandlerRegistryService) StartGASPSync(c *fiber.Ctx) error {
 	return h.startGASPSync.Handle(c)
 }
 
+// RequestSyncResponse method delegates the request to the configured request sync response handler.
+func (h *HandlerRegistryService) RequestSyncResponse(c *fiber.Ctx, params openapi.RequestSyncResponseParams) error {
+	return h.requestSyncResponse.Handle(c, params)
+}
+
 // NewHandlerRegistryService creates and returns a new HandlerRegistryService instance.
 // It initializes all handler implementations with their required dependencies.
 func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
@@ -64,5 +70,6 @@ func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRe
 		topicManagerDocumentation: NewTopicManagerDocumentationHandler(provider),
 		submitTransaction:         NewSubmitTransactionHandler(provider),
 		syncAdvertisements:        NewSyncAdvertisementsHandler(provider),
+		requestSyncResponse:       NewRequestSyncResponseHandler(provider),
 	}
 }

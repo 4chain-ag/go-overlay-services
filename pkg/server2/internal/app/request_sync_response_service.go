@@ -22,6 +22,14 @@ func (s *RequestSyncResponseService) RequestSyncResponse(ctx context.Context, in
 		return nil, NewRequestSyncResponseInvalidInputError()
 	}
 
+	if initialRequest == nil {
+		return nil, NewRequestSyncResponseInvalidRequestError()
+	}
+
+	if initialRequest.Version <= 0 {
+		return nil, NewRequestSyncResponseInvalidVersionError()
+	}
+
 	response, err := s.provider.ProvideForeignSyncResponse(ctx, initialRequest, topic)
 	if err != nil {
 		return nil, NewRequestSyncResponseProviderError(err)
@@ -55,5 +63,23 @@ func NewRequestSyncResponseInvalidInputError() Error {
 		errorType: ErrorTypeIncorrectInput,
 		err:       "topic cannot be empty",
 		slug:      "A valid topic must be provided to request a sync response.",
+	}
+}
+
+// NewRequestSyncResponseInvalidRequestError returns an Error indicating that the initial request is nil.
+func NewRequestSyncResponseInvalidRequestError() Error {
+	return Error{
+		errorType: ErrorTypeIncorrectInput,
+		err:       "initial request cannot be nil",
+		slug:      "A valid initial request must be provided to request a sync response.",
+	}
+}
+
+// NewRequestSyncResponseInvalidVersionError returns an Error indicating that the initial request version is invalid.
+func NewRequestSyncResponseInvalidVersionError() Error {
+	return Error{
+		errorType: ErrorTypeIncorrectInput,
+		err:       "initial request version must be greater than 0",
+		slug:      "A valid version must be provided for the initial request to request a sync response.",
 	}
 }
