@@ -141,6 +141,22 @@ paths:
         409:
           $ref: '#/components/responses/RequestTimeoutResponse'
 
+  /api/v1/lookup:
+    post:
+      tags:
+        - non-admin
+      operationId: LookupQuestion
+      requestBody:
+        required: true
+        $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/LookupQuestionBody'
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupQuestionResponse'
+        400:
+          $ref: '#/components/responses/BadRequestResponse'
+        500:
+          $ref: '#/components/responses/InternalServerErrorResponse'
+
 components:
   schemas:
     Error:
