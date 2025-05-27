@@ -11,6 +11,12 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"outputsToAdmit"`
 }
 
+// LookupAnswer defines model for LookupAnswer.
+type LookupAnswer struct {
+	// Answer The answer data for the lookup question
+	Answer map[string]interface{} `json:"answer"`
+}
+
 // LookupServiceDocumentation defines model for LookupServiceDocumentation.
 type LookupServiceDocumentation struct {
 	// Documentation Markdown-formatted documentation for the lookup service
@@ -54,6 +60,9 @@ type TopicManagerMetadata struct {
 
 // TopicManagersList defines model for TopicManagersList.
 type TopicManagersList map[string]TopicManagerMetadata
+
+// LookupQuestionResponse defines model for LookupQuestionResponse.
+type LookupQuestionResponse = LookupAnswer
 
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation

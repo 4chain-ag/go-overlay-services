@@ -45,10 +45,22 @@ type GetTopicManagerDocumentationParams struct {
 	TopicManager string `form:"topicManager" json:"topicManager"`
 }
 
+// LookupQuestionJSONBody defines parameters for LookupQuestion.
+type LookupQuestionJSONBody struct {
+	// Query Query parameters specific to the service
+	Query map[string]interface{} `json:"query"`
+
+	// Service Service name to query
+	Service string `json:"service"`
+}
+
 // SubmitTransactionParams defines parameters for SubmitTransaction.
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
+
+// LookupQuestionJSONRequestBody defines body for LookupQuestion for application/json ContentType.
+type LookupQuestionJSONRequestBody LookupQuestionJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -70,6 +82,9 @@ type ServerInterface interface {
 
 	// (GET /api/v1/listTopicManagers)
 	ListTopicManagers(c *fiber.Ctx) error
+
+	// (POST /api/v1/lookup)
+	LookupQuestion(c *fiber.Ctx) error
 
 	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
@@ -208,6 +223,17 @@ func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
 	return siw.handler.ListTopicManagers(c)
 }
 
+// LookupQuestion operation middleware
+func (siw *ServerInterfaceWrapper) LookupQuestion(c *fiber.Ctx) error {
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.LookupQuestion(c)
+}
+
 // SubmitTransaction operation middleware
 func (siw *ServerInterfaceWrapper) SubmitTransaction(c *fiber.Ctx) error {
 
@@ -278,6 +304,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Get(options.BaseURL+"/api/v1/listLookupServiceProviders", wrapper.ListLookupServiceProviders)
 
 	router.Get(options.BaseURL+"/api/v1/listTopicManagers", wrapper.ListTopicManagers)
+
+	router.Post(options.BaseURL+"/api/v1/lookup", wrapper.LookupQuestion)
 
 	router.Post(options.BaseURL+"/api/v1/submit", wrapper.SubmitTransaction)
 
