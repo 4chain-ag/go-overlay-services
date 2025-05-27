@@ -64,6 +64,9 @@ type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
 // LookupServiceProvidersListResponse defines model for LookupServiceProvidersListResponse.
 type LookupServiceProvidersListResponse = LookupServiceProvidersList
 
+// RequestForeignGASPNodeResponse A GASP node representation from the overlay engine
+type RequestForeignGASPNodeResponse = GASPNode
+
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction
 

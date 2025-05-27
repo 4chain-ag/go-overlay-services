@@ -91,6 +91,9 @@ type ServerInterface interface {
 	// (GET /api/v1/listTopicManagers)
 	ListTopicManagers(c *fiber.Ctx) error
 
+	// (POST /api/v1/requestForeignGASPNode)
+	RequestForeignGASPNode(c *fiber.Ctx, params RequestForeignGASPNodeParams) error
+
 	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
 }
@@ -228,6 +231,41 @@ func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
 	return siw.handler.ListTopicManagers(c)
 }
 
+// RequestForeignGASPNode operation middleware
+func (siw *ServerInterfaceWrapper) RequestForeignGASPNode(c *fiber.Ctx) error {
+
+	var err error
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RequestForeignGASPNodeParams
+
+	headers := c.GetReqHeaders()
+
+	// ------------- Required header parameter "X-BSV-Topic" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-BSV-Topic")]; found {
+		var XBSVTopic string
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-BSV-Topic", valueList[0], &XBSVTopic, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "One or more topics are in an invalid format. Empty string values are not allowed.")
+		}
+
+		params.XBSVTopic = XBSVTopic
+
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "The submitted request does not include required header: X-BSV-Topic.")
+	}
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.RequestForeignGASPNode(c, params)
+}
+
 // SubmitTransaction operation middleware
 func (siw *ServerInterfaceWrapper) SubmitTransaction(c *fiber.Ctx) error {
 
@@ -298,6 +336,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Get(options.BaseURL+"/api/v1/listLookupServiceProviders", wrapper.ListLookupServiceProviders)
 
 	router.Get(options.BaseURL+"/api/v1/listTopicManagers", wrapper.ListTopicManagers)
+
+	router.Post(options.BaseURL+"/api/v1/requestForeignGASPNode", wrapper.RequestForeignGASPNode)
 
 	router.Post(options.BaseURL+"/api/v1/submit", wrapper.SubmitTransaction)
 
