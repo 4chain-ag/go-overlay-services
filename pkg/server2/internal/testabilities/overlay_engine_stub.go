@@ -67,6 +67,13 @@ type TopicManagerDocumentationProvider interface {
 	ProviderStateAsserter
 }
 
+// LookupQuestionProvider extends app.LookupQuestionProvider with the ability
+// to assert whether it was called during a test.
+type LookupQuestionProvider interface {
+	app.LookupQuestionProvider
+	ProviderStateAsserter
+}
+
 // TestOverlayEngineStubOption is a functional option type used to configure a TestOverlayEngineStub.
 // It allows setting custom behaviors for different parts of the TestOverlayEngineStub.
 type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
@@ -127,6 +134,14 @@ func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationPro
 	}
 }
 
+// WithLookupQuestionProvider allows setting a custom LookupQuestionProvider in a TestOverlayEngineStub.
+// This can be used to mock lookup question behavior during tests.
+func WithLookupQuestionProvider(provider LookupQuestionProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.lookupQuestionProvider = provider
+	}
+}
+
 // TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
@@ -139,6 +154,7 @@ type TestOverlayEngineStub struct {
 	startGASPSyncProvider             StartGASPSyncProvider
 	submitTransactionProvider         SubmitTransactionProvider
 	syncAdvertisementsProvider        SyncAdvertisementsProvider
+	lookupQuestionProvider            LookupQuestionProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider
@@ -182,10 +198,12 @@ func (s *TestOverlayEngineStub) ListTopicManagers() map[string]*overlay.MetaData
 	return s.topicManagersListProvider.ListTopicManagers()
 }
 
-// Lookup performs a lookup query based on the provided LookupQuestion (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// Lookup performs a lookup query based on the provided LookupQuestion.
+// It calls the Lookup method of the configured LookupQuestionProvider.
 func (s *TestOverlayEngineStub) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.lookupQuestionProvider.Lookup(ctx, question)
 }
 
 // ProvideForeignGASPNode returns a foreign GASP node (unimplemented).
@@ -236,6 +254,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 		s.lookupDocumentationProvider,
 		s.syncAdvertisementsProvider,
 		s.startGASPSyncProvider,
+		s.lookupQuestionProvider,
 	}
 	for _, p := range providers {
 		p.AssertCalled()
@@ -254,6 +273,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		startGASPSyncProvider:             NewStartGASPSyncProviderMock(t, StartGASPSyncProviderMockExpectations{StartGASPSyncCall: false}),
 		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 		syncAdvertisementsProvider:        NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
+		lookupQuestionProvider:            NewLookupQuestionProviderMock(t, LookupQuestionProviderMockNotCalled()),
 	}
 
 	for _, opt := range opts {

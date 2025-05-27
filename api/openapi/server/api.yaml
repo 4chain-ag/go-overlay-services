@@ -146,6 +146,9 @@ paths:
       tags:
         - non-admin
       operationId: LookupQuestion
+      security:
+        - bearerAuth:
+            - user
       requestBody:
         required: true
         $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/LookupQuestionBody'

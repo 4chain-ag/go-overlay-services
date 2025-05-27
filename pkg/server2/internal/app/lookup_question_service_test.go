@@ -13,133 +13,82 @@ import (
 )
 
 func TestLookupQuestionService_ValidCase(t *testing.T) {
-
-	// given
-
+	// given:
 	expectations := testabilities.LookupQuestionProviderMockExpectations{
-
-		LookupQuestionCall: true,
-
 		Answer: &lookup.LookupAnswer{
-
-			Type: lookup.AnswerTypeFreeform,
-
+			Type:   lookup.AnswerTypeFreeform,
 			Result: map[string]interface{}{"test": "value"},
 		},
 	}
 
 	question := &lookup.LookupQuestion{
-
 		Service: "test-service",
-
-		Query: json.RawMessage(`{}`),
+		Query:   json.RawMessage(`{}`),
 	}
 
-	mock := testabilities.NewLookupQuestionProviderMock(t, expectations)
-
+	mock := testabilities.NewLookupQuestionProviderMock(t, testabilities.LookupQuestionProviderMockWithAnswer(expectations.Answer))
 	service := app.NewLookupQuestionService(mock)
 
-	// when
-
+	// when:
 	answer, err := service.LookupQuestion(context.Background(), question)
 
 	// then
-
 	require.NoError(t, err)
-
 	require.Equal(t, expectations.Answer, answer)
-
 	mock.AssertCalled()
-
 }
 
 func TestLookupQuestionService_InvalidCases(t *testing.T) {
-
 	tests := map[string]struct {
-		expectations testabilities.LookupQuestionProviderMockExpectations
-
-		question *lookup.LookupQuestion
-
+		expectations  testabilities.LookupQuestionProviderMockExpectations
+		question      *lookup.LookupQuestion
 		expectedError app.Error
 	}{
-
-		"should return error when question is nil": {
-
-			expectations: testabilities.LookupQuestionProviderMockExpectations{
-
-				LookupQuestionCall: false,
-			},
-
-			question: nil,
-
+		"LookupQuestion should return error when question is nil": {
+			expectations:  testabilities.LookupQuestionProviderMockExpectations{},
+			question:      nil,
 			expectedError: app.NewInvalidLookupQuestionError(),
 		},
-
-		"should return error when service is empty": {
-
-			expectations: testabilities.LookupQuestionProviderMockExpectations{
-
-				LookupQuestionCall: false,
-			},
-
+		"LookupQuestion should return error when service is empty": {
+			expectations: testabilities.LookupQuestionProviderMockExpectations{},
 			question: &lookup.LookupQuestion{
-
 				Service: "",
-
-				Query: json.RawMessage(`{}`),
+				Query:   json.RawMessage(`{}`),
 			},
-
 			expectedError: app.NewMissingServiceFieldError(),
 		},
-
-		"should return error from provider": {
-
+		"LookupQuestion should return error from provider": {
 			expectations: testabilities.LookupQuestionProviderMockExpectations{
-
-				LookupQuestionCall: true,
-
 				Error: errors.New("provider error"),
 			},
-
 			question: &lookup.LookupQuestion{
-
 				Service: "test-service",
-
-				Query: json.RawMessage(`{}`),
+				Query:   json.RawMessage(`{}`),
 			},
-
 			expectedError: app.NewLookupQuestionProviderError(errors.New("provider error")),
 		},
 	}
 
 	for name, tc := range tests {
-
 		t.Run(name, func(t *testing.T) {
-
-			// given
-
-			mock := testabilities.NewLookupQuestionProviderMock(t, tc.expectations)
-
+			// given:
+			var mock *testabilities.LookupQuestionProviderMock
+			if tc.expectations.Error != nil {
+				mock = testabilities.NewLookupQuestionProviderMock(t, testabilities.LookupQuestionProviderMockWithProviderError(tc.expectations.Error.Error()))
+			} else {
+				mock = testabilities.NewLookupQuestionProviderMock(t, testabilities.LookupQuestionProviderMockNotCalled())
+			}
 			service := app.NewLookupQuestionService(mock)
 
-			// when
-
+			// when:
 			answer, err := service.LookupQuestion(context.Background(), tc.question)
 
-			// then
-
+			// then:
 			var actualErr app.Error
-
 			require.ErrorAs(t, err, &actualErr)
-
 			require.Equal(t, tc.expectedError, actualErr)
-
 			require.Nil(t, answer)
-
 			mock.AssertCalled()
-
 		})
-
 	}
-
 }
