@@ -20,6 +20,18 @@ type LookupServiceDocumentation struct {
 	Documentation string `json:"documentation"`
 }
 
+// LookupServiceProviderMetadata defines model for LookupServiceProviderMetadata.
+type LookupServiceProviderMetadata struct {
+	IconURL          *string `json:"iconURL"`
+	InformationURL   *string `json:"informationURL"`
+	Name             string  `json:"name"`
+	ShortDescription string  `json:"shortDescription"`
+	Version          *string `json:"version"`
+}
+
+// LookupServiceProvidersList defines model for LookupServiceProvidersList.
+type LookupServiceProvidersList map[string]LookupServiceProviderMetadata
+
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
 
@@ -34,14 +46,29 @@ type TopicManagerDocumentation struct {
 	Documentation string `json:"documentation"`
 }
 
+// TopicManagerMetadata defines model for TopicManagerMetadata.
+type TopicManagerMetadata struct {
+	IconURL          *string `json:"iconURL"`
+	InformationURL   *string `json:"informationURL"`
+	Name             string  `json:"name"`
+	ShortDescription string  `json:"shortDescription"`
+	Version          *string `json:"version"`
+}
+
+// TopicManagersList defines model for TopicManagersList.
+type TopicManagersList map[string]TopicManagerMetadata
+
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
 
-// RequestForeignGASPNodeResponse A GASP node representation from the overlay engine
-type RequestForeignGASPNodeResponse = GASPNode
+// LookupServiceProvidersListResponse defines model for LookupServiceProvidersListResponse.
+type LookupServiceProvidersListResponse = LookupServiceProvidersList
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction
 
 // TopicManagerDocumentationResponse defines model for TopicManagerDocumentationResponse.
 type TopicManagerDocumentationResponse = TopicManagerDocumentation
+
+// TopicManagersListResponse defines model for TopicManagersListResponse.
+type TopicManagersListResponse = TopicManagersList
