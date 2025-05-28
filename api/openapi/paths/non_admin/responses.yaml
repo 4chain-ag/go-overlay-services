@@ -107,7 +107,20 @@ components:
           type: string
           description: Markdown-formatted documentation for the lookup service
       required:
-        - documentation   
+        - documentation
+
+    UTXOItem:
+      type: object
+      properties:
+        txid:
+          type: string
+          description: 'Transaction ID in hexadecimal format'
+        vout:
+          type: integer
+          description: 'Output index number'
+      required:
+        - txid
+        - vout
   
     RequestSyncRes:
       type: object
@@ -115,17 +128,7 @@ components:
         UTXOList:
           type: array
           items:
-            type: object
-            properties:
-              txid:
-                type: string
-                description: 'Transaction ID in hexadecimal format'
-              vout:
-                type: integer
-                description: 'Output index number'
-            required:
-              - txid
-              - vout
+            $ref: "#/components/schemas/UTXOItem"
         since:
           type: integer
           description: 'Timestamp or sequence number from which synchronization data was generated'

@@ -19,7 +19,7 @@ func TestRequestSyncResponseService_ValidCase(t *testing.T) {
 	service := app.NewRequestSyncResponseService(provider)
 
 	// when:
-	response, err := service.RequestSyncResponse(context.Background(), &core.GASPInitialRequest{Version: 1, Since: 500}, "test-topic")
+	response, err := service.RequestSyncResponse(context.Background(), &app.RequestSyncResponseDTO{Version: 1, Since: 500}, "test-topic")
 
 	// then:
 	require.NoError(t, err)
@@ -29,17 +29,17 @@ func TestRequestSyncResponseService_ValidCase(t *testing.T) {
 
 func TestRequestSyncResponseService_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
-		expectedError  app.Error
-		expectations   testabilities.RequestSyncResponseProviderMockExpectations
-		topic          string
-		initialRequest *core.GASPInitialRequest
+		expectedError app.Error
+		expectations  testabilities.RequestSyncResponseProviderMockExpectations
+		topic         string
+		dto           app.RequestSyncResponseDTO
 	}{
 		" Request sync response service fails due to invalid input ": {
 			topic: "",
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				ProvideForeignSyncResponseCall: false,
 			},
-			initialRequest: &core.GASPInitialRequest{
+			dto: app.RequestSyncResponseDTO{
 				Version: 1,
 				Since:   500,
 			},
@@ -51,7 +51,7 @@ func TestRequestSyncResponseService_InvalidCases(t *testing.T) {
 				ProvideForeignSyncResponseCall: true,
 				Error:                          errors.New("provider error"),
 			},
-			initialRequest: &core.GASPInitialRequest{
+			dto: app.RequestSyncResponseDTO{
 				Version: 1,
 				Since:   500,
 			},
@@ -66,7 +66,7 @@ func TestRequestSyncResponseService_InvalidCases(t *testing.T) {
 			service := app.NewRequestSyncResponseService(mock)
 
 			// when:
-			document, err := service.RequestSyncResponse(context.Background(), tc.initialRequest, tc.topic)
+			document, err := service.RequestSyncResponse(context.Background(), &tc.dto, tc.topic)
 
 			// then:
 			var actualErr app.Error

@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//TODO add default values for the request sync response provider mock
+
 // RequestSyncResponseProviderMockExpectations defines mock expectations.
 type RequestSyncResponseProviderMockExpectations struct {
 	Error                          error
@@ -27,6 +29,9 @@ type RequestSyncResponseProviderMock struct {
 	expectations RequestSyncResponseProviderMockExpectations
 	called       bool
 }
+
+// DTO for the request sync response provider mock
+// Additional assertions for the mock values
 
 // ProvideForeignSyncResponse mocks the method.
 func (m *RequestSyncResponseProviderMock) ProvideForeignSyncResponse(ctx context.Context, initialRequest *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {

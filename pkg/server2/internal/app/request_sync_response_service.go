@@ -2,9 +2,15 @@ package app
 
 import (
 	"context"
+	"math"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 )
+
+type RequestSyncResponseDTO struct {
+	Version int
+	Since   int
+}
 
 // RequestSyncResponseProvider defines the interface for requesting sync responses.
 type RequestSyncResponseProvider interface {
@@ -17,20 +23,22 @@ type RequestSyncResponseService struct {
 }
 
 // RequestSyncResponse requests a foreign sync response.
-func (s *RequestSyncResponseService) RequestSyncResponse(ctx context.Context, initialRequest *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
+func (s *RequestSyncResponseService) RequestSyncResponse(ctx context.Context, dto *RequestSyncResponseDTO, topic string) (*core.GASPInitialResponse, error) {
 	if topic == "" {
 		return nil, NewRequestSyncResponseInvalidInputError()
 	}
 
-	if initialRequest == nil {
-		return nil, NewRequestSyncResponseInvalidRequestError()
-	}
-
-	if initialRequest.Version <= 0 {
+	version := dto.Version
+	if version <= 0 {
 		return nil, NewRequestSyncResponseInvalidVersionError()
 	}
 
-	response, err := s.provider.ProvideForeignSyncResponse(ctx, initialRequest, topic)
+	since := dto.Since
+	if since <= 0 || since > math.MaxUint32 {
+		return nil, NewRequestSyncResponseInvalidSinceError()
+	}
+
+	response, err := s.provider.ProvideForeignSyncResponse(ctx, &core.GASPInitialRequest{Version: version, Since: uint32(since)}, topic)
 	if err != nil {
 		return nil, NewRequestSyncResponseProviderError(err)
 	}
@@ -81,5 +89,23 @@ func NewRequestSyncResponseInvalidVersionError() Error {
 		errorType: ErrorTypeIncorrectInput,
 		err:       "initial request version must be greater than 0",
 		slug:      "A valid version must be provided for the initial request to request a sync response.",
+	}
+}
+
+// NewRequestSyncResponseInvalidSinceError returns an Error indicating that the initial request since is invalid.
+func NewRequestSyncResponseInvalidSinceError() Error {
+	return Error{
+		errorType: ErrorTypeIncorrectInput,
+		err:       "initial request since must be greater than 0 and less than or equal to 4294967295",
+		slug:      "A valid since value between 1 and 4294967295 must be provided for the initial request to request a sync response.",
+	}
+}
+
+// NewRequestSyncResponseInvalidJSONError returns an Error indicating that the JSON input is invalid.
+func NewRequestSyncResponseInvalidJSONError() Error {
+	return Error{
+		errorType: ErrorTypeIncorrectInput,
+		err:       "invalid JSON format",
+		slug:      "The request body must contain valid JSON.",
 	}
 }

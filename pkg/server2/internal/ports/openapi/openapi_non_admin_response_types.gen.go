@@ -31,13 +31,7 @@ type LookupServiceProvidersList map[string]LookupServiceProviderMetadata
 
 // RequestSyncRes defines model for RequestSyncRes.
 type RequestSyncRes struct {
-	UTXOList []struct {
-		// Txid Transaction ID in hexadecimal format
-		Txid string `json:"txid"`
-
-		// Vout Output index number
-		Vout int `json:"vout"`
-	} `json:"UTXOList"`
+	UTXOList []UTXOItem `json:"UTXOList"`
 
 	// Since Timestamp or sequence number from which synchronization data was generated
 	Since int `json:"since"`
@@ -68,6 +62,15 @@ type TopicManagerMetadata struct {
 
 // TopicManagersList defines model for TopicManagersList.
 type TopicManagersList map[string]TopicManagerMetadata
+
+// UTXOItem defines model for UTXOItem.
+type UTXOItem struct {
+	// Txid Transaction ID in hexadecimal format
+	Txid string `json:"txid"`
+
+	// Vout Output index number
+	Vout int `json:"vout"`
+}
 
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
