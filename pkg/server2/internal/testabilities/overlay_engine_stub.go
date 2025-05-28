@@ -32,6 +32,13 @@ type SubmitTransactionProvider interface {
 	ProviderStateAsserter
 }
 
+// LookupListProvider extends app.LookupListProvider with the ability
+// to assert whether it was called during a test.
+type LookupListProvider interface {
+	app.LookupListProvider
+	ProviderStateAsserter
+}
+
 // TopicManagersListProvider extends app.TopicManagersListProvider with the ability
 // to assert whether it was called during a test.
 type TopicManagersListProvider interface {
@@ -69,6 +76,14 @@ type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
 func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverlayEngineStubOption {
 	return func(stub *TestOverlayEngineStub) {
 		stub.submitTransactionProvider = provider
+	}
+}
+
+// WithLookupListProvider allows setting a custom LookupListProvider in a TestOverlayEngineStub.
+// This can be used to mock lookup service provider list behavior during tests.
+func WithLookupListProvider(provider LookupListProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.lookupListProvider = provider
 	}
 }
 
@@ -117,6 +132,7 @@ func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationPro
 // like submitting transactions and synchronizing advertisements.
 type TestOverlayEngineStub struct {
 	t                                 *testing.T
+	lookupListProvider                LookupListProvider
 	topicManagersListProvider         TopicManagersListProvider
 	lookupDocumentationProvider       LookupServiceDocumentationProvider
 	topicManagerDocumentationProvider TopicManagerDocumentationProvider
@@ -153,10 +169,11 @@ func (s *TestOverlayEngineStub) HandleNewMerkleProof(ctx context.Context, txid *
 	panic("unimplemented")
 }
 
-// ListLookupServiceProviders lists the available lookup service providers (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// ListLookupServiceProviders lists the available lookup service providers.
 func (s *TestOverlayEngineStub) ListLookupServiceProviders() map[string]*overlay.MetaData {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.lookupListProvider.ListLookupServiceProviders()
 }
 
 // ListTopicManagers lists the available topic managers.
@@ -214,6 +231,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 	providers := []ProviderStateAsserter{
 		s.topicManagerDocumentationProvider,
 		s.submitTransactionProvider,
+		s.lookupListProvider,
 		s.topicManagersListProvider,
 		s.lookupDocumentationProvider,
 		s.syncAdvertisementsProvider,
@@ -229,6 +247,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
 		t:                                 t,
+		lookupListProvider:                NewLookupListProviderMock(t, LookupListProviderMockExpectations{ListLookupServiceProvidersCall: false}),
 		topicManagersListProvider:         NewTopicManagersListProviderMock(t, TopicManagersListProviderMockExpectations{ListTopicManagersCall: false}),
 		lookupDocumentationProvider:       NewLookupServiceDocumentationProviderMock(t, LookupServiceDocumentationProviderMockExpectations{DocumentationCall: false}),
 		topicManagerDocumentationProvider: NewTopicManagerDocumentationProviderMock(t, TopicManagerDocumentationProviderMockExpectations{DocumentationCall: false}),
