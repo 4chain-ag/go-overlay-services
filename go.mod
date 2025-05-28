@@ -12,7 +12,6 @@ require (
 	github.com/gookit/slog v0.5.8
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/runtime v1.1.1
-	github.com/pkg/errors v0.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -43,6 +42,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
