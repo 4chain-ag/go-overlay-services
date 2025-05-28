@@ -21,31 +21,31 @@ func TestLookupQuestionHandler_InvalidCases(t *testing.T) {
 		expectedResponse       openapi.Error
 		lookupProviderMockOpts []testabilities.LookupQuestionProviderMockOption
 	}{
-		"Invalid request body - malformed JSON": {
+		"Lookup Question service fails with invalid request body malformed JSON": {
 			expectedStatusCode: fiber.StatusBadRequest,
 			body:               `{invalid json`,
-			expectedResponse:   testabilities.NewInvalidRequestBodyResponse(),
+			expectedResponse:   testabilities.NewLookupQuestionInvalidRequestBodyResponse(),
 			lookupProviderMockOpts: []testabilities.LookupQuestionProviderMockOption{
 				testabilities.LookupQuestionProviderMockNotCalled(),
 			},
 		},
-		"Missing service field in request body": {
+		"Lookup Question service fails with missing service field in request body": {
 			expectedStatusCode: fiber.StatusBadRequest,
 			body:               map[string]interface{}{"query": map[string]string{"test": "value"}},
-			expectedResponse:   testabilities.NewMissingServiceFieldResponse(),
+			expectedResponse:   testabilities.NewLookupQuestionMissingServiceFieldResponse(),
 			lookupProviderMockOpts: []testabilities.LookupQuestionProviderMockOption{
 				testabilities.LookupQuestionProviderMockNotCalled(),
 			},
 		},
-		"Empty service field in request body": {
+		"Lookup Question service fails with empty service field in request body": {
 			expectedStatusCode: fiber.StatusBadRequest,
 			body:               map[string]interface{}{"service": "", "query": map[string]string{"test": "value"}},
-			expectedResponse:   testabilities.NewMissingServiceFieldResponse(),
+			expectedResponse:   testabilities.NewLookupQuestionMissingServiceFieldResponse(),
 			lookupProviderMockOpts: []testabilities.LookupQuestionProviderMockOption{
 				testabilities.LookupQuestionProviderMockNotCalled(),
 			},
 		},
-		"Provider returns error": {
+		"Lookup Question service fails with provider error": {
 			expectedStatusCode: fiber.StatusInternalServerError,
 			body:               map[string]interface{}{"service": "test-service", "query": map[string]string{"test": "value"}},
 			expectedResponse:   testabilities.NewLookupQuestionProviderErrorResponse(),

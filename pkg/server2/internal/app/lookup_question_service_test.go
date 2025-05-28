@@ -32,7 +32,7 @@ func TestLookupQuestionService_ValidCase(t *testing.T) {
 	// when:
 	answer, err := service.LookupQuestion(context.Background(), question)
 
-	// then
+	// then:
 	require.NoError(t, err)
 	require.Equal(t, expectations.Answer, answer)
 	mock.AssertCalled()
@@ -55,7 +55,7 @@ func TestLookupQuestionService_InvalidCases(t *testing.T) {
 				Service: "",
 				Query:   json.RawMessage(`{}`),
 			},
-			expectedError: app.NewMissingServiceFieldError(),
+			expectedError: app.NewLookupQuestionMissingServiceFieldError(),
 		},
 		"LookupQuestion should return error from provider": {
 			expectations: testabilities.LookupQuestionProviderMockExpectations{

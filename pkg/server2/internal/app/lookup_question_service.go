@@ -23,7 +23,7 @@ func (s *LookupQuestionService) LookupQuestion(ctx context.Context, question *lo
 	}
 
 	if question.Service == "" {
-		return nil, NewMissingServiceFieldError()
+		return nil, NewLookupQuestionMissingServiceFieldError()
 	}
 
 	answer, err := s.provider.Lookup(ctx, question)
@@ -55,8 +55,8 @@ func NewInvalidLookupQuestionError() Error {
 	}
 }
 
-// NewMissingServiceFieldError returns an Error indicating that the service field is missing.
-func NewMissingServiceFieldError() Error {
+// NewLookupQuestionMissingServiceFieldError returns an Error indicating that the service field is missing.
+func NewLookupQuestionMissingServiceFieldError() Error {
 	return Error{
 		errorType: ErrorTypeIncorrectInput,
 		err:       "missing required service field in the request",
@@ -70,5 +70,22 @@ func NewLookupQuestionProviderError(err error) Error {
 		errorType: ErrorTypeProviderFailure,
 		err:       err.Error(),
 		slug:      "Unable to process lookup question due to an error in the overlay engine.",
+	}
+}
+
+func NewLookupQuestionProviderErrorWithSlug(slug string) Error {
+	return Error{
+		errorType: ErrorTypeProviderFailure,
+		err:       "overlay engine error",
+		slug:      slug,
+	}
+}
+
+// NewLookupQuestionInvalidRequestBodyResponse creates an error response for invalid request body.
+func NewLookupQuestionInvalidRequestBodyResponse() Error {
+	return Error{
+		errorType: ErrorTypeIncorrectInput,
+		err:       "invalid request body format or structure",
+		slug:      "The request body must be a valid JSON object with a 'service' field and a 'query' field.",
 	}
 }

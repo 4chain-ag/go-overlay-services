@@ -8,7 +8,6 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/gofiber/fiber/v2"
-	"github.com/pkg/errors"
 )
 
 // LookupQuestionService defines the contract for handling lookup questions.
@@ -39,22 +38,13 @@ type LookupQuestionHandler struct {
 func (h *LookupQuestionHandler) Handle(c *fiber.Ctx) error {
 	var request LookupQuestionHandlerRequest
 	if err := c.BodyParser(&request); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(NewInvalidRequestBodyResponse())
+		return app.NewLookupQuestionInvalidRequestBodyResponse()
 	}
 
 	question := request.ToLookupQuestion()
 	answer, err := h.service.LookupQuestion(c.UserContext(), question)
 	if err != nil {
-		var appErr app.Error
-		if errors.As(err, &appErr) {
-			return c.Status(fiber.StatusBadRequest).JSON(openapi.Error{
-				Message: appErr.Slug(),
-			})
-		}
-		appErr = app.NewLookupQuestionProviderError(err)
-		return c.Status(fiber.StatusInternalServerError).JSON(openapi.Error{
-			Message: appErr.Slug(),
-		})
+		return err
 	}
 
 	return c.Status(fiber.StatusOK).JSON(NewLookupQuestionSuccessResponse(answer))
@@ -78,12 +68,5 @@ func NewLookupQuestionSuccessResponse(answer *lookup.LookupAnswer) *openapi.Look
 	answerMap := answer.Result.(map[string]interface{})
 	return &openapi.LookupAnswer{
 		Answer: answerMap,
-	}
-}
-
-// NewInvalidRequestBodyResponse creates an error response for invalid request body.
-func NewInvalidRequestBodyResponse() openapi.BadRequestResponse {
-	return openapi.Error{
-		Message: "Invalid request body format or structure. Please check the API documentation for the correct format.",
 	}
 }

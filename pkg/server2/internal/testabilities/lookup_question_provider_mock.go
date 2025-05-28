@@ -81,15 +81,15 @@ func NewLookupQuestionProviderMock(t *testing.T, opts ...LookupQuestionProviderM
 	}
 }
 
-// NewInvalidRequestBodyResponse returns a response for an invalid request body.
-func NewInvalidRequestBodyResponse() openapi.Error {
+// NewLookupQuestionInvalidRequestBodyResponse returns a response for an invalid request body.
+func NewLookupQuestionInvalidRequestBodyResponse() openapi.Error {
 	return openapi.Error{
-		Message: "Invalid request body format.",
+		Message: "The request body must be a valid JSON object with a 'service' field and a 'query' field.",
 	}
 }
 
-// NewMissingServiceFieldResponse returns a response for a missing service field.
-func NewMissingServiceFieldResponse() openapi.Error {
+// NewLookupQuestionMissingServiceFieldResponse returns a response for a missing service field.
+func NewLookupQuestionMissingServiceFieldResponse() openapi.Error {
 	return openapi.Error{
 		Message: "The service field is required in the lookup question request.",
 	}
