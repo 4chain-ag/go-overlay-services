@@ -11,7 +11,7 @@ import (
 
 // RequestSyncResponseService defines the interface for the sync response service
 type RequestSyncResponseService interface {
-	RequestSyncResponse(ctx context.Context, dto *app.RequestSyncResponseDTO, topic string) (*core.GASPInitialResponse, error)
+	RequestSyncResponse(ctx context.Context, dto *app.RequestSyncResponseDTO) (*core.GASPInitialResponse, error)
 }
 
 // RequestSyncResponseHandler handles requests for sync responses
@@ -23,18 +23,14 @@ type RequestSyncResponseHandler struct {
 func (h *RequestSyncResponseHandler) Handle(c *fiber.Ctx, params openapi.RequestSyncResponseParams) error {
 	var requestBody openapi.RequestSyncResponseJSONRequestBody
 	if err := c.BodyParser(&requestBody); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": app.NewRequestSyncResponseInvalidJSONError(),
-		})
+		return app.NewRequestSyncResponseInvalidJSONError()
 	}
 
-	dto := app.RequestSyncResponseDTO{
+	response, err := h.service.RequestSyncResponse(c.Context(), &app.RequestSyncResponseDTO{
 		Version: requestBody.Version,
 		Since:   requestBody.Since,
-	}
-
-	response, err := h.service.RequestSyncResponse(c.Context(), &dto, params.XBSVTopic)
-
+		Topic:   params.XBSVTopic,
+	})
 	if err != nil {
 		return err
 	}

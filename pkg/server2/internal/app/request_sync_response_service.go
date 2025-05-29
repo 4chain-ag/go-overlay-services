@@ -10,6 +10,7 @@ import (
 type RequestSyncResponseDTO struct {
 	Version int
 	Since   int
+	Topic   string
 }
 
 // RequestSyncResponseProvider defines the interface for requesting sync responses.
@@ -23,8 +24,8 @@ type RequestSyncResponseService struct {
 }
 
 // RequestSyncResponse requests a foreign sync response.
-func (s *RequestSyncResponseService) RequestSyncResponse(ctx context.Context, dto *RequestSyncResponseDTO, topic string) (*core.GASPInitialResponse, error) {
-	if topic == "" {
+func (s *RequestSyncResponseService) RequestSyncResponse(ctx context.Context, dto *RequestSyncResponseDTO) (*core.GASPInitialResponse, error) {
+	if dto.Topic == "" {
 		return nil, NewRequestSyncResponseInvalidInputError()
 	}
 
@@ -34,11 +35,11 @@ func (s *RequestSyncResponseService) RequestSyncResponse(ctx context.Context, dt
 	}
 
 	since := dto.Since
-	if since <= 0 || since > math.MaxUint32 {
+	if since < 0 || since > math.MaxUint32 {
 		return nil, NewRequestSyncResponseInvalidSinceError()
 	}
 
-	response, err := s.provider.ProvideForeignSyncResponse(ctx, &core.GASPInitialRequest{Version: version, Since: uint32(since)}, topic)
+	response, err := s.provider.ProvideForeignSyncResponse(ctx, &core.GASPInitialRequest{Version: version, Since: uint32(since)}, dto.Topic)
 	if err != nil {
 		return nil, NewRequestSyncResponseProviderError(err)
 	}
