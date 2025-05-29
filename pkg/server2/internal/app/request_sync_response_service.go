@@ -30,7 +30,7 @@ func (s *RequestSyncResponseService) RequestSyncResponse(ctx context.Context, dt
 	}
 
 	version := dto.Version
-	if version <= 0 {
+	if version < 0 {
 		return nil, NewRequestSyncResponseInvalidVersionError()
 	}
 

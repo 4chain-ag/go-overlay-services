@@ -28,24 +28,19 @@ type RequestSyncResponseProviderMock struct {
 	initialRequest *core.GASPInitialRequest
 }
 
-var (
-	// DefaultMockRequestPayload provides a standard request payload using OpenAPI model.
-	DefaultMockRequestPayload = openapi.RequestSyncResponseBody{
-		Version: 1,
-		Since:   100000,
-	}
-
-	// DefaultMockHeaders provides standard headers for testing.
-	DefaultMockHeaders = map[string]string{
-		"Content-Type": "application/json",
-		"X-BSV-Topic":  "test-topic",
-	}
-
-	// MissingTopicHeaders simulates missing topic header scenario.
-	MissingTopicHeaders = map[string]string{
-		"Content-Type": "application/json",
-	}
+const (
+	DefaultVersion = 1
+	DefaultSince   = 100000
+	DefaultTopic   = "test-topic"
 )
+
+// NewDefaultRequestSyncResponseBody creates a new request sync response body.
+func NewDefaultRequestSyncResponseBody() openapi.RequestSyncResponseBody {
+	return openapi.RequestSyncResponseBody{
+		Version: DefaultVersion,
+		Since:   DefaultSince,
+	}
+}
 
 // NewRequestSyncResponseProviderMock creates a new mock provider.
 func NewRequestSyncResponseProviderMock(t *testing.T, expectations RequestSyncResponseProviderMockExpectations) *RequestSyncResponseProviderMock {

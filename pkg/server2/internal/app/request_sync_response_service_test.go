@@ -21,16 +21,16 @@ func TestRequestSyncResponseService_ValidCases(t *testing.T) {
 
 		"Request sync response service succeeds with empty UTXO list": {
 			dto: app.RequestSyncResponseDTO{
-				Version: testabilities.DefaultMockRequestPayload.Version,
-				Since:   testabilities.DefaultMockRequestPayload.Since,
-				Topic:   "test-topic",
+				Version: testabilities.DefaultVersion,
+				Since:   testabilities.DefaultSince,
+				Topic:   testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				InitialRequest: &core.GASPInitialRequest{
-					Version: testabilities.DefaultMockRequestPayload.Version,
-					Since:   uint32(testabilities.DefaultMockRequestPayload.Since),
+					Version: testabilities.DefaultVersion,
+					Since:   uint32(testabilities.DefaultSince),
 				},
-				Topic: "test-topic",
+				Topic: testabilities.DefaultTopic,
 				Response: &core.GASPInitialResponse{
 					UTXOList: []*overlay.Outpoint{},
 					Since:    0,
@@ -41,16 +41,16 @@ func TestRequestSyncResponseService_ValidCases(t *testing.T) {
 
 		"Request sync response service succeeds with minimum since value": {
 			dto: app.RequestSyncResponseDTO{
-				Version: testabilities.DefaultMockRequestPayload.Version,
+				Version: testabilities.DefaultVersion,
 				Since:   0,
-				Topic:   "test-topic",
+				Topic:   testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				InitialRequest: &core.GASPInitialRequest{
-					Version: testabilities.DefaultMockRequestPayload.Version,
+					Version: testabilities.DefaultVersion,
 					Since:   uint32(0),
 				},
-				Topic: "test-topic",
+				Topic: testabilities.DefaultTopic,
 				Response: &core.GASPInitialResponse{
 					UTXOList: []*overlay.Outpoint{},
 					Since:    0,
@@ -61,16 +61,16 @@ func TestRequestSyncResponseService_ValidCases(t *testing.T) {
 
 		"Request sync response service succeeds with maximum since value": {
 			dto: app.RequestSyncResponseDTO{
-				Version: testabilities.DefaultMockRequestPayload.Version,
+				Version: testabilities.DefaultVersion,
 				Since:   math.MaxUint32,
-				Topic:   "test-topic",
+				Topic:   testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				InitialRequest: &core.GASPInitialRequest{
-					Version: testabilities.DefaultMockRequestPayload.Version,
+					Version: testabilities.DefaultVersion,
 					Since:   uint32(math.MaxUint32),
 				},
-				Topic: "test-topic",
+				Topic: testabilities.DefaultTopic,
 				Response: &core.GASPInitialResponse{
 					UTXOList: []*overlay.Outpoint{},
 					Since:    0,
@@ -81,16 +81,16 @@ func TestRequestSyncResponseService_ValidCases(t *testing.T) {
 
 		"Request sync response service succeeds with single UTXO": {
 			dto: app.RequestSyncResponseDTO{
-				Version: testabilities.DefaultMockRequestPayload.Version,
-				Since:   testabilities.DefaultMockRequestPayload.Since,
-				Topic:   "test-topic",
+				Version: testabilities.DefaultVersion,
+				Since:   testabilities.DefaultSince,
+				Topic:   testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				InitialRequest: &core.GASPInitialRequest{
-					Version: testabilities.DefaultMockRequestPayload.Version,
-					Since:   uint32(testabilities.DefaultMockRequestPayload.Since),
+					Version: testabilities.DefaultVersion,
+					Since:   uint32(testabilities.DefaultSince),
 				},
-				Topic: "test-topic",
+				Topic: testabilities.DefaultTopic,
 				Response: &core.GASPInitialResponse{
 					UTXOList: []*overlay.Outpoint{
 						{
@@ -106,16 +106,16 @@ func TestRequestSyncResponseService_ValidCases(t *testing.T) {
 
 		"Request sync response service succeeds with multiple UTXOs": {
 			dto: app.RequestSyncResponseDTO{
-				Version: testabilities.DefaultMockRequestPayload.Version,
-				Since:   testabilities.DefaultMockRequestPayload.Since,
-				Topic:   "test-topic",
+				Version: testabilities.DefaultVersion,
+				Since:   testabilities.DefaultSince,
+				Topic:   testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				InitialRequest: &core.GASPInitialRequest{
-					Version: testabilities.DefaultMockRequestPayload.Version,
-					Since:   uint32(testabilities.DefaultMockRequestPayload.Since),
+					Version: testabilities.DefaultVersion,
+					Since:   uint32(testabilities.DefaultSince),
 				},
-				Topic: "test-topic",
+				Topic: testabilities.DefaultTopic,
 				Response: &core.GASPInitialResponse{
 					UTXOList: []*overlay.Outpoint{
 						{
@@ -164,8 +164,8 @@ func TestRequestSyncResponseService_InvalidCases(t *testing.T) {
 	}{
 		"Request sync response service fails due to empty topic": {
 			dto: app.RequestSyncResponseDTO{
-				Version: testabilities.DefaultMockRequestPayload.Version,
-				Since:   testabilities.DefaultMockRequestPayload.Since,
+				Version: testabilities.DefaultVersion,
+				Since:   testabilities.DefaultSince,
 				Topic:   "",
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
@@ -179,8 +179,8 @@ func TestRequestSyncResponseService_InvalidCases(t *testing.T) {
 		"Request sync response service fails due to invalid version": {
 			dto: app.RequestSyncResponseDTO{
 				Version: -1,
-				Since:   testabilities.DefaultMockRequestPayload.Since,
-				Topic:   "test-topic",
+				Since:   testabilities.DefaultSince,
+				Topic:   testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				InitialRequest:                 nil,
@@ -192,9 +192,9 @@ func TestRequestSyncResponseService_InvalidCases(t *testing.T) {
 
 		"Request sync response service fails due to invalid negative since value": {
 			dto: app.RequestSyncResponseDTO{
-				Version: testabilities.DefaultMockRequestPayload.Version,
+				Version: testabilities.DefaultVersion,
 				Since:   -1,
-				Topic:   "test-topic",
+				Topic:   testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				InitialRequest:                 nil,
@@ -206,9 +206,9 @@ func TestRequestSyncResponseService_InvalidCases(t *testing.T) {
 
 		"Request sync response service fails due to maximum since value exceeded": {
 			dto: app.RequestSyncResponseDTO{
-				Version: testabilities.DefaultMockRequestPayload.Version,
+				Version: testabilities.DefaultVersion,
 				Since:   math.MaxUint32 + 1,
-				Topic:   "test-topic",
+				Topic:   testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				InitialRequest:                 nil,
@@ -220,16 +220,16 @@ func TestRequestSyncResponseService_InvalidCases(t *testing.T) {
 
 		"Request sync response service fails due to provider error": {
 			dto: app.RequestSyncResponseDTO{
-				Version: testabilities.DefaultMockRequestPayload.Version,
-				Since:   testabilities.DefaultMockRequestPayload.Since,
-				Topic:   "test-topic",
+				Version: testabilities.DefaultVersion,
+				Since:   testabilities.DefaultSince,
+				Topic:   testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				InitialRequest: &core.GASPInitialRequest{
-					Version: testabilities.DefaultMockRequestPayload.Version,
-					Since:   uint32(testabilities.DefaultMockRequestPayload.Since),
+					Version: testabilities.DefaultVersion,
+					Since:   uint32(testabilities.DefaultSince),
 				},
-				Topic:                          "test-topic",
+				Topic:                          testabilities.DefaultTopic,
 				ProvideForeignSyncResponseCall: true,
 				Error:                          errors.New("provider error"),
 			},
