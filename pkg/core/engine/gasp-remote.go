@@ -82,7 +82,7 @@ func (r *OverlayGASPRemote) RequestNode(ctx context.Context, graphID *overlay.Ou
 	}
 }
 
-func (r *OverlayGASPRemote) GetInitialReplay(ctx context.Context, response *core.GASPInitialResponse) (*core.GASPInitialReply, error) {
+func (r *OverlayGASPRemote) GetInitialReply(ctx context.Context, response *core.GASPInitialResponse) (*core.GASPInitialReply, error) {
 	return nil, errors.New("not-implemented")
 }
 
