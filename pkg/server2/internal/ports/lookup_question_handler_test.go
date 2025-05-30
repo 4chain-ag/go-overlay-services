@@ -15,11 +15,10 @@ import (
 
 func TestLookupQuestionHandler_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
-		expectedStatusCode     int
-		body                   interface{}
-		expectedResponse       openapi.Error
-		expectations           testabilities.LookupQuestionProviderMockExpectations
-		
+		expectedStatusCode int
+		body               interface{}
+		expectedResponse   openapi.Error
+		expectations       testabilities.LookupQuestionProviderMockExpectations
 	}{
 		"Lookup Question service fails with invalid request body malformed JSON": {
 			expectedStatusCode: fiber.StatusBadRequest,
@@ -28,7 +27,6 @@ func TestLookupQuestionHandler_InvalidCases(t *testing.T) {
 			expectations: testabilities.LookupQuestionProviderMockExpectations{
 				LookupQuestionCall: false,
 			},
-			
 		},
 		"Lookup Question service fails with missing service field in request body": {
 			expectedStatusCode: fiber.StatusBadRequest,
