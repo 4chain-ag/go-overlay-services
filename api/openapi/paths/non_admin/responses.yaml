@@ -146,6 +146,7 @@ components:
         - outputMetadata
         - inputs
         - ancillaryBeef
+
     UTXOItem:
       type: object
       properties:
@@ -221,6 +222,7 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GASPNode'
+
     RequestSyncResResponse:
       description: |
         Response containing synchronization data for the requested topic.
