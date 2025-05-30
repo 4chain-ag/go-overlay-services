@@ -2,7 +2,6 @@ package ports_test
 
 import (
 	"errors"
-	"net/http"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
@@ -17,14 +16,13 @@ import (
 
 func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
-		expectedStatusCode int
-		headers            map[string]string
 		payload            interface{}
-		expectedResponse   openapi.Error
+		headers            map[string]string
 		expectations       testabilities.RequestForeignGASPNodeProviderMockExpectations
+		expectedStatusCode int
+		expectedResponse   openapi.Error
 	}{
 		"Request foreign GASP node service fails to handle the request - missing topic header": {
-			expectedStatusCode: fiber.StatusBadRequest,
 			payload: map[string]interface{}{
 				"graphID":     testabilities.DefaultValidGraphID,
 				"txID":        testabilities.DefaultValidTxID,
@@ -33,27 +31,27 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 			headers: map[string]string{
 				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
 			},
-			expectedResponse: openapi.Error{
-				Message: "The submitted request does not include required header: X-BSV-Topic.",
-			},
 			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
 				ProvideForeignGASPNodeCall: false,
 			},
+			expectedStatusCode: fiber.StatusBadRequest,
+			expectedResponse: openapi.Error{
+				Message: "The submitted request does not include required header: X-BSV-Topic.",
+			},
 		},
 		"Request foreign GASP node service fails to handle the request - invalid JSON body": {
-			expectedStatusCode: fiber.StatusBadRequest,
-			payload:            "INVALID_JSON",
+			payload: "INVALID_JSON",
 			headers: map[string]string{
 				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
 				"X-BSV-Topic":           testabilities.DefaultValidTopic,
 			},
-			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, ports.NewInvalidRequestBodyError()),
 			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
 				ProvideForeignGASPNodeCall: false,
 			},
+			expectedStatusCode: fiber.StatusBadRequest,
+			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, ports.NewInvalidRequestBodyError()),
 		},
 		"Request foreign GASP node service fails to handle the request - missing topic": {
-			expectedStatusCode: fiber.StatusBadRequest,
 			payload: map[string]interface{}{
 				"graphID":     testabilities.DefaultValidGraphID,
 				"txID":        testabilities.DefaultValidTxID,
@@ -63,15 +61,15 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
 				"X-BSV-Topic":           testabilities.DefaultEmptyTopic,
 			},
-			expectedResponse: openapi.Error{
-				Message: "One or more topics are in an invalid format. Empty string values are not allowed.",
-			},
 			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
 				ProvideForeignGASPNodeCall: false,
 			},
+			expectedStatusCode: fiber.StatusBadRequest,
+			expectedResponse: openapi.Error{
+				Message: "One or more topics are in an invalid format. Empty string values are not allowed.",
+			},
 		},
 		"Request foreign GASP node service fails to handle the request - invalid txID format": {
-			expectedStatusCode: fiber.StatusBadRequest,
 			payload: map[string]interface{}{
 				"graphID":     testabilities.DefaultValidGraphID,
 				"txID":        testabilities.DefaultInvalidTxID,
@@ -81,13 +79,13 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
 				"X-BSV-Topic":           testabilities.DefaultValidTopic,
 			},
-			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidTxIDError()),
 			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
 				ProvideForeignGASPNodeCall: false,
 			},
+			expectedStatusCode: fiber.StatusBadRequest,
+			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidTxIDError()),
 		},
 		"Request foreign GASP node service fails to handle the request - invalid graphID format": {
-			expectedStatusCode: fiber.StatusBadRequest,
 			payload: map[string]interface{}{
 				"graphID":     testabilities.DefaultInvalidGraphID,
 				"txID":        testabilities.DefaultValidTxID,
@@ -97,13 +95,13 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
 				"X-BSV-Topic":           testabilities.DefaultValidTopic,
 			},
-			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidGraphIDError()),
 			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
 				ProvideForeignGASPNodeCall: false,
 			},
+			expectedStatusCode: fiber.StatusBadRequest,
+			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidGraphIDError()),
 		},
 		"Request foreign GASP node service fails to handle the request - provider failure": {
-			expectedStatusCode: fiber.StatusInternalServerError,
 			payload: map[string]interface{}{
 				"graphID":     testabilities.DefaultValidGraphID,
 				"txID":        testabilities.DefaultValidTxID,
@@ -113,15 +111,16 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
 				"X-BSV-Topic":           testabilities.DefaultValidTopic,
 			},
+			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
+				ProvideForeignGASPNodeCall: true,
+				Error:                      errors.New("internal request foreign GASP node provider error during handler unit test"),
+			},
+			expectedStatusCode: fiber.StatusInternalServerError,
 			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t,
 				app.NewRequestForeignGASPNodeProviderError(
 					errors.New("internal request foreign GASP node provider error during handler unit test"),
 				),
 			),
-			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
-				ProvideForeignGASPNodeCall: true,
-				Error:                      errors.New("internal request foreign GASP node provider error during handler unit test"),
-			},
 		},
 	}
 
@@ -145,30 +144,27 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 			// then:
 			require.Equal(t, tc.expectedStatusCode, res.StatusCode())
 			require.Equal(t, &tc.expectedResponse, &actualResponse)
-
-			if tc.expectations.ProvideForeignGASPNodeCall {
-				stub.AssertProvidersState()
-			}
+			stub.AssertProvidersState()
 		})
 	}
 }
 
 func TestRequestForeignGASPNodeHandler_ValidCase(t *testing.T) {
 	// given:
-	expectedNode := &core.GASPNode{}
 	expectations := testabilities.RequestForeignGASPNodeProviderMockExpectations{
 		ProvideForeignGASPNodeCall: true,
-		Node:                       expectedNode,
+		Node:                       &core.GASPNode{},
 	}
 
+	expectedResponse := ports.NewRequestForeignGASPNodeSuccessResponse(expectations.Node)
 	stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithRequestForeignGASPNodeProvider(
 		testabilities.NewRequestForeignGASPNodeProviderMock(t, expectations),
 	))
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
 
 	headers := map[string]string{
-		fiber.HeaderContentType: fiber.MIMEApplicationJSON,
 		"X-BSV-Topic":           testabilities.DefaultValidTopic,
+		fiber.HeaderContentType: fiber.MIMEApplicationJSON,
 	}
 
 	payload := map[string]interface{}{
@@ -178,17 +174,16 @@ func TestRequestForeignGASPNodeHandler_ValidCase(t *testing.T) {
 	}
 
 	// when:
-	var actualNode core.GASPNode
+	var actualResponse openapi.GASPNode
 	res, _ := fixture.Client().
 		R().
 		SetHeaders(headers).
 		SetBody(payload).
-		SetResult(&actualNode).
+		SetResult(actualResponse).
 		Post("/api/v1/requestForeignGASPNode")
 
 	// then:
-	expectedResponse := ports.NewRequestForeignGASPNodeSuccessResponse(expectedNode)
-	require.Equal(t, http.StatusOK, res.StatusCode())
-	require.Equal(t, expectedResponse, &actualNode)
+	require.Equal(t, fiber.StatusOK, res.StatusCode())
+	require.Equal(t, expectedResponse, actualResponse)
 	stub.AssertProvidersState()
 }

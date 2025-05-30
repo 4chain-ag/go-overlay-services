@@ -8,6 +8,13 @@ import (
 	"github.com/bsv-blockchain/go-sdk/overlay"
 )
 
+type RequestForeignGASPNodeDTO struct {
+	GraphID     string
+	TxID        string
+	OutputIndex uint32
+	Topic       string
+}
+
 // RequestForeignGASPNodeProvider defines the interface for requesting a foreign GASP node.
 type RequestForeignGASPNodeProvider interface {
 	ProvideForeignGASPNode(ctx context.Context, graphID, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error)
@@ -21,30 +28,26 @@ type RequestForeignGASPNodeService struct {
 // RequestForeignGASPNode takes string representations of graphID and txID,
 // validates and converts them to appropriate types, and requests a foreign GASP node.
 // Returns the GASP node on success, an error if the provider fails.
-func (s *RequestForeignGASPNodeService) RequestForeignGASPNode(ctx context.Context, graphIDStr string, txIDStr string, outputIndex uint32, topic string) (*core.GASPNode, error) {
-	if topic == "" {
+func (s *RequestForeignGASPNodeService) RequestForeignGASPNode(ctx context.Context, dto RequestForeignGASPNodeDTO) (*core.GASPNode, error) {
+	if dto.Topic == "" {
 		return nil, NewRequestForeignGASPNodeMissingTopicError()
 	}
 
 	outpoint := &overlay.Outpoint{
-		OutputIndex: outputIndex,
+		OutputIndex: dto.OutputIndex,
 	}
-	txid, err := chainhash.NewHashFromHex(txIDStr)
+	txid, err := chainhash.NewHashFromHex(dto.TxID)
 	if err != nil {
 		return nil, NewRequestForeignGASPNodeInvalidTxIDError()
 	}
 	outpoint.Txid = *txid
 
-	graphID, err := overlay.NewOutpointFromString(graphIDStr)
+	graphID, err := overlay.NewOutpointFromString(dto.GraphID)
 	if err != nil {
 		return nil, NewRequestForeignGASPNodeInvalidGraphIDError()
 	}
 
-	if graphID == nil {
-		return nil, NewRequestForeignGASPNodeMissingGraphIDError()
-	}
-
-	node, err := s.provider.ProvideForeignGASPNode(ctx, graphID, outpoint, topic)
+	node, err := s.provider.ProvideForeignGASPNode(ctx, graphID, outpoint, dto.Topic)
 	if err != nil {
 		return nil, NewRequestForeignGASPNodeProviderError(err)
 	}
@@ -79,15 +82,6 @@ func NewRequestForeignGASPNodeMissingTopicError() Error {
 		errorType: ErrorTypeIncorrectInput,
 		err:       "topic is required",
 		slug:      "The topic parameter is required for requesting a foreign GASP node.",
-	}
-}
-
-// NewRequestForeignGASPNodeMissingGraphIDError returns an Error indicating that the graphID is missing.
-func NewRequestForeignGASPNodeMissingGraphIDError() Error {
-	return Error{
-		errorType: ErrorTypeIncorrectInput,
-		err:       "graphID is required",
-		slug:      "The graphID parameter is required for requesting a foreign GASP node.",
 	}
 }
 

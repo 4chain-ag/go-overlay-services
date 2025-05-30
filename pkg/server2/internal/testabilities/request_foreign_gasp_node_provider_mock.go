@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/require"
 )
@@ -25,6 +26,14 @@ var DefaultRequestForeignGASPNodeProviderMockExpectations = RequestForeignGASPNo
 	ProvideForeignGASPNodeCall: true,
 	Error:                      nil,
 	Node:                       &core.GASPNode{},
+}
+
+// Default DTO for RequestForeignGASPNode operations
+var RequestForeignGASPNodeDefaultDTO = app.RequestForeignGASPNodeDTO{
+	GraphID:     DefaultValidGraphID,
+	TxID:        DefaultValidTxID,
+	OutputIndex: DefaultValidOutputIndex,
+	Topic:       DefaultValidTopic,
 }
 
 // RequestForeignGASPNodeProviderMockExpectations defines the expected behavior of the mock provider.
