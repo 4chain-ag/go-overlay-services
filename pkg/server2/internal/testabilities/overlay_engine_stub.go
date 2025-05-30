@@ -221,10 +221,10 @@ func (s *TestOverlayEngineStub) Lookup(ctx context.Context, question *lookup.Loo
 }
 
 // ProvideForeignGASPNode returns a foreign GASP node using the configured RequestForeignGASPNodeProvider.
-func (s *TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoins *overlay.Outpoint, topic string) (*core.GASPNode, error) {
+func (s *TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoints *overlay.Outpoint, topic string) (*core.GASPNode, error) {
 	s.t.Helper()
 
-	return s.requestForeignGASPNodeProvider.ProvideForeignGASPNode(ctx, graphId, outpoins, topic)
+	return s.requestForeignGASPNodeProvider.ProvideForeignGASPNode(ctx, graphId, outpoints, topic)
 }
 
 // ProvideForeignSyncResponse returns a foreign sync response.

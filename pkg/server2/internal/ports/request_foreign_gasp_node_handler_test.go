@@ -22,7 +22,7 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 		expectedStatusCode int
 		expectedResponse   openapi.Error
 	}{
-		"Request foreign GASP node service fails to handle the request - missing topic header": {
+		"Request foreign GASP node service fails to handle the request with missing topic header": {
 			payload: map[string]interface{}{
 				"graphID":     testabilities.DefaultValidGraphID,
 				"txID":        testabilities.DefaultValidTxID,
@@ -39,7 +39,7 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 				Message: "The submitted request does not include required header: X-BSV-Topic.",
 			},
 		},
-		"Request foreign GASP node service fails to handle the request - invalid JSON body": {
+		"Request foreign GASP node service fails to handle the request with invalid JSON body": {
 			payload: "INVALID_JSON",
 			headers: map[string]string{
 				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
@@ -51,7 +51,7 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 			expectedStatusCode: fiber.StatusBadRequest,
 			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidJSONError()),
 		},
-		"Request foreign GASP node service fails to handle the request - missing topic": {
+		"Request foreign GASP node service fails to handle the request with empty topic": {
 			payload: map[string]interface{}{
 				"graphID":     testabilities.DefaultValidGraphID,
 				"txID":        testabilities.DefaultValidTxID,
@@ -69,7 +69,7 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 				Message: "One or more topics are in an invalid format. Empty string values are not allowed.",
 			},
 		},
-		"Request foreign GASP node service fails to handle the request - invalid txID format": {
+		"Request foreign GASP node service fails to handle the request with invalid txID format": {
 			payload: map[string]interface{}{
 				"graphID":     testabilities.DefaultValidGraphID,
 				"txID":        testabilities.DefaultInvalidTxID,
@@ -85,7 +85,7 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 			expectedStatusCode: fiber.StatusBadRequest,
 			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidTxIDError()),
 		},
-		"Request foreign GASP node service fails to handle the request - invalid graphID format": {
+		"Request foreign GASP node service fails to handle the request with invalid graphID format": {
 			payload: map[string]interface{}{
 				"graphID":     testabilities.DefaultInvalidGraphID,
 				"txID":        testabilities.DefaultValidTxID,
@@ -101,7 +101,7 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 			expectedStatusCode: fiber.StatusBadRequest,
 			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidGraphIDError()),
 		},
-		"Request foreign GASP node service fails to handle the request - provider failure": {
+		"Request foreign GASP node service fails to handle the request with provider failure": {
 			payload: map[string]interface{}{
 				"graphID":     testabilities.DefaultValidGraphID,
 				"txID":        testabilities.DefaultValidTxID,

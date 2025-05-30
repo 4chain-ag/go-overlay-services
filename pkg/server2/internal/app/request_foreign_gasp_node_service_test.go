@@ -16,7 +16,7 @@ func TestRequestForeignGASPNodeService_InvalidCases(t *testing.T) {
 		expectations  testabilities.RequestForeignGASPNodeProviderMockExpectations
 		expectedError app.Error
 	}{
-		"Request foreign GASP node service fails to handle the request with missing topic": {
+		"Request foreign GASP node service fails to handle the request with empty topic": {
 			dto: app.RequestForeignGASPNodeDTO{
 				GraphID:     testabilities.DefaultValidGraphID,
 				TxID:        testabilities.DefaultValidTxID,
