@@ -26,7 +26,6 @@ func (h *LookupQuestionHandler) Handle(c *fiber.Ctx, params openapi.LookupQuesti
 		return app.NewLookupQuestionInvalidRequestBodyResponse()
 	}
 
-	// Convert the Query map to JSON for the lookup question
 	var queryJSON json.RawMessage
 	if params.Query != nil {
 		if queryBytes, err := json.Marshal(params.Query); err != nil {
@@ -72,7 +71,10 @@ func NewLookupQuestionSuccessResponse(answer *lookup.LookupAnswer) *openapi.Look
 			}
 		}
 	}
-
+	// TODO: Here we are converting the result to a string.
+	// We should not do this, but rather return the result as is.
+	// This is a temporary solution to avoid breaking changes.
+	// we need to look how we can implement this type in open api to make it compatible with its own types.
 	var resultStr string
 	if answer.Result != nil {
 		if resultBytes, err := json.Marshal(answer.Result); err == nil {

@@ -73,14 +73,6 @@ func NewLookupQuestionProviderError(err error) Error {
 	}
 }
 
-func NewLookupQuestionProviderErrorWithSlug(slug string) Error {
-	return Error{
-		errorType: ErrorTypeProviderFailure,
-		err:       "overlay engine error",
-		slug:      slug,
-	}
-}
-
 // NewLookupQuestionInvalidRequestBodyResponse creates an error response for invalid request body.
 func NewLookupQuestionInvalidRequestBodyResponse() Error {
 	return Error{

@@ -2,10 +2,8 @@ package testabilities
 
 import (
 	"context"
-	"errors"
 	"testing"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/stretchr/testify/require"
@@ -16,32 +14,6 @@ type LookupQuestionProviderMockExpectations struct {
 	LookupQuestionCall bool
 	Error              error
 	Answer             *lookup.LookupAnswer
-}
-
-// LookupQuestionProviderMockOption is a function that configures a LookupQuestionProviderMock.
-type LookupQuestionProviderMockOption func(*LookupQuestionProviderMockExpectations)
-
-// LookupQuestionProviderMockNotCalled returns an option that configures the mock to not be called.
-func LookupQuestionProviderMockNotCalled() LookupQuestionProviderMockOption {
-	return func(e *LookupQuestionProviderMockExpectations) {
-		e.LookupQuestionCall = false
-	}
-}
-
-// LookupQuestionProviderMockWithProviderError returns an option that configures the mock to return an error.
-func LookupQuestionProviderMockWithProviderError(err string) LookupQuestionProviderMockOption {
-	return func(e *LookupQuestionProviderMockExpectations) {
-		e.LookupQuestionCall = true
-		e.Error = app.NewLookupQuestionProviderError(errors.New(err))
-	}
-}
-
-// LookupQuestionProviderMockWithAnswer returns an option that configures the mock to return an answer.
-func LookupQuestionProviderMockWithAnswer(answer *lookup.LookupAnswer) LookupQuestionProviderMockOption {
-	return func(e *LookupQuestionProviderMockExpectations) {
-		e.LookupQuestionCall = true
-		e.Answer = answer
-	}
 }
 
 // LookupQuestionProviderMock is a mock implementation for testing the behavior of a LookupQuestionProvider.
