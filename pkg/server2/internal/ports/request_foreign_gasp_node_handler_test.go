@@ -179,7 +179,7 @@ func TestRequestForeignGASPNodeHandler_ValidCase(t *testing.T) {
 		R().
 		SetHeaders(headers).
 		SetBody(payload).
-		SetResult(actualResponse).
+		SetResult(&actualResponse).
 		Post("/api/v1/requestForeignGASPNode")
 
 	// then:

@@ -75,6 +75,11 @@ func NewRequestForeignGASPNodeSuccessResponse(node *core.GASPNode) openapi.GASPN
 		proof = *node.Proof
 	}
 
+	ancillaryBeef := ""
+	if node.AncillaryBeef != nil {
+		ancillaryBeef = string(node.AncillaryBeef)
+	}
+
 	return openapi.GASPNode{
 		GraphID:        graphID,
 		RawTx:          node.RawTx,
@@ -83,6 +88,6 @@ func NewRequestForeignGASPNodeSuccessResponse(node *core.GASPNode) openapi.GASPN
 		TxMetadata:     node.TxMetadata,
 		OutputMetadata: node.OutputMetadata,
 		Inputs:         inputs,
-		AncillaryBeef:  string(node.AncillaryBeef),
+		AncillaryBeef:  ancillaryBeef,
 	}
 }
