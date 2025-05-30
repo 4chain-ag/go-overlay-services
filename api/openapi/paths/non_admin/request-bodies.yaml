@@ -13,23 +13,18 @@ components:
             required:
               - Transaction
 
-    ArcIngestBody:
+    RequestSyncResponseBody:
       content:
         application/json:
           schema:
             type: object
             properties:
-              txid:
-                type: string
-                description: 'Transaction ID in hexadecimal format'
-              merklePath:
-                type: string
-                description: 'Merkle path in hexadecimal format'
-              blockHeight:
+              version:
                 type: integer
-                format: uint32
-                description: 'Block height where the transaction was included'
+                description: 'The version number of the GASP protocol'
+              since:
+                type: integer
+                description: 'Timestamp or sequence number from which to start synchronization'
             required:
-              - txid
-              - merklePath
-              - blockHeight
+              - version
+              - since

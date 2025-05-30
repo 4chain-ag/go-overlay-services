@@ -11,12 +11,6 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"outputsToAdmit"`
 }
 
-// ArcIngest defines model for ArcIngest.
-type ArcIngest struct {
-	Message string `json:"message"`
-	Status  string `json:"status"`
-}
-
 // LookupServiceDocumentation defines model for LookupServiceDocumentation.
 type LookupServiceDocumentation struct {
 	// Documentation Markdown-formatted documentation for the lookup service
@@ -34,6 +28,14 @@ type LookupServiceProviderMetadata struct {
 
 // LookupServiceProvidersList defines model for LookupServiceProvidersList.
 type LookupServiceProvidersList map[string]LookupServiceProviderMetadata
+
+// RequestSyncRes defines model for RequestSyncRes.
+type RequestSyncRes struct {
+	UTXOList []UTXOItem `json:"UTXOList"`
+
+	// Since Timestamp or sequence number from which synchronization data was generated
+	Since int `json:"since"`
+}
 
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions
@@ -61,14 +63,23 @@ type TopicManagerMetadata struct {
 // TopicManagersList defines model for TopicManagersList.
 type TopicManagersList map[string]TopicManagerMetadata
 
-// ArcIngestResponse defines model for ArcIngestResponse.
-type ArcIngestResponse = ArcIngest
+// UTXOItem defines model for UTXOItem.
+type UTXOItem struct {
+	// Txid Transaction ID in hexadecimal format
+	Txid string `json:"txid"`
+
+	// Vout Output index number
+	Vout int `json:"vout"`
+}
 
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
 
 // LookupServiceProvidersListResponse defines model for LookupServiceProvidersListResponse.
 type LookupServiceProvidersListResponse = LookupServiceProvidersList
+
+// RequestSyncResResponse defines model for RequestSyncResResponse.
+type RequestSyncResResponse = RequestSyncRes
 
 // SubmitTransactionResponse defines model for SubmitTransactionResponse.
 type SubmitTransactionResponse = SubmitTransaction
