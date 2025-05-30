@@ -102,3 +102,12 @@ func NewRequestForeignGASPNodeInvalidGraphIDError() Error {
 		slug:      "The submitted graphID is not in a valid format (expected: txID.outputIndex).",
 	}
 }
+
+// NewRequestForeignGASPNodeInvalidJSONError returns an Error indicating that the request body is invalid.
+func NewRequestForeignGASPNodeInvalidJSONError() Error {
+	return Error{
+		errorType: ErrorTypeIncorrectInput,
+		err:       "invalid JSON request body",
+		slug:      "The submitted request body is not valid JSON",
+	}
+}

@@ -49,7 +49,7 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 				ProvideForeignGASPNodeCall: false,
 			},
 			expectedStatusCode: fiber.StatusBadRequest,
-			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, ports.NewInvalidRequestBodyError()),
+			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidJSONError()),
 		},
 		"Request foreign GASP node service fails to handle the request - missing topic": {
 			payload: map[string]interface{}{

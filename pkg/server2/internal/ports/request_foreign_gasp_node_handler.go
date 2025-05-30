@@ -28,7 +28,7 @@ type RequestForeignGASPNodeHandler struct {
 func (h *RequestForeignGASPNodeHandler) Handle(c *fiber.Ctx, params openapi.RequestForeignGASPNodeParams) error {
 	var payload openapi.RequestForeignGASPNodeJSONBody
 	if err := c.BodyParser(&payload); err != nil {
-		return NewInvalidRequestBodyError()
+		return app.NewRequestForeignGASPNodeInvalidJSONError()
 	}
 
 	dto := app.RequestForeignGASPNodeDTO{
@@ -85,10 +85,4 @@ func NewRequestForeignGASPNodeSuccessResponse(node *core.GASPNode) openapi.GASPN
 		Inputs:         inputs,
 		AncillaryBeef:  string(node.AncillaryBeef),
 	}
-}
-
-// NewInvalidRequestBodyError returns an Error indicating that the request body is invalid.
-func NewInvalidRequestBodyError() app.Error {
-	const str = "The submitted request body is invalid or malformed"
-	return app.NewIncorrectInputError(str, str)
 }
