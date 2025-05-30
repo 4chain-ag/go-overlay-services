@@ -22,7 +22,7 @@ type RequestForeignGASPNodeHandler struct {
 	service RequestForeignGASPNodeService
 }
 
-// RequestForeignGASPNode processes an HTTP request to request a foreign GASP node.
+// Handle processes an HTTP request to request a foreign GASP node.
 // It extracts the topic from X-BSV-Topic header and parameters from JSON body,
 // then returns the GASP node or an appropriate error response.
 func (h *RequestForeignGASPNodeHandler) Handle(c *fiber.Ctx, params openapi.RequestForeignGASPNodeParams) error {
@@ -64,6 +64,7 @@ func NewRequestForeignGASPNodeSuccessResponse(node *core.GASPNode) openapi.GASPN
 			inputs[k] = v
 		}
 	}
+	//TODO: define the inputs type in the openapi spec to match the actual type
 
 	graphID := ""
 	if node.GraphID != nil {
