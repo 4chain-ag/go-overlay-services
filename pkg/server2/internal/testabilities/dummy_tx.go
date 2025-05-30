@@ -3,6 +3,7 @@ package testabilities
 import (
 	"testing"
 
+	"github.com/bsv-blockchain/go-sdk/chainhash"
 	testvectors "github.com/bsv-blockchain/universal-test-vectors/pkg/testabilities"
 	"github.com/stretchr/testify/require"
 )
@@ -22,4 +23,13 @@ func DummyTxBEEF(t *testing.T) []byte {
 	require.NoError(t, err)
 	require.NotEmpty(t, bb)
 	return bb
+}
+
+// DummyTxHash creates a chainhash.Hash from a hex string for testing.
+func DummyTxHash(t *testing.T, hexStr string) *chainhash.Hash {
+	t.Helper()
+
+	hash, err := chainhash.NewHashFromHex(hexStr)
+	require.NoError(t, err)
+	return hash
 }

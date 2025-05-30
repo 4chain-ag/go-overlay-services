@@ -13,19 +13,18 @@ components:
             required:
               - Transaction
 
-    LookupQuestionBody:
+    RequestSyncResponseBody:
       content:
         application/json:
           schema:
             type: object
             properties:
-              service:
-                type: string
-                description: 'Service name to query'
-              query:
-                type: object
-                description: 'Query parameters specific to the service'
-                additionalProperties: true
+              version:
+                type: integer
+                description: 'The version number of the GASP protocol'
+              since:
+                type: integer
+                description: 'Timestamp or sequence number from which to start synchronization'
             required:
-              - service
-              - query
+              - version
+              - since
