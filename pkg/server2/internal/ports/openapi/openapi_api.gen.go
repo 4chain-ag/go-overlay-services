@@ -45,6 +45,15 @@ type GetTopicManagerDocumentationParams struct {
 	TopicManager string `form:"topicManager" json:"topicManager"`
 }
 
+// LookupQuestionJSONBody defines parameters for LookupQuestion.
+type LookupQuestionJSONBody struct {
+	// Query Query parameters specific to the service
+	Query map[string]interface{} `json:"query"`
+
+	// Service Service name to query
+	Service string `json:"service"`
+}
+
 // RequestSyncResponseJSONBody defines parameters for RequestSyncResponse.
 type RequestSyncResponseJSONBody struct {
 	// Since Timestamp or sequence number from which to start synchronization
@@ -64,6 +73,9 @@ type RequestSyncResponseParams struct {
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
+
+// LookupQuestionJSONRequestBody defines body for LookupQuestion for application/json ContentType.
+type LookupQuestionJSONRequestBody LookupQuestionJSONBody
 
 // RequestSyncResponseJSONRequestBody defines body for RequestSyncResponse for application/json ContentType.
 type RequestSyncResponseJSONRequestBody RequestSyncResponseJSONBody
@@ -88,6 +100,9 @@ type ServerInterface interface {
 
 	// (GET /api/v1/listTopicManagers)
 	ListTopicManagers(c *fiber.Ctx) error
+
+	// (POST /api/v1/lookup)
+	LookupQuestion(c *fiber.Ctx) error
 
 	// (POST /api/v1/requestSyncResponse)
 	RequestSyncResponse(c *fiber.Ctx, params RequestSyncResponseParams) error
@@ -229,6 +244,19 @@ func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
 	return siw.handler.ListTopicManagers(c)
 }
 
+// LookupQuestion operation middleware
+func (siw *ServerInterfaceWrapper) LookupQuestion(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.LookupQuestion(c)
+}
+
 // RequestSyncResponse operation middleware
 func (siw *ServerInterfaceWrapper) RequestSyncResponse(c *fiber.Ctx) error {
 
@@ -334,6 +362,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Get(options.BaseURL+"/api/v1/listLookupServiceProviders", wrapper.ListLookupServiceProviders)
 
 	router.Get(options.BaseURL+"/api/v1/listTopicManagers", wrapper.ListTopicManagers)
+
+	router.Post(options.BaseURL+"/api/v1/lookup", wrapper.LookupQuestion)
 
 	router.Post(options.BaseURL+"/api/v1/requestSyncResponse", wrapper.RequestSyncResponse)
 
