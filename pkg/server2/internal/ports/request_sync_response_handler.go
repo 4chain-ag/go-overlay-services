@@ -51,7 +51,7 @@ func NewRequestSyncResponseHandler(provider app.RequestSyncResponseProvider) *Re
 // It maps the GASPInitialResponse data to an OpenAPI response format.
 func NewRequestSyncResponseSuccessResponse(response *core.GASPInitialResponse) *openapi.RequestSyncResResponse {
 
-	if response == nil {
+	if response == nil || len(response.UTXOList) == 0 {
 		return &openapi.RequestSyncResResponse{
 			UTXOList: []openapi.UTXOItem{},
 			Since:    0,

@@ -75,21 +75,12 @@ func NewRequestSyncResponseInvalidInputError() Error {
 	}
 }
 
-// NewRequestSyncResponseInvalidRequestError returns an Error indicating that the initial request is nil.
-func NewRequestSyncResponseInvalidRequestError() Error {
-	return Error{
-		errorType: ErrorTypeIncorrectInput,
-		err:       "initial request cannot be nil",
-		slug:      "A valid initial request must be provided to request a sync response.",
-	}
-}
-
 // NewRequestSyncResponseInvalidVersionError returns an Error indicating that the initial request version is invalid.
 func NewRequestSyncResponseInvalidVersionError() Error {
 	return Error{
 		errorType: ErrorTypeIncorrectInput,
-		err:       "initial request version must be greater than 0",
-		slug:      "A valid version must be provided for the initial request to request a sync response.",
+		err:       "initial request version must be equal to or greater than 0",
+		slug:      "A valid version equal to or greater than 0 must be provided for the initial request to request a sync response.",
 	}
 }
 
@@ -97,8 +88,8 @@ func NewRequestSyncResponseInvalidVersionError() Error {
 func NewRequestSyncResponseInvalidSinceError() Error {
 	return Error{
 		errorType: ErrorTypeIncorrectInput,
-		err:       "initial request since must be greater than 0 and less than or equal to 4294967295",
-		slug:      "A valid since value between 1 and 4294967295 must be provided for the initial request to request a sync response.",
+		err:       "initial request since must be between 0 and 4294967295 (inclusive)",
+		slug:      "A valid since value between 0 and 4294967295 (inclusive) must be provided for the initial request to request a sync response.",
 	}
 }
 
@@ -106,7 +97,7 @@ func NewRequestSyncResponseInvalidSinceError() Error {
 func NewRequestSyncResponseInvalidJSONError() Error {
 	return Error{
 		errorType: ErrorTypeIncorrectInput,
-		err:       "invalid JSON format",
-		slug:      "The request body must contain valid JSON.",
+		err:       "The request body must contains valid JSON.",
+		slug:      "The request body must contains valid JSON.",
 	}
 }

@@ -53,7 +53,7 @@ func TestRequestSyncResponseHandler_InvalidCases(t *testing.T) {
 				"X-BSV-Topic":  testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
-				Error:                          errors.New("internal submit transaction provider error during submit transaction handler unit test"),
+				Error:                          errors.New("internal request sync response provider error during request sync response handler unit test"),
 				ProvideForeignSyncResponseCall: true,
 				InitialRequest: &core.GASPInitialRequest{
 					Version: testabilities.DefaultVersion,
@@ -62,7 +62,7 @@ func TestRequestSyncResponseHandler_InvalidCases(t *testing.T) {
 				Topic: testabilities.DefaultTopic,
 			},
 			expectedStatusCode: fiber.StatusInternalServerError,
-			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestSyncResponseProviderError(errors.New("internal submit transaction provider error during submit transaction handler unit test"))),
+			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestSyncResponseProviderError(errors.New("internal request sync response provider error during request sync response handler unit test"))),
 		},
 	}
 
