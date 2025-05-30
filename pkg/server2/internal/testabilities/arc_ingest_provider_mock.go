@@ -62,7 +62,7 @@ func (m *ServiceTestMerkleProofProvider) HandleNewMerkleProof(ctx context.Contex
 }
 
 // AssertCalled asserts that the HandleNewMerkleProof method was called with the expected parameters
-func (s *ServiceTestMerkleProofProvider) AssertCalled(t *testing.T) {
+func (s *ServiceTestMerkleProofProvider) AssertCalled() {
 	s.t.Helper()
 	require.Equal(s.t, s.expectations.ArcIngestCall, s.called, "Discrepancy between expected and actual HandleNewMerkleProof call")
 	require.Equal(s.t, s.expectations.ExpectedTxID, s.calledTxID, "Discrepancy between expected and actual txid")

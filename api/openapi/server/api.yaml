@@ -188,7 +188,6 @@ paths:
         500:
           $ref: '#/components/responses/InternalServerErrorResponse'
 
-
 components:
   schemas:
     Error:

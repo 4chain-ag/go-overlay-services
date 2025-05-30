@@ -2,6 +2,7 @@ package app_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
@@ -29,7 +30,7 @@ func TestArcIngestService_ValidCase(t *testing.T) {
 
 	// then:
 	require.NoError(t, err)
-	mock.AssertCalled(t)
+	mock.AssertCalled()
 }
 
 func TestArcIngestService_InvalidCase(t *testing.T) {
@@ -38,15 +39,40 @@ func TestArcIngestService_InvalidCase(t *testing.T) {
 		expectedErr  app.Error
 		expectations testabilities.ServiceTestMerkleProofProviderExpectations
 	}{
-		"should fail with invalid txID format when txID is not hex": {
+		"Arc ingest service should fail with invalid txID format when txID is not hex": {
 			dto: &app.ArcIngestDTO{
-				TxID:        "not-a-hex-string",
+				TxID:        "INVALID-HEX-STRING",
 				MerklePath:  testabilities.NewValidTestMerklePath(t),
 				BlockHeight: 0,
 			},
 			expectedErr: app.NewInvalidTxIDFormatError(),
 			expectations: testabilities.ServiceTestMerkleProofProviderExpectations{
 				ArcIngestCall: false,
+			},
+		},
+		"Arc ingest service should fail with invalid Merkle path format when MerklePath is not hex": {
+			dto: &app.ArcIngestDTO{
+				TxID:        testabilities.NewValidTestTxID(t).String(),
+				MerklePath:  "INVALID-HEX-STRING",
+				BlockHeight: 0,
+			},
+			expectedErr: app.NewInvalidMerklePathFormatError(),
+			expectations: testabilities.ServiceTestMerkleProofProviderExpectations{
+				ArcIngestCall: false,
+			},
+		},
+		"Arc ingest service should fail when provider returns error during Merkle proof processing": {
+			dto: &app.ArcIngestDTO{
+				TxID:        testabilities.NewValidTestTxID(t).String(),
+				MerklePath:  testabilities.NewValidTestMerklePath(t),
+				BlockHeight: 0,
+			},
+			expectedErr: app.NewMerkleProofProcessingFailedError("provider error"),
+			expectations: testabilities.ServiceTestMerkleProofProviderExpectations{
+				ArcIngestCall:      true,
+				ExpectedTxID:       testabilities.NewValidTestTxID(t).String(),
+				ExpectedMerklePath: testabilities.NewValidTestMerklePath(t),
+				Error:              errors.New("provider error"),
 			},
 		},
 	}
@@ -64,7 +90,7 @@ func TestArcIngestService_InvalidCase(t *testing.T) {
 			var actualErr app.Error
 			require.ErrorAs(t, err, &actualErr)
 			require.Equal(t, tc.expectedErr, actualErr)
-			mock.AssertCalled(t)
+			mock.AssertCalled()
 		})
 	}
 }
