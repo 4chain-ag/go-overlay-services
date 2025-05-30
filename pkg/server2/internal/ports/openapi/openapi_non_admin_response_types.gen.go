@@ -61,6 +61,9 @@ type TopicManagerMetadata struct {
 // TopicManagersList defines model for TopicManagersList.
 type TopicManagersList map[string]TopicManagerMetadata
 
+// ArcIngestResponse defines model for ArcIngestResponse.
+type ArcIngestResponse = ArcIngest
+
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
 
