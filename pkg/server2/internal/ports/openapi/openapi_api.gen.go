@@ -90,8 +90,12 @@ type ServerInterface interface {
 	ListTopicManagers(c *fiber.Ctx) error
 
 	// (POST /api/v1/requestSyncResponse)
+	RequestSyncResponse(c *fiber.Ctx, params RequestSyncResponseParams) error
+
+	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
 }
+
 // ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
 	handler           ServerInterface
