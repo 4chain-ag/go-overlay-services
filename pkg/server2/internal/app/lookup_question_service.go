@@ -26,6 +26,10 @@ func (s *LookupQuestionService) LookupQuestion(ctx context.Context, question *lo
 		return nil, NewLookupQuestionMissingServiceFieldError()
 	}
 
+	if question.Query == nil {
+		return nil, NewLookupQuestionMissingQueryFieldError()
+	}
+
 	answer, err := s.provider.Lookup(ctx, question)
 	if err != nil {
 		return nil, NewLookupQuestionProviderError(err)
@@ -79,5 +83,14 @@ func NewLookupQuestionInvalidRequestBodyResponse() Error {
 		errorType: ErrorTypeIncorrectInput,
 		err:       "invalid request body format or structure",
 		slug:      "The request body must be a valid JSON object with a 'service' field and a 'query' field.",
+	}
+}
+
+// NewLookupQuestionMissingQueryFieldError returns an Error indicating that the query field is invalid.
+func NewLookupQuestionMissingQueryFieldError() Error {
+	return Error{
+		errorType: ErrorTypeIncorrectInput,
+		err:       "invalid query field format or structure",
+		slug:      "The query field must be a valid JSON object.",
 	}
 }

@@ -62,6 +62,16 @@ func TestLookupQuestionService_InvalidCases(t *testing.T) {
 			},
 			expectedError: app.NewLookupQuestionMissingServiceFieldError(),
 		},
+		"LookupQuestion should return error when query is nil": {
+			expectations: testabilities.LookupQuestionProviderMockExpectations{
+				LookupQuestionCall: false,
+			},
+			question: &lookup.LookupQuestion{
+				Service: "test-service",
+				Query:   nil,
+			},
+			expectedError: app.NewLookupQuestionMissingQueryFieldError(),
+		},
 		"LookupQuestion should return error from provider": {
 			expectations: testabilities.LookupQuestionProviderMockExpectations{
 				LookupQuestionCall: true,
