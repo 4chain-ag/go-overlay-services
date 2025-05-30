@@ -273,7 +273,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		startGASPSyncProvider:             NewStartGASPSyncProviderMock(t, StartGASPSyncProviderMockExpectations{StartGASPSyncCall: false}),
 		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 		syncAdvertisementsProvider:        NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
-		lookupQuestionProvider:            NewLookupQuestionProviderMock(t, LookupQuestionProviderMockNotCalled()),
+		lookupQuestionProvider:            NewLookupQuestionProviderMock(t, LookupQuestionProviderMockExpectations{LookupQuestionCall: false}),
 	}
 
 	for _, opt := range opts {

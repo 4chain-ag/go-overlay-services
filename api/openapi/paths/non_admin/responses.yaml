@@ -41,15 +41,34 @@ components:
       required:
         - STEAK
 
+    OutputListItem:
+      type: object
+      properties:
+        beef:
+          type: string
+          format: byte
+        outputIndex:
+          type: integer
+          format: uint32
+      required:
+        - beef
+        - outputIndex
+
     LookupAnswer:
       type: object
       properties:
-        answer:
-          type: object
-          description: 'The answer data for the lookup question'
-          additionalProperties: true
+        type:
+          type: string
+        outputs:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutputListItem"
+        result:
+          type: string
       required:
-        - answer
+        - type
+        - outputs
+        - result
 
     LookupServiceProviderMetadata:
       type: object

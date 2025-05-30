@@ -56,7 +56,8 @@ func (h *HandlerRegistryService) StartGASPSync(c *fiber.Ctx) error {
 
 // LookupQuestion method delegates the request to the configured lookup question handler.
 func (h *HandlerRegistryService) LookupQuestion(c *fiber.Ctx) error {
-	return h.lookupQuestion.Handle(c)
+	var params openapi.LookupQuestionBody
+	return h.lookupQuestion.Handle(c, params)
 }
 
 // NewHandlerRegistryService creates and returns a new HandlerRegistryService instance.

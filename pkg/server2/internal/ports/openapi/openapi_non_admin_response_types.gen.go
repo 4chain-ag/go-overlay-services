@@ -13,8 +13,9 @@ type AdmittanceInstructions struct {
 
 // LookupAnswer defines model for LookupAnswer.
 type LookupAnswer struct {
-	// Answer The answer data for the lookup question
-	Answer map[string]interface{} `json:"answer"`
+	Outputs []OutputListItem `json:"outputs"`
+	Result  string           `json:"result"`
+	Type    string           `json:"type"`
 }
 
 // LookupServiceDocumentation defines model for LookupServiceDocumentation.
@@ -34,6 +35,12 @@ type LookupServiceProviderMetadata struct {
 
 // LookupServiceProvidersList defines model for LookupServiceProvidersList.
 type LookupServiceProvidersList map[string]LookupServiceProviderMetadata
+
+// OutputListItem defines model for OutputListItem.
+type OutputListItem struct {
+	Beef        []byte `json:"beef"`
+	OutputIndex uint32 `json:"outputIndex"`
+}
 
 // STEAK defines model for STEAK.
 type STEAK map[string]AdmittanceInstructions

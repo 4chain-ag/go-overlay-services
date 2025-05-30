@@ -15,34 +15,33 @@ type LookupQuestionService interface {
 	LookupQuestion(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error)
 }
 
-// LookupQuestionHandlerRequest represents the request body for a lookup question.
-type LookupQuestionHandlerRequest struct {
-	Service string          `json:"service"`
-	Query   json.RawMessage `json:"query"`
-}
-
-// ToLookupQuestion converts the LookupQuestionHandlerRequest to a lookup.LookupQuestion.
-func (r LookupQuestionHandlerRequest) ToLookupQuestion() *lookup.LookupQuestion {
-	return &lookup.LookupQuestion{
-		Service: r.Service,
-		Query:   r.Query,
-	}
-}
-
 // LookupQuestionHandler handles lookup question requests.
 type LookupQuestionHandler struct {
 	service LookupQuestionService
 }
 
 // Handle processes a lookup question request and returns the answer.
-func (h *LookupQuestionHandler) Handle(c *fiber.Ctx) error {
-	var request LookupQuestionHandlerRequest
-	if err := c.BodyParser(&request); err != nil {
+func (h *LookupQuestionHandler) Handle(c *fiber.Ctx, params openapi.LookupQuestionBody) error {
+	if err := c.BodyParser(&params); err != nil {
 		return app.NewLookupQuestionInvalidRequestBodyResponse()
 	}
 
-	question := request.ToLookupQuestion()
-	answer, err := h.service.LookupQuestion(c.UserContext(), question)
+	// Convert the Query map to JSON for the lookup question
+	var queryJSON json.RawMessage
+	if params.Query != nil {
+		if queryBytes, err := json.Marshal(params.Query); err != nil {
+			return app.NewLookupQuestionInvalidRequestBodyResponse()
+		} else {
+			queryJSON = queryBytes
+		}
+	}
+
+	question := lookup.LookupQuestion{
+		Service: params.Service,
+		Query:   queryJSON,
+	}
+
+	answer, err := h.service.LookupQuestion(c.UserContext(), &question)
 	if err != nil {
 		return err
 	}
@@ -58,15 +57,32 @@ func NewLookupQuestionHandler(provider app.LookupQuestionProvider) *LookupQuesti
 		panic("lookup question provider is nil")
 	}
 
-	return &LookupQuestionHandler{
-		service: app.NewLookupQuestionService(provider),
-	}
+	return &LookupQuestionHandler{service: app.NewLookupQuestionService(provider)}
 }
 
 // NewLookupQuestionSuccessResponse creates a successful response for a lookup question.
 func NewLookupQuestionSuccessResponse(answer *lookup.LookupAnswer) *openapi.LookupAnswer {
-	answerMap := answer.Result.(map[string]interface{})
+	var outputs []openapi.OutputListItem
+	if len(answer.Outputs) > 0 {
+		outputs = make([]openapi.OutputListItem, len(answer.Outputs))
+		for i, output := range answer.Outputs {
+			outputs[i] = openapi.OutputListItem{
+				Beef:        output.Beef,
+				OutputIndex: output.OutputIndex,
+			}
+		}
+	}
+
+	var resultStr string
+	if answer.Result != nil {
+		if resultBytes, err := json.Marshal(answer.Result); err == nil {
+			resultStr = string(resultBytes)
+		}
+	}
+
 	return &openapi.LookupAnswer{
-		Answer: answerMap,
+		Outputs: outputs,
+		Result:  resultStr,
+		Type:    string(answer.Type),
 	}
 }

@@ -70,15 +70,12 @@ func (m *LookupQuestionProviderMock) AssertCalled() {
 }
 
 // NewLookupQuestionProviderMock creates a new LookupQuestionProviderMock with the given options.
-func NewLookupQuestionProviderMock(t *testing.T, opts ...LookupQuestionProviderMockOption) *LookupQuestionProviderMock {
-	expectations := LookupQuestionProviderMockExpectations{}
-	for _, opt := range opts {
-		opt(&expectations)
-	}
-	return &LookupQuestionProviderMock{
+func NewLookupQuestionProviderMock(t *testing.T, expectations LookupQuestionProviderMockExpectations) *LookupQuestionProviderMock {
+	mock := &LookupQuestionProviderMock{
 		t:            t,
 		expectations: expectations,
 	}
+	return mock
 }
 
 // NewLookupQuestionInvalidRequestBodyResponse returns a response for an invalid request body.

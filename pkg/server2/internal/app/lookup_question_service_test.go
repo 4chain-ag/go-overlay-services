@@ -19,6 +19,7 @@ func TestLookupQuestionService_ValidCase(t *testing.T) {
 			Type:   lookup.AnswerTypeFreeform,
 			Result: map[string]interface{}{"test": "value"},
 		},
+		LookupQuestionCall: true,
 	}
 
 	question := &lookup.LookupQuestion{
@@ -26,7 +27,7 @@ func TestLookupQuestionService_ValidCase(t *testing.T) {
 		Query:   json.RawMessage(`{}`),
 	}
 
-	mock := testabilities.NewLookupQuestionProviderMock(t, testabilities.LookupQuestionProviderMockWithAnswer(expectations.Answer))
+	mock := testabilities.NewLookupQuestionProviderMock(t, expectations)
 	service := app.NewLookupQuestionService(mock)
 
 	// when:
@@ -45,12 +46,16 @@ func TestLookupQuestionService_InvalidCases(t *testing.T) {
 		expectedError app.Error
 	}{
 		"LookupQuestion should return error when question is nil": {
-			expectations:  testabilities.LookupQuestionProviderMockExpectations{},
+			expectations: testabilities.LookupQuestionProviderMockExpectations{
+				LookupQuestionCall: false,
+			},
 			question:      nil,
 			expectedError: app.NewInvalidLookupQuestionError(),
 		},
 		"LookupQuestion should return error when service is empty": {
-			expectations: testabilities.LookupQuestionProviderMockExpectations{},
+			expectations: testabilities.LookupQuestionProviderMockExpectations{
+				LookupQuestionCall: false,
+			},
 			question: &lookup.LookupQuestion{
 				Service: "",
 				Query:   json.RawMessage(`{}`),
@@ -59,7 +64,8 @@ func TestLookupQuestionService_InvalidCases(t *testing.T) {
 		},
 		"LookupQuestion should return error from provider": {
 			expectations: testabilities.LookupQuestionProviderMockExpectations{
-				Error: errors.New("provider error"),
+				LookupQuestionCall: true,
+				Error:              errors.New("provider error"),
 			},
 			question: &lookup.LookupQuestion{
 				Service: "test-service",
@@ -72,12 +78,7 @@ func TestLookupQuestionService_InvalidCases(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			// given:
-			var mock *testabilities.LookupQuestionProviderMock
-			if tc.expectations.Error != nil {
-				mock = testabilities.NewLookupQuestionProviderMock(t, testabilities.LookupQuestionProviderMockWithProviderError(tc.expectations.Error.Error()))
-			} else {
-				mock = testabilities.NewLookupQuestionProviderMock(t, testabilities.LookupQuestionProviderMockNotCalled())
-			}
+			mock := testabilities.NewLookupQuestionProviderMock(t, tc.expectations)
 			service := app.NewLookupQuestionService(mock)
 
 			// when:
