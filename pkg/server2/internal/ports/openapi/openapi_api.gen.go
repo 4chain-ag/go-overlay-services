@@ -33,6 +33,18 @@ type NotFoundResponse = Error
 // RequestTimeoutResponse defines model for RequestTimeoutResponse.
 type RequestTimeoutResponse = Error
 
+// ArcIngestJSONBody defines parameters for ArcIngest.
+type ArcIngestJSONBody struct {
+	// BlockHeight Block height where the transaction was included
+	BlockHeight uint32 `json:"blockHeight"`
+
+	// MerklePath Merkle path in hexadecimal format
+	MerklePath string `json:"merklePath"`
+
+	// Txid Transaction ID in hexadecimal format
+	Txid string `json:"txid"`
+}
+
 // GetLookupServiceProviderDocumentationParams defines parameters for GetLookupServiceProviderDocumentation.
 type GetLookupServiceProviderDocumentationParams struct {
 	// LookupService The name of the lookup service provider to retrieve documentation for
@@ -65,6 +77,9 @@ type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
 
+// ArcIngestJSONRequestBody defines body for ArcIngest for application/json ContentType.
+type ArcIngestJSONRequestBody ArcIngestJSONBody
+
 // RequestSyncResponseJSONRequestBody defines body for RequestSyncResponse for application/json ContentType.
 type RequestSyncResponseJSONRequestBody RequestSyncResponseJSONBody
 
@@ -76,6 +91,9 @@ type ServerInterface interface {
 
 	// (POST /api/v1/admin/syncAdvertisements)
 	AdvertisementsSync(c *fiber.Ctx) error
+
+	// (POST /api/v1/arc-ingest)
+	ArcIngest(c *fiber.Ctx) error
 
 	// (GET /api/v1/getDocumentationForLookupServiceProvider)
 	GetLookupServiceProviderDocumentation(c *fiber.Ctx, params GetLookupServiceProviderDocumentationParams) error
@@ -127,6 +145,19 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 		}
 	}
 	return siw.handler.AdvertisementsSync(c)
+}
+
+// ArcIngest operation middleware
+func (siw *ServerInterfaceWrapper) ArcIngest(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.ArcIngest(c)
 }
 
 // GetLookupServiceProviderDocumentation operation middleware
@@ -326,6 +357,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Post(options.BaseURL+"/api/v1/admin/startGASPSync", wrapper.StartGASPSync)
 
 	router.Post(options.BaseURL+"/api/v1/admin/syncAdvertisements", wrapper.AdvertisementsSync)
+
+	router.Post(options.BaseURL+"/api/v1/arc-ingest", wrapper.ArcIngest)
 
 	router.Get(options.BaseURL+"/api/v1/getDocumentationForLookupServiceProvider", wrapper.GetLookupServiceProviderDocumentation)
 

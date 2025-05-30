@@ -16,6 +16,7 @@ type HandlerRegistryService struct {
 	topicManagerDocumentation *TopicManagerDocumentationHandler
 	submitTransaction         *SubmitTransactionHandler
 	syncAdvertisements        *SyncAdvertisementsHandler
+	arcIngest                 *ArcIngestHandler
 	requestSyncResponse       *RequestSyncResponseHandler
 }
 
@@ -54,6 +55,11 @@ func (h *HandlerRegistryService) StartGASPSync(c *fiber.Ctx) error {
 	return h.startGASPSync.Handle(c)
 }
 
+// ArcIngest method delegates the request to the configured arc ingest handler.
+func (h *HandlerRegistryService) ArcIngest(c *fiber.Ctx) error {
+	return h.arcIngest.Handle(c)
+}
+
 // RequestSyncResponse method delegates the request to the configured request sync response handler.
 func (h *HandlerRegistryService) RequestSyncResponse(c *fiber.Ctx, params openapi.RequestSyncResponseParams) error {
 	return h.requestSyncResponse.Handle(c, params)
@@ -70,6 +76,7 @@ func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRe
 		topicManagerDocumentation: NewTopicManagerDocumentationHandler(provider),
 		submitTransaction:         NewSubmitTransactionHandler(provider),
 		syncAdvertisements:        NewSyncAdvertisementsHandler(provider),
+		arcIngest:                 NewArcIngestHandler(provider),
 		requestSyncResponse:       NewRequestSyncResponseHandler(provider),
 	}
 }
