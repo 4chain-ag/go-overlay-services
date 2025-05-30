@@ -20,7 +20,7 @@ func TestEngine_Submit_Success(t *testing.T) {
 	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{
-				identifyAdmissableOutputsFunc: func(ctx context.Context, beef []byte, previousCoins map[uint32]*transaction.TransactionOutput) (overlay.AdmittanceInstructions, error) {
+				identifyAdmissibleOutputsFunc: func(ctx context.Context, beef []byte, previousCoins map[uint32]*transaction.TransactionOutput) (overlay.AdmittanceInstructions, error) {
 					return overlay.AdmittanceInstructions{
 						OutputsToAdmit: []uint32{0},
 					}, nil
@@ -83,7 +83,7 @@ func TestEngine_Submit_InvalidBeef_ShouldReturnError(t *testing.T) {
 	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{
-				identifyAdmissableOutputsFunc: func(ctx context.Context, beef []byte, previousCoins map[uint32]*transaction.TransactionOutput) (overlay.AdmittanceInstructions, error) {
+				identifyAdmissibleOutputsFunc: func(ctx context.Context, beef []byte, previousCoins map[uint32]*transaction.TransactionOutput) (overlay.AdmittanceInstructions, error) {
 					return overlay.AdmittanceInstructions{
 						OutputsToAdmit: []uint32{0},
 					}, nil
@@ -114,7 +114,7 @@ func TestEngine_Submit_SPVFail_ShouldReturnError(t *testing.T) {
 	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{
-				identifyAdmissableOutputsFunc: func(ctx context.Context, beef []byte, previousCoins map[uint32]*transaction.TransactionOutput) (overlay.AdmittanceInstructions, error) {
+				identifyAdmissibleOutputsFunc: func(ctx context.Context, beef []byte, previousCoins map[uint32]*transaction.TransactionOutput) (overlay.AdmittanceInstructions, error) {
 					return overlay.AdmittanceInstructions{
 						OutputsToAdmit: []uint32{0},
 					}, nil
@@ -220,7 +220,7 @@ func TestEngine_Submit_BroadcastFails_ShouldReturnError(t *testing.T) {
 	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{
-				identifyAdmissableOutputsFunc: func(ctx context.Context, beef []byte, previousCoins map[uint32]*transaction.TransactionOutput) (overlay.AdmittanceInstructions, error) {
+				identifyAdmissibleOutputsFunc: func(ctx context.Context, beef []byte, previousCoins map[uint32]*transaction.TransactionOutput) (overlay.AdmittanceInstructions, error) {
 					return overlay.AdmittanceInstructions{
 						OutputsToAdmit: []uint32{0},
 					}, nil
@@ -282,7 +282,7 @@ func TestEngine_Submit_OutputInsertFails_ShouldReturnError(t *testing.T) {
 	sut := &engine.Engine{
 		Managers: map[string]engine.TopicManager{
 			"test-topic": fakeManager{
-				identifyAdmissableOutputsFunc: func(ctx context.Context, beef []byte, previousCoins map[uint32]*transaction.TransactionOutput) (overlay.AdmittanceInstructions, error) {
+				identifyAdmissibleOutputsFunc: func(ctx context.Context, beef []byte, previousCoins map[uint32]*transaction.TransactionOutput) (overlay.AdmittanceInstructions, error) {
 					return overlay.AdmittanceInstructions{
 						OutputsToAdmit: []uint32{0},
 					}, nil

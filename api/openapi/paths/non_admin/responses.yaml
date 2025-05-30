@@ -41,6 +41,56 @@ components:
       required:
         - STEAK
 
+    LookupServiceProviderMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+        shortDescription:
+          type: string
+        iconURL:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        informationURL:
+          type: string
+          nullable: true
+      required:
+        - name
+        - shortDescription
+
+    TopicManagerMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+        shortDescription:
+          type: string
+        iconURL:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        informationURL:
+          type: string
+          nullable: true
+      required:
+        - name
+        - shortDescription
+
+    LookupServiceProvidersList:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/LookupServiceProviderMetadata"
+
+    TopicManagersList:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/TopicManagerMetadata"
+
     TopicManagerDocumentation:
       type: object
       properties:
@@ -75,21 +125,39 @@ components:
   responses:
     SubmitTransactionResponse:
       description: |
-         Overlay engine successfully processed the submitted transaction octet-stream with the specified topic headers.
+        Overlay engine successfully processed the submitted transaction octet-stream with the specified topic headers.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
 
+    LookupServiceProvidersListResponse:
+      description: |
+        A list of lookup service providers with their metadata.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LookupServiceProvidersList'
+
+    TopicManagersListResponse:
+      description: |
+        A list of topic managers with their metadata.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TopicManagersList'
+
     LookupServiceProviderDocumentationResponse:
-      description: Returns the documentation for the specified lookup service
+      description: |
+        Returns the documentation for the specified lookup service
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/LookupServiceDocumentation'
 
     TopicManagerDocumentationResponse:
-      description: Returns the documentation for the specified topic manager
+      description: |
+        Returns the documentation for the specified topic manager
       content:
         application/json:
           schema:

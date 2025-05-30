@@ -115,7 +115,7 @@ func (g *GASP) Sync(ctx context.Context) error {
 		}
 	}
 	if !g.Unidirectional {
-		if initialReply, err := g.Remote.GetInitialReplay(ctx, initialResponse); err != nil {
+		if initialReply, err := g.Remote.GetInitialReply(ctx, initialResponse); err != nil {
 			return err
 		} else {
 			slog.Info(fmt.Sprintf("%sReceived initial reply: %v", g.LogPrefix, initialReply))
@@ -130,13 +130,16 @@ func (g *GASP) Sync(ctx context.Context) error {
 					}()
 					var outgoingNode *GASPNode
 					slog.Info(fmt.Sprintf("%sHydrating GASP node for UTXO: %s", g.LogPrefix, outpoint.String()))
-					if outgoingNode, err = g.Storage.HydrateGASPNode(ctx, outpoint, outpoint, true); err == nil {
+					if outgoingNode, err = g.Storage.HydrateGASPNode(ctx, outpoint, outpoint, true); err == nil && outgoingNode != nil {
 						slog.Debug(fmt.Sprintf("%sSending unspent graph node for remote: %v", g.LogPrefix, outgoingNode))
 						if err = g.processOutgoingNode(ctx, outgoingNode, &sync.Map{}); err == nil {
 							return
 						}
+					} else if err != nil {
+						slog.Warn(fmt.Sprintf("%sError hydrating outgoing UTXO %s: %v", g.LogPrefix, outpoint, err))
+					} else {
+						slog.Debug(fmt.Sprintf("%sSkipping outgoing UTXO %s: not found in storage", g.LogPrefix, outpoint))
 					}
-					slog.Warn(fmt.Sprintf("%sError with outgoing UTXO %s: %v", g.LogPrefix, outpoint, err))
 				}(outpoint)
 			}
 			wg.Wait()
@@ -165,22 +168,24 @@ func (g *GASP) GetInitialResponse(ctx context.Context, request *GASPInitialReque
 	return resp, nil
 }
 
-func (g *GASP) GetInitialReplay(ctx context.Context, response *GASPInitialResponse) (resp *GASPInitialReply, err error) {
+func (g *GASP) GetInitialReply(ctx context.Context, response *GASPInitialResponse) (resp *GASPInitialReply, err error) {
 	slog.Info(fmt.Sprintf("%sReceived initial response: %v", g.LogPrefix, response))
 	if knownUtxos, err := g.Storage.FindKnownUTXOs(ctx, response.Since); err != nil {
 		return nil, err
 	} else {
+		slog.Info(fmt.Sprintf("%sFound %d known UTXOs since %d", g.LogPrefix, len(knownUtxos), response.Since))
 		resp = &GASPInitialReply{
-			UTXOList: make([]*overlay.Outpoint, 0, len(response.UTXOList)),
+			UTXOList: make([]*overlay.Outpoint, 0),
 		}
-		for _, utxo := range response.UTXOList {
-			if !slices.ContainsFunc(knownUtxos, func(known *overlay.Outpoint) bool {
-				return known.Equal(utxo)
+		// Return UTXOs we have that are NOT in the response list
+		for _, knownUtxo := range knownUtxos {
+			if !slices.ContainsFunc(response.UTXOList, func(responseUtxo *overlay.Outpoint) bool {
+				return responseUtxo.Equal(knownUtxo)
 			}) {
-				resp.UTXOList = append(resp.UTXOList, utxo)
+				resp.UTXOList = append(resp.UTXOList, knownUtxo)
 			}
 		}
-		slog.Debug(fmt.Sprintf("%sBuilt initial reply: %v", g.LogPrefix, resp))
+		slog.Info(fmt.Sprintf("%sBuilt initial reply: %v", g.LogPrefix, resp))
 		return resp, nil
 	}
 }
@@ -222,7 +227,7 @@ func (g *GASP) CompleteGraph(ctx context.Context, graphID *overlay.Outpoint) (er
 	return g.Storage.DiscardGraph(ctx, graphID)
 }
 
-func (g *GASP) processIncomingNode(ctx context.Context, node *GASPNode, spentBy *chainhash.Hash, seenNodes *sync.Map) error {
+func (g *GASP) processIncomingNode(ctx context.Context, node *GASPNode, spentBy *overlay.Outpoint, seenNodes *sync.Map) error {
 	if txid, err := g.computeTxID(node.RawTx); err != nil {
 		return err
 	} else {
@@ -259,7 +264,12 @@ func (g *GASP) processIncomingNode(ctx context.Context, node *GASPNode, spentBy 
 						errors <- err
 					} else {
 						slog.Debug(fmt.Sprintf("%sReceived new node: %v", g.LogPrefix, newNode))
-						if err := g.processIncomingNode(ctx, newNode, txid, seenNodes); err != nil {
+						// Create outpoint for the current node that is spending this input
+						spendingOutpoint := &overlay.Outpoint{
+							Txid:        *txid,
+							OutputIndex: node.OutputIndex,
+						}
+						if err := g.processIncomingNode(ctx, newNode, spendingOutpoint, seenNodes); err != nil {
 							errors <- err
 						}
 					}
@@ -283,6 +293,9 @@ func (g *GASP) processOutgoingNode(ctx context.Context, node *GASPNode, seenNode
 	if g.Unidirectional {
 		slog.Debug(fmt.Sprintf("%sSkipping outgoing node processing in unidirectional mode.", g.LogPrefix))
 		return nil
+	}
+	if node == nil {
+		return fmt.Errorf("node is nil in processOutgoingNode")
 	}
 	if txid, err := g.computeTxID(node.RawTx); err != nil {
 		return err

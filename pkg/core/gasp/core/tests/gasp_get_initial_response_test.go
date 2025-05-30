@@ -1,4 +1,4 @@
-package core_test
+package gasp_test
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
-	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +26,7 @@ func (f fakeGASPStorage) FindNeededInputs(ctx context.Context, tx *core.GASPNode
 	panic("not implemented")
 }
 
-func (f fakeGASPStorage) AppendToGraph(ctx context.Context, tx *core.GASPNode, spentBy *chainhash.Hash) error {
+func (f fakeGASPStorage) AppendToGraph(ctx context.Context, tx *core.GASPNode, spentBy *overlay.Outpoint) error {
 	panic("not implemented")
 }
 
