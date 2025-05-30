@@ -200,7 +200,7 @@ func (e *Engine) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode
 				}
 			}
 
-			if admit, err := e.Managers[topic].IdentifyAdmissableOutputs(ctx, taggedBEEF.Beef, previousCoins); err != nil {
+			if admit, err := e.Managers[topic].IdentifyAdmissibleOutputs(ctx, taggedBEEF.Beef, previousCoins); err != nil {
 				slog.Error("failed to identify admissible outputs", "topic", topic, "error", err)
 				return nil, err
 			} else {
@@ -412,7 +412,7 @@ func (e *Engine) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*
 				slog.Error("failed to find output in Lookup", "outpoint", formula.Outpoint.String(), "error", err)
 				return nil, err
 			} else if output != nil && output.Beef != nil {
-				if output, err := e.GetUTXOHistory(ctx, output, formula.Histoy, 0); err != nil {
+				if output, err := e.GetUTXOHistory(ctx, output, formula.History, 0); err != nil {
 					slog.Error("failed to get UTXO history in Lookup", "outpoint", formula.Outpoint.String(), "error", err)
 					return nil, err
 				} else if output != nil {

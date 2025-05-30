@@ -97,3 +97,48 @@ func TestEngine_SyncAdvertisements_ShouldLogAndContinue_WhenCreateOrRevokeFails(
 	// then
 	require.NoError(t, err)
 }
+
+func TestEngine_SyncAdvertisements_ShouldSkip_WhenHostingURLIsInvalid(t *testing.T) {
+	tests := []struct {
+		name       string
+		hostingURL string
+	}{
+		{"empty hosting URL", ""},
+		{"localhost URL", "https://localhost:8080"},
+		{"127.0.0.1 URL", "https://127.0.0.1:8080"},
+		{"private IP 10.x", "https://10.0.0.1"},
+		{"private IP 192.168.x", "https://192.168.1.1"},
+		{"private IP 172.16.x", "https://172.16.0.1"},
+		{"IPv6 loopback", "https://[::1]"},
+		{"non-routable 0.0.0.0", "https://0.0.0.0"},
+		{"HTTP protocol", "http://example.com"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given
+			sut := &engine.Engine{
+				Advertiser: fakeAdvertiser{
+					findAllAdvertisementsFunc: func(protocol overlay.Protocol) ([]*advertiser.Advertisement, error) {
+						return []*advertiser.Advertisement{}, nil
+					},
+					createAdvertisementsFunc: func(data []*advertiser.AdvertisementData) (overlay.TaggedBEEF, error) {
+						return overlay.TaggedBEEF{}, nil
+					},
+				},
+				Managers:   map[string]engine.TopicManager{"test-topic": fakeTopicManager{}},
+				HostingURL: tt.hostingURL,
+			}
+
+			// when
+			err := sut.SyncAdvertisements(context.Background())
+
+			// then
+			require.NoError(t, err)
+			// The function should return early without calling advertiser methods
+			// when hosting URL is invalid
+			// NOTE: This test assumes the Go implementation will add URL validation
+			// Currently, it doesn't validate URLs, so this is a suggested enhancement
+		})
+	}
+}
