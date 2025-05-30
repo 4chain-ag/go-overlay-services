@@ -121,7 +121,7 @@ components:
       required:
         - txid
         - vout
-  
+
     RequestSyncRes:
       type: object
       properties:
