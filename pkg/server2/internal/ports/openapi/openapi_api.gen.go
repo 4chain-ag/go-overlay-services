@@ -45,20 +45,18 @@ type GetTopicManagerDocumentationParams struct {
 	TopicManager string `form:"topicManager" json:"topicManager"`
 }
 
-// RequestForeignGASPNodeJSONBody defines parameters for RequestForeignGASPNode.
-type RequestForeignGASPNodeJSONBody struct {
-	// GraphID The graph ID in the format of "txID.outputIndex"
-	GraphID string `json:"graphID"`
+// RequestSyncResponseJSONBody defines parameters for RequestSyncResponse.
+type RequestSyncResponseJSONBody struct {
+	// Since Timestamp or sequence number from which to start synchronization
+	Since int `json:"since"`
 
-	// OutputIndex The output index
-	OutputIndex uint32 `json:"outputIndex"`
-
-	// TxID The transaction ID
-	TxID string `json:"txID"`
+	// Version The version number of the GASP protocol
+	Version int `json:"version"`
 }
 
-// RequestForeignGASPNodeParams defines parameters for RequestForeignGASPNode.
-type RequestForeignGASPNodeParams struct {
+// RequestSyncResponseParams defines parameters for RequestSyncResponse.
+type RequestSyncResponseParams struct {
+	// XBSVTopic Topic identifier for the sync response request
 	XBSVTopic string `json:"X-BSV-Topic"`
 }
 
@@ -67,8 +65,8 @@ type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
 
-// RequestForeignGASPNodeJSONRequestBody defines body for RequestForeignGASPNode for application/json ContentType.
-type RequestForeignGASPNodeJSONRequestBody RequestForeignGASPNodeJSONBody
+// RequestSyncResponseJSONRequestBody defines body for RequestSyncResponse for application/json ContentType.
+type RequestSyncResponseJSONRequestBody RequestSyncResponseJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -91,8 +89,8 @@ type ServerInterface interface {
 	// (GET /api/v1/listTopicManagers)
 	ListTopicManagers(c *fiber.Ctx) error
 
-	// (POST /api/v1/requestForeignGASPNode)
-	RequestForeignGASPNode(c *fiber.Ctx, params RequestForeignGASPNodeParams) error
+	// (POST /api/v1/requestSyncResponse)
+	RequestSyncResponse(c *fiber.Ctx, params RequestSyncResponseParams) error
 
 	// (POST /api/v1/submit)
 	SubmitTransaction(c *fiber.Ctx, params SubmitTransactionParams) error
@@ -231,15 +229,15 @@ func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
 	return siw.handler.ListTopicManagers(c)
 }
 
-// RequestForeignGASPNode operation middleware
-func (siw *ServerInterfaceWrapper) RequestForeignGASPNode(c *fiber.Ctx) error {
+// RequestSyncResponse operation middleware
+func (siw *ServerInterfaceWrapper) RequestSyncResponse(c *fiber.Ctx) error {
 
 	var err error
 
 	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params RequestForeignGASPNodeParams
+	var params RequestSyncResponseParams
 
 	headers := c.GetReqHeaders()
 
@@ -263,7 +261,7 @@ func (siw *ServerInterfaceWrapper) RequestForeignGASPNode(c *fiber.Ctx) error {
 			return err
 		}
 	}
-	return siw.handler.RequestForeignGASPNode(c, params)
+	return siw.handler.RequestSyncResponse(c, params)
 }
 
 // SubmitTransaction operation middleware
@@ -337,7 +335,7 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 
 	router.Get(options.BaseURL+"/api/v1/listTopicManagers", wrapper.ListTopicManagers)
 
-	router.Post(options.BaseURL+"/api/v1/requestForeignGASPNode", wrapper.RequestForeignGASPNode)
+	router.Post(options.BaseURL+"/api/v1/requestSyncResponse", wrapper.RequestSyncResponse)
 
 	router.Post(options.BaseURL+"/api/v1/submit", wrapper.SubmitTransaction)
 

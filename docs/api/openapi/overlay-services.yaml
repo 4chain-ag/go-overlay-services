@@ -34,6 +34,109 @@ paths:
                   - message
         '500':
           $ref: '#/components/responses/InternalServerErrorResponse'
+  /api/v1/listLookupServiceProviders:
+    get:
+      tags:
+        - non-admin
+      operationId: ListLookupServiceProviders
+      security:
+        - bearerAuth:
+            - user
+      responses:
+        '200':
+          description: |
+            A list of lookup service providers with their metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    shortDescription:
+                      type: string
+                    iconURL:
+                      type: string
+                      nullable: true
+                    version:
+                      type: string
+                      nullable: true
+                    informationURL:
+                      type: string
+                      nullable: true
+                  required:
+                    - name
+                    - shortDescription
+  /api/v1/listTopicManagers:
+    get:
+      tags:
+        - non-admin
+      operationId: ListTopicManagers
+      security:
+        - bearerAuth:
+            - user
+      responses:
+        '200':
+          description: |
+            A list of topic managers with their metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    shortDescription:
+                      type: string
+                    iconURL:
+                      type: string
+                      nullable: true
+                    version:
+                      type: string
+                      nullable: true
+                    informationURL:
+                      type: string
+                      nullable: true
+                  required:
+                    - name
+                    - shortDescription
+  /api/v1/getDocumentationForLookupServiceProvider:
+    get:
+      tags:
+        - non-admin
+      operationId: GetLookupServiceProviderDocumentation
+      security:
+        - bearerAuth:
+            - user
+      parameters:
+        - in: query
+          name: lookupService
+          schema:
+            type: string
+          required: true
+          description: The name of the lookup service provider to retrieve documentation for
+      responses:
+        '200':
+          description: |
+            Returns the documentation for the specified lookup service
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documentation:
+                    type: string
+                    description: Markdown-formatted documentation for the lookup service
+                required:
+                  - documentation
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
   /api/v1/admin/startGASPSync:
     post:
       tags:
@@ -55,6 +158,37 @@ paths:
                     type: string
                 required:
                   - message
+  /api/v1/getDocumentationForTopicManager:
+    get:
+      tags:
+        - non-admin
+      operationId: GetTopicManagerDocumentation
+      security:
+        - bearerAuth:
+            - user
+      parameters:
+        - in: query
+          name: topicManager
+          schema:
+            type: string
+          required: true
+          description: The name of the topic manager to retrieve documentation for
+      responses:
+        '200':
+          description: |
+            Returns the documentation for the specified topic manager
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documentation:
+                    type: string
+                    description: Markdown-formatted documentation for the topic manager
+                required:
+                  - documentation
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '500':
           $ref: '#/components/responses/InternalServerErrorResponse'
   /api/v1/submit:
@@ -132,6 +266,70 @@ paths:
           $ref: '#/components/responses/BadRequestResponse'
         '409':
           $ref: '#/components/responses/RequestTimeoutResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /api/v1/requestSyncResponse:
+    post:
+      tags:
+        - non-admin
+      operationId: RequestSyncResponse
+      security:
+        - bearerAuth:
+            - user
+      parameters:
+        - in: header
+          name: X-BSV-Topic
+          schema:
+            type: string
+          required: true
+          description: Topic identifier for the sync response request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version:
+                  type: integer
+                  description: The version number of the GASP protocol
+                since:
+                  type: integer
+                  description: Timestamp or sequence number from which to start synchronization
+              required:
+                - version
+                - since
+      responses:
+        '200':
+          description: |
+            Response containing synchronization data for the requested topic.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  UTXOList:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        txid:
+                          type: string
+                          description: Transaction ID in hexadecimal format
+                        vout:
+                          type: integer
+                          description: Output index number
+                      required:
+                        - txid
+                        - vout
+                  since:
+                    type: integer
+                    description: Timestamp or sequence number from which synchronization data was generated
+                required:
+                  - UTXOList
+                  - since
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '500':
           $ref: '#/components/responses/InternalServerErrorResponse'
 components:

@@ -2,7 +2,6 @@ package ports_test
 
 import (
 	"errors"
-	"net/http"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2"
@@ -123,7 +122,7 @@ func TestSubmitTransactionHandler_ValidCase(t *testing.T) {
 	// then:
 	expectedResponse := ports.NewSubmitTransactionSuccessResponse(expectations.STEAK)
 
-	require.Equal(t, http.StatusOK, res.StatusCode())
+	require.Equal(t, fiber.StatusOK, res.StatusCode())
 	require.Equal(t, expectedResponse, &actualResponse)
 	stub.AssertProvidersState()
 }

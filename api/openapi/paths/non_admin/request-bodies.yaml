@@ -13,26 +13,18 @@ components:
             required:
               - Transaction
 
-    RequestForeignGASPNodeBody:
+    RequestSyncResponseBody:
       content:
         application/json:
           schema:
             type: object
-            required:
-              - graphID
-              - txID
-              - outputIndex
             properties:
-              graphID:
-                type: string
-                description: The graph ID in the format of "txID.outputIndex"
-                example: "0000000000000000000000000000000000000000000000000000000000000000.1"
-              txID:
-                type: string
-                description: The transaction ID
-                example: "0000000000000000000000000000000000000000000000000000000000000000"
-              outputIndex:
+              version:
                 type: integer
-                description: The output index
-                format: uint32
-                example: 1
+                description: 'The version number of the GASP protocol'
+              since:
+                type: integer
+                description: 'Timestamp or sequence number from which to start synchronization'
+            required:
+              - version
+              - since

@@ -74,6 +74,13 @@ type RequestForeignGASPNodeProvider interface {
 	ProviderStateAsserter
 }
 
+// RequestSyncResponseProvider extends app.RequestSyncResponseProvider with the ability
+// to assert whether it was called during a test.
+type RequestSyncResponseProvider interface {
+	app.RequestSyncResponseProvider
+	ProviderStateAsserter
+}
+
 // TestOverlayEngineStubOption is a functional option type used to configure a TestOverlayEngineStub.
 // It allows setting custom behaviors for different parts of the TestOverlayEngineStub.
 type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
@@ -142,6 +149,14 @@ func WithRequestForeignGASPNodeProvider(provider RequestForeignGASPNodeProvider)
 	}
 }
 
+// WithRequestSyncResponseProvider allows setting a custom RequestSyncResponseProvider in a TestOverlayEngineStub.
+// This can be used to mock sync response behavior during tests.
+func WithRequestSyncResponseProvider(provider RequestSyncResponseProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.requestSyncResponseProvider = provider
+	}
+}
+
 // TestOverlayEngineStub is a test implementation of the engine.OverlayEngineProvider interface.
 // It is used to mock engine behavior in unit tests, allowing the simulation of various engine actions
 // like submitting transactions and synchronizing advertisements.
@@ -155,6 +170,7 @@ type TestOverlayEngineStub struct {
 	submitTransactionProvider         SubmitTransactionProvider
 	syncAdvertisementsProvider        SyncAdvertisementsProvider
 	requestForeignGASPNodeProvider    RequestForeignGASPNodeProvider
+	requestSyncResponseProvider       RequestSyncResponseProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider
@@ -211,10 +227,12 @@ func (s *TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, grap
 	return s.requestForeignGASPNodeProvider.ProvideForeignGASPNode(ctx, graphId, outpoins, topic)
 }
 
-// ProvideForeignSyncResponse returns a foreign sync response (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
+// ProvideForeignSyncResponse returns a foreign sync response.
+// It calls the ProvideForeignSyncResponse method of the configured RequestSyncResponseProvider.
 func (s *TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, initialRequess *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
-	panic("unimplemented")
+	s.t.Helper()
+
+	return s.requestSyncResponseProvider.ProvideForeignSyncResponse(ctx, initialRequess, topic)
 }
 
 // StartGASPSync starts the GASP synchronization process.
@@ -254,6 +272,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 		s.syncAdvertisementsProvider,
 		s.startGASPSyncProvider,
 		s.requestForeignGASPNodeProvider,
+		s.requestSyncResponseProvider,
 	}
 	for _, p := range providers {
 		p.AssertCalled()
@@ -273,6 +292,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 		syncAdvertisementsProvider:        NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
 		requestForeignGASPNodeProvider:    NewRequestForeignGASPNodeProviderMock(t, RequestForeignGASPNodeProviderMockExpectations{ProvideForeignGASPNodeCall: false}),
+		requestSyncResponseProvider:       NewRequestSyncResponseProviderMock(t, RequestSyncResponseProviderMockExpectations{ProvideForeignSyncResponseCall: false}),
 	}
 
 	for _, opt := range opts {

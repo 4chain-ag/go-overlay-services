@@ -17,6 +17,7 @@ type HandlerRegistryService struct {
 	submitTransaction         *SubmitTransactionHandler
 	syncAdvertisements        *SyncAdvertisementsHandler
 	requestForeignGASPNode    *RequestForeignGASPNodeHandler
+	requestSyncResponse       *RequestSyncResponseHandler
 }
 
 // ListLookupServiceProviders method delegates the request to the configured lookup list handler.
@@ -59,6 +60,11 @@ func (h *HandlerRegistryService) RequestForeignGASPNode(c *fiber.Ctx, params ope
 	return h.requestForeignGASPNode.Handle(c, params)
 }
 
+// RequestSyncResponse method delegates the request to the configured request sync response handler.
+func (h *HandlerRegistryService) RequestSyncResponse(c *fiber.Ctx, params openapi.RequestSyncResponseParams) error {
+	return h.requestSyncResponse.Handle(c, params)
+}
+
 // NewHandlerRegistryService creates and returns a new HandlerRegistryService instance.
 // It initializes all handler implementations with their required dependencies.
 func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
@@ -71,5 +77,6 @@ func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRe
 		submitTransaction:         NewSubmitTransactionHandler(provider),
 		syncAdvertisements:        NewSyncAdvertisementsHandler(provider),
 		requestForeignGASPNode:    NewRequestForeignGASPNodeHandler(provider),
+		requestSyncResponse:       NewRequestSyncResponseHandler(provider),
 	}
 }

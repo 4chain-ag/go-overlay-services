@@ -146,6 +146,32 @@ components:
         - outputMetadata
         - inputs
         - ancillaryBeef
+    UTXOItem:
+      type: object
+      properties:
+        txid:
+          type: string
+          description: 'Transaction ID in hexadecimal format'
+        vout:
+          type: integer
+          description: 'Output index number'
+      required:
+        - txid
+        - vout
+
+    RequestSyncRes:
+      type: object
+      properties:
+        UTXOList:
+          type: array
+          items:
+            $ref: "#/components/schemas/UTXOItem"
+        since:
+          type: integer
+          description: 'Timestamp or sequence number from which synchronization data was generated'
+      required:
+        - UTXOList
+        - since
 
   responses:
     SubmitTransactionResponse:
@@ -195,3 +221,10 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GASPNode'
+    RequestSyncResResponse:
+      description: |
+        Response containing synchronization data for the requested topic.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RequestSyncRes'
