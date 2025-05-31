@@ -8,106 +8,69 @@ import (
 	"github.com/bsv-blockchain/go-sdk/overlay"
 )
 
+// RequestForeignGASPNodeDTO represents the data transfer object used to request a foreign GASP node.
+// It includes all necessary identifiers and metadata for locating and categorizing the node.
 type RequestForeignGASPNodeDTO struct {
-	GraphID     string
-	TxID        string
-	OutputIndex uint32
-	Topic       string
+	GraphID     string // GraphID is a string representation of the graph's outpoint.
+	TxID        string // TxID is the hexadecimal transaction ID that produced the desired output.
+	OutputIndex uint32 // OutputIndex specifies the index of the output within the transaction.
+	Topic       string // Topic is a metadata string for categorizing or filtering the request.
 }
 
-// RequestForeignGASPNodeProvider defines the interface for requesting a foreign GASP node.
+// RequestForeignGASPNodeProvider defines the interface that must be implemented to fulfill a foreign GASP node request.
 type RequestForeignGASPNodeProvider interface {
+	// ProvideForeignGASPNode resolves the foreign GASP node using the given graphID, outpoint, and topic.
+	// Returns a pointer to a GASP node or an error if retrieval fails.
 	ProvideForeignGASPNode(ctx context.Context, graphID, outpoint *overlay.Outpoint, topic string) (*core.GASPNode, error)
 }
 
-// RequestForeignGASPNodeService coordinates the request for a foreign GASP node.
+// RequestForeignGASPNodeService coordinates and orchestrates the process of requesting a foreign GASP node.
+// It uses the injected provider to perform the actual node retrieval based on validated input.
 type RequestForeignGASPNodeService struct {
 	provider RequestForeignGASPNodeProvider
 }
 
-// RequestForeignGASPNode takes string representations of graphID and txID,
-// validates and converts them to appropriate types, and requests a foreign GASP node.
-// Returns the GASP node on success, an error if the provider fails.
+// RequestForeignGASPNode validates and converts input DTO fields and delegates the request to the provider.
+// It parses the transaction ID into a chain hash, constructs a new outpoint using the parsed chain hash
+// and the output index, and creates a graph outpoint from the GraphID string.
+// All validated data is then passed to the configured provider.
+// Returns the GASP node on success, or a detailed error if processing fails.
 func (s *RequestForeignGASPNodeService) RequestForeignGASPNode(ctx context.Context, dto RequestForeignGASPNodeDTO) (*core.GASPNode, error) {
-	if dto.Topic == "" {
-		return nil, NewRequestForeignGASPNodeMissingTopicError()
-	}
-
-	outpoint := &overlay.Outpoint{
-		OutputIndex: dto.OutputIndex,
-	}
-	txid, err := chainhash.NewHashFromHex(dto.TxID)
+	txID, err := chainhash.NewHashFromHex(dto.TxID)
 	if err != nil {
-		return nil, NewRequestForeignGASPNodeInvalidTxIDError()
+		return nil, NewRawDataProcessingWithFieldError(err, "TransactionID")
 	}
-	outpoint.Txid = *txid
 
 	graphID, err := overlay.NewOutpointFromString(dto.GraphID)
 	if err != nil {
-		return nil, NewRequestForeignGASPNodeInvalidGraphIDError()
+		return nil, NewRawDataProcessingWithFieldError(err, "GraphID")
 	}
 
-	node, err := s.provider.ProvideForeignGASPNode(ctx, graphID, outpoint, dto.Topic)
+	node, err := s.provider.ProvideForeignGASPNode(ctx, graphID, &overlay.Outpoint{
+		OutputIndex: dto.OutputIndex,
+		Txid:        *txID,
+	}, dto.Topic)
 	if err != nil {
-		return nil, NewRequestForeignGASPNodeProviderError(err)
+		return nil, NewForeignGASPNodeProviderError(err)
 	}
 	return node, nil
 }
 
-// NewRequestForeignGASPNodeService creates a new RequestForeignGASPNodeService with the given provider.
-// Panics if the provider is nil.
+// NewRequestForeignGASPNodeService constructs and returns a new instance of RequestForeignGASPNodeService.
+// Panics if the given provider is nil, as a valid provider is required for service operation.
 func NewRequestForeignGASPNodeService(provider RequestForeignGASPNodeProvider) *RequestForeignGASPNodeService {
 	if provider == nil {
 		panic("request foreign GASP node service provider is nil")
 	}
 
-	return &RequestForeignGASPNodeService{
-		provider: provider,
-	}
+	return &RequestForeignGASPNodeService{provider: provider}
 }
 
-// NewRequestForeignGASPNodeProviderError returns an Error indicating that the provider
-// failed to retrieve a foreign GASP node.
-func NewRequestForeignGASPNodeProviderError(err error) Error {
-	return Error{
-		errorType: ErrorTypeProviderFailure,
-		err:       err.Error(),
-		slug:      "Unable to retrieve foreign GASP node due to an error in the provider.",
-	}
-}
-
-// NewRequestForeignGASPNodeMissingTopicError returns an Error indicating that the topic is missing.
-func NewRequestForeignGASPNodeMissingTopicError() Error {
-	return Error{
-		errorType: ErrorTypeIncorrectInput,
-		err:       "topic is required",
-		slug:      "The topic parameter is required for requesting a foreign GASP node.",
-	}
-}
-
-// NewRequestForeignGASPNodeInvalidTxIDError returns an Error indicating that the txID is invalid.
-func NewRequestForeignGASPNodeInvalidTxIDError() Error {
-	return Error{
-		errorType: ErrorTypeIncorrectInput,
-		err:       "invalid txID format",
-		slug:      "The submitted txID is not a valid transaction hash.",
-	}
-}
-
-// NewRequestForeignGASPNodeInvalidGraphIDError returns an Error indicating that the graphID is invalid.
-func NewRequestForeignGASPNodeInvalidGraphIDError() Error {
-	return Error{
-		errorType: ErrorTypeIncorrectInput,
-		err:       "invalid graphID format",
-		slug:      "The submitted graphID is not in a valid format (expected: txID.outputIndex).",
-	}
-}
-
-// NewRequestForeignGASPNodeInvalidJSONError returns an Error indicating that the request body is invalid.
-func NewRequestForeignGASPNodeInvalidJSONError() Error {
-	return Error{
-		errorType: ErrorTypeIncorrectInput,
-		err:       "invalid JSON request body",
-		slug:      "The submitted request body is not valid JSON",
-	}
+// NewForeignGASPNodeProviderError wraps a lower-level provider error in a user-facing error with guidance.
+// Used when the provider fails to supply the requested foreign GASP node.
+func NewForeignGASPNodeProviderError(err error) Error {
+	return NewProviderFailureError(
+		err.Error(),
+		"Unable to process foreign gasp node request due to an internal error. Please try again later or contact the support team.",
+	)
 }

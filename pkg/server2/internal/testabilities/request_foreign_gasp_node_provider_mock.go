@@ -5,20 +5,8 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/require"
-)
-
-// Default test values for RequestForeignGASPNode operations
-const (
-	DefaultValidGraphID     = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.0"
-	DefaultValidTxID        = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-	DefaultValidOutputIndex = uint32(0)
-	DefaultValidTopic       = "test-topic"
-	DefaultInvalidTxID      = "invalid-txid"
-	DefaultInvalidGraphID   = "invalid-graphid"
-	DefaultEmptyTopic       = ""
 )
 
 // Default expectations for successful RequestForeignGASPNode operations
@@ -26,14 +14,6 @@ var DefaultRequestForeignGASPNodeProviderMockExpectations = RequestForeignGASPNo
 	ProvideForeignGASPNodeCall: true,
 	Error:                      nil,
 	Node:                       &core.GASPNode{},
-}
-
-// Default DTO for RequestForeignGASPNode operations
-var RequestForeignGASPNodeDefaultDTO = app.RequestForeignGASPNodeDTO{
-	GraphID:     DefaultValidGraphID,
-	TxID:        DefaultValidTxID,
-	OutputIndex: DefaultValidOutputIndex,
-	Topic:       DefaultValidTopic,
 }
 
 // RequestForeignGASPNodeProviderMockExpectations defines the expected behavior of the mock provider.

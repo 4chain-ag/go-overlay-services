@@ -1,8 +1,6 @@
 package app_test
 
 import (
-	"context"
-	"errors"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
@@ -12,37 +10,25 @@ import (
 
 func TestRequestForeignGASPNodeService_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
-		dto           app.RequestForeignGASPNodeDTO
-		expectations  testabilities.RequestForeignGASPNodeProviderMockExpectations
-		expectedError app.Error
+		dto               app.RequestForeignGASPNodeDTO
+		expectations      testabilities.RequestForeignGASPNodeProviderMockExpectations
+		expectedErrorType app.ErrorType
 	}{
-		"Request foreign GASP node service fails to handle the request with empty topic": {
+		"Request foreign GASP node service fails to due to an invalid transaction ID format": {
 			dto: app.RequestForeignGASPNodeDTO{
 				GraphID:     testabilities.DefaultValidGraphID,
-				TxID:        testabilities.DefaultValidTxID,
-				OutputIndex: testabilities.DefaultValidOutputIndex,
-				Topic:       "",
-			},
-			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
-				ProvideForeignGASPNodeCall: false,
-			},
-			expectedError: app.NewRequestForeignGASPNodeMissingTopicError(),
-		},
-		"Request foreign GASP node service fails to handle the request with invalid txID format": {
-			dto: app.RequestForeignGASPNodeDTO{
-				GraphID:     testabilities.DefaultValidGraphID,
-				TxID:        "invalid-txid",
+				TxID:        testabilities.DefaultInvalidTxID,
 				OutputIndex: testabilities.DefaultValidOutputIndex,
 				Topic:       testabilities.DefaultValidTopic,
 			},
 			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
 				ProvideForeignGASPNodeCall: false,
 			},
-			expectedError: app.NewRequestForeignGASPNodeInvalidTxIDError(),
+			expectedErrorType: app.ErrorTypeRawDataProcessing,
 		},
-		"Request foreign GASP node service fails to handle the request with invalid graphID format": {
+		"Request foreign GASP node service fails due to an invalid graph ID format": {
 			dto: app.RequestForeignGASPNodeDTO{
-				GraphID:     "invalid-graphid",
+				GraphID:     testabilities.DefaultInvalidGraphID,
 				TxID:        testabilities.DefaultValidTxID,
 				OutputIndex: testabilities.DefaultValidOutputIndex,
 				Topic:       testabilities.DefaultValidTopic,
@@ -50,20 +36,15 @@ func TestRequestForeignGASPNodeService_InvalidCases(t *testing.T) {
 			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
 				ProvideForeignGASPNodeCall: false,
 			},
-			expectedError: app.NewRequestForeignGASPNodeInvalidGraphIDError(),
+			expectedErrorType: app.ErrorTypeRawDataProcessing,
 		},
-		"Request foreign GASP node service fails to handle the request with provider failure": {
-			dto: app.RequestForeignGASPNodeDTO{
-				GraphID:     testabilities.DefaultValidGraphID,
-				TxID:        testabilities.DefaultValidTxID,
-				OutputIndex: testabilities.DefaultValidOutputIndex,
-				Topic:       testabilities.DefaultValidTopic,
-			},
+		"Request foreign GASP node service fails due to an internal provider failure": {
+			dto: testabilities.ForeignGASPNodeDefaultDTO,
 			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
 				ProvideForeignGASPNodeCall: true,
-				Error:                      errors.New("internal request foreign GASP node service test error"),
+				Error:                      testabilities.ErrTestNoopOpFailure,
 			},
-			expectedError: app.NewRequestForeignGASPNodeProviderError(errors.New("internal request foreign GASP node service test error")),
+			expectedErrorType: app.ErrorTypeProviderFailure,
 		},
 	}
 
@@ -74,12 +55,13 @@ func TestRequestForeignGASPNodeService_InvalidCases(t *testing.T) {
 			service := app.NewRequestForeignGASPNodeService(mock)
 
 			// when:
-			node, err := service.RequestForeignGASPNode(context.Background(), tc.dto)
+			node, err := service.RequestForeignGASPNode(t.Context(), tc.dto)
 
 			// then:
-			var appErr app.Error
-			require.ErrorAs(t, err, &appErr)
-			require.Equal(t, tc.expectedError, appErr)
+			var actualErr app.Error
+			require.ErrorAs(t, err, &actualErr)
+			require.Equal(t, tc.expectedErrorType, actualErr.ErrorType())
+
 			require.Nil(t, node)
 			mock.AssertCalled()
 		})
@@ -90,15 +72,9 @@ func TestRequestForeignGASPNodeService_ValidCase(t *testing.T) {
 	// given:
 	mock := testabilities.NewRequestForeignGASPNodeProviderMock(t, testabilities.DefaultRequestForeignGASPNodeProviderMockExpectations)
 	service := app.NewRequestForeignGASPNodeService(mock)
-	dto := app.RequestForeignGASPNodeDTO{
-		GraphID:     testabilities.DefaultValidGraphID,
-		TxID:        testabilities.DefaultValidTxID,
-		OutputIndex: testabilities.DefaultValidOutputIndex,
-		Topic:       testabilities.DefaultValidTopic,
-	}
 
 	// when:
-	node, err := service.RequestForeignGASPNode(context.Background(), dto)
+	node, err := service.RequestForeignGASPNode(t.Context(), testabilities.ForeignGASPNodeDefaultDTO)
 
 	// then:
 	require.NoError(t, err)

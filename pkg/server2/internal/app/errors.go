@@ -1,5 +1,7 @@
 package app
 
+import "fmt"
+
 // ErrorType represents a generic category of error used as descriptor
 // to clarify the nature of a failure that occurred in dependencies.
 type ErrorType struct {
@@ -90,6 +92,16 @@ func NewRawDataProcessingError(err, slug string) Error {
 		errorType: ErrorTypeRawDataProcessing,
 		err:       err,
 	}
+}
+
+// NewRawDataProcessingWithFieldError returns an error that handles issues encountered
+// during raw data processing related to the specific field. Such as invalid or corrupt input
+// data that prevents successful processing.
+func NewRawDataProcessingWithFieldError(err error, field string) Error {
+	return NewRawDataProcessingError(
+		err.Error(),
+		fmt.Sprintf("Unable to process request with given %s. Please verify the request content and try again later.", field),
+	)
 }
 
 // NewUnknownError returns an error that represents an unexpected or unclassified

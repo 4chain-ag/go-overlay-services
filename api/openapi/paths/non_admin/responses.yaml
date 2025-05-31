@@ -121,6 +121,7 @@ components:
           description: The raw transaction of the GASP node
         outputIndex:
           type: integer
+          format: uint32
           description: The output index of the GASP node
         proof:
           type: string
@@ -136,6 +137,7 @@ components:
           description: The inputs of the GASP node
         ancillaryBeef:
           type: string
+          format: byte
           description: The ancillary beef of the GASP node
       required:
         - graphID

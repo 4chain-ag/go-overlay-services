@@ -2,6 +2,7 @@ package testabilities
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
@@ -300,3 +301,6 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 	}
 	return &stub
 }
+
+// ErrTestNoopOpFailure represents a test-specific error used to simulate a no-op operation failure.
+var ErrTestNoopOpFailure = errors.New("noop test error")

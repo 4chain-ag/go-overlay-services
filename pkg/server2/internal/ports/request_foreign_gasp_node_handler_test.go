@@ -1,7 +1,6 @@
 package ports_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
@@ -16,30 +15,32 @@ import (
 
 func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
-		payload            interface{}
+		payload            any
 		headers            map[string]string
 		expectations       testabilities.RequestForeignGASPNodeProviderMockExpectations
 		expectedStatusCode int
 		expectedResponse   openapi.Error
 	}{
-		"Request foreign GASP node service fails to handle the request with missing topic header": {
-			payload: map[string]interface{}{
-				"graphID":     testabilities.DefaultValidGraphID,
-				"txID":        testabilities.DefaultValidTxID,
-				"outputIndex": testabilities.DefaultValidOutputIndex,
+		"Request foreign GASP node service fails to handle the request - internal error": {
+			payload: openapi.RequestForeignGASPNodeBody{
+				GraphID:     testabilities.DefaultValidGraphID,
+				OutputIndex: testabilities.DefaultValidOutputIndex,
+				TxID:        testabilities.DefaultValidTxID,
 			},
 			headers: map[string]string{
 				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
+				"X-BSV-Topic":           testabilities.DefaultValidTopic,
 			},
 			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
-				ProvideForeignGASPNodeCall: false,
+				ProvideForeignGASPNodeCall: true,
+				Error:                      testabilities.ErrTestNoopOpFailure,
 			},
-			expectedStatusCode: fiber.StatusBadRequest,
-			expectedResponse: openapi.Error{
-				Message: "The submitted request does not include required header: X-BSV-Topic.",
-			},
+			expectedStatusCode: fiber.StatusInternalServerError,
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t,
+				app.NewForeignGASPNodeProviderError(testabilities.ErrTestNoopOpFailure),
+			),
 		},
-		"Request foreign GASP node service fails to handle the request with invalid JSON body": {
+		"Malformed request body content in the HTTP request": {
 			payload: "INVALID_JSON",
 			headers: map[string]string{
 				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
@@ -48,79 +49,8 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
 				ProvideForeignGASPNodeCall: false,
 			},
-			expectedStatusCode: fiber.StatusBadRequest,
-			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidJSONError()),
-		},
-		"Request foreign GASP node service fails to handle the request with empty topic": {
-			payload: map[string]interface{}{
-				"graphID":     testabilities.DefaultValidGraphID,
-				"txID":        testabilities.DefaultValidTxID,
-				"outputIndex": testabilities.DefaultValidOutputIndex,
-			},
-			headers: map[string]string{
-				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
-				"X-BSV-Topic":           testabilities.DefaultEmptyTopic,
-			},
-			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
-				ProvideForeignGASPNodeCall: false,
-			},
-			expectedStatusCode: fiber.StatusBadRequest,
-			expectedResponse: openapi.Error{
-				Message: "One or more topics are in an invalid format. Empty string values are not allowed.",
-			},
-		},
-		"Request foreign GASP node service fails to handle the request with invalid txID format": {
-			payload: map[string]interface{}{
-				"graphID":     testabilities.DefaultValidGraphID,
-				"txID":        testabilities.DefaultInvalidTxID,
-				"outputIndex": testabilities.DefaultValidOutputIndex,
-			},
-			headers: map[string]string{
-				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
-				"X-BSV-Topic":           testabilities.DefaultValidTopic,
-			},
-			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
-				ProvideForeignGASPNodeCall: false,
-			},
-			expectedStatusCode: fiber.StatusBadRequest,
-			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidTxIDError()),
-		},
-		"Request foreign GASP node service fails to handle the request with invalid graphID format": {
-			payload: map[string]interface{}{
-				"graphID":     testabilities.DefaultInvalidGraphID,
-				"txID":        testabilities.DefaultValidTxID,
-				"outputIndex": testabilities.DefaultValidOutputIndex,
-			},
-			headers: map[string]string{
-				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
-				"X-BSV-Topic":           testabilities.DefaultValidTopic,
-			},
-			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
-				ProvideForeignGASPNodeCall: false,
-			},
-			expectedStatusCode: fiber.StatusBadRequest,
-			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestForeignGASPNodeInvalidGraphIDError()),
-		},
-		"Request foreign GASP node service fails to handle the request with provider failure": {
-			payload: map[string]interface{}{
-				"graphID":     testabilities.DefaultValidGraphID,
-				"txID":        testabilities.DefaultValidTxID,
-				"outputIndex": testabilities.DefaultValidOutputIndex,
-			},
-			headers: map[string]string{
-				fiber.HeaderContentType: fiber.MIMEApplicationJSON,
-				"X-BSV-Topic":           testabilities.DefaultValidTopic,
-			},
-			expectations: testabilities.RequestForeignGASPNodeProviderMockExpectations{
-				ProvideForeignGASPNodeCall: true,
-				Error:                      errors.New("internal request foreign GASP node provider error during handler unit test"),
-			},
 			expectedStatusCode: fiber.StatusInternalServerError,
-			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t,
-				app.NewRequestForeignGASPNodeProviderError(
-					errors.New("internal request foreign GASP node provider error during handler unit test"),
-				),
-			),
+			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, ports.NewForeignGASPBodyReadError(testabilities.ErrTestNoopOpFailure)),
 		},
 	}
 
@@ -156,29 +86,25 @@ func TestRequestForeignGASPNodeHandler_ValidCase(t *testing.T) {
 		Node:                       &core.GASPNode{},
 	}
 
-	expectedResponse := ports.NewRequestForeignGASPNodeSuccessResponse(expectations.Node)
 	stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithRequestForeignGASPNodeProvider(
 		testabilities.NewRequestForeignGASPNodeProviderMock(t, expectations),
 	))
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
-
-	headers := map[string]string{
-		"X-BSV-Topic":           testabilities.DefaultValidTopic,
-		fiber.HeaderContentType: fiber.MIMEApplicationJSON,
-	}
-
-	payload := map[string]interface{}{
-		"graphID":     testabilities.DefaultValidGraphID,
-		"txID":        testabilities.DefaultValidTxID,
-		"outputIndex": testabilities.DefaultValidOutputIndex,
-	}
+	expectedResponse := ports.NewRequestForeignGASPNodeSuccessResponse(expectations.Node)
 
 	// when:
 	var actualResponse openapi.GASPNode
 	res, _ := fixture.Client().
 		R().
-		SetHeaders(headers).
-		SetBody(payload).
+		SetHeaders(map[string]string{
+			"X-BSV-Topic":           testabilities.DefaultValidTopic,
+			fiber.HeaderContentType: fiber.MIMEApplicationJSON,
+		}).
+		SetBody(openapi.RequestForeignGASPNodeBody{
+			GraphID:     testabilities.DefaultValidGraphID,
+			OutputIndex: testabilities.DefaultValidOutputIndex,
+			TxID:        testabilities.DefaultValidTxID,
+		}).
 		SetResult(&actualResponse).
 		Post("/api/v1/requestForeignGASPNode")
 

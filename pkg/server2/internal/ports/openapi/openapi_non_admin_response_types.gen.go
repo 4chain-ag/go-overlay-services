@@ -14,7 +14,7 @@ type AdmittanceInstructions struct {
 // GASPNode A GASP node representation from the overlay engine
 type GASPNode struct {
 	// AncillaryBeef The ancillary beef of the GASP node
-	AncillaryBeef string `json:"ancillaryBeef"`
+	AncillaryBeef []byte `json:"ancillaryBeef"`
 
 	// GraphID The graph ID of the GASP node
 	GraphID string `json:"graphID"`
@@ -23,7 +23,7 @@ type GASPNode struct {
 	Inputs map[string]interface{} `json:"inputs"`
 
 	// OutputIndex The output index of the GASP node
-	OutputIndex int `json:"outputIndex"`
+	OutputIndex uint32 `json:"outputIndex"`
 
 	// OutputMetadata The metadata of the GASP node
 	OutputMetadata string `json:"outputMetadata"`
