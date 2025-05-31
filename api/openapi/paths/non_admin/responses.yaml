@@ -79,16 +79,16 @@ components:
           type: string
         iconURL:
           type: string
-          nullable: true
         version:
           type: string
-          nullable: true
         informationURL:
           type: string
-          nullable: true
       required:
         - name
         - shortDescription
+        - iconURL
+        - version
+        - informationURL
 
     TopicManagerMetadata:
       type: object
