@@ -16,6 +16,7 @@ type HandlerRegistryService struct {
 	topicManagerDocumentation *TopicManagerDocumentationHandler
 	submitTransaction         *SubmitTransactionHandler
 	syncAdvertisements        *SyncAdvertisementsHandler
+	lookupQuestion            *LookupQuestionHandler
 	requestSyncResponse       *RequestSyncResponseHandler
 }
 
@@ -54,6 +55,12 @@ func (h *HandlerRegistryService) StartGASPSync(c *fiber.Ctx) error {
 	return h.startGASPSync.Handle(c)
 }
 
+// LookupQuestion method delegates the request to the configured lookup question handler.
+func (h *HandlerRegistryService) LookupQuestion(c *fiber.Ctx) error {
+	var params openapi.LookupQuestionBody
+	return h.lookupQuestion.Handle(c, params)
+}
+
 // RequestSyncResponse method delegates the request to the configured request sync response handler.
 func (h *HandlerRegistryService) RequestSyncResponse(c *fiber.Ctx, params openapi.RequestSyncResponseParams) error {
 	return h.requestSyncResponse.Handle(c, params)
@@ -70,6 +77,7 @@ func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRe
 		topicManagerDocumentation: NewTopicManagerDocumentationHandler(provider),
 		submitTransaction:         NewSubmitTransactionHandler(provider),
 		syncAdvertisements:        NewSyncAdvertisementsHandler(provider),
+		lookupQuestion:            NewLookupQuestionHandler(provider),
 		requestSyncResponse:       NewRequestSyncResponseHandler(provider),
 	}
 }

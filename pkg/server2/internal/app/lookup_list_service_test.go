@@ -5,27 +5,28 @@ import (
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
+	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLookupListService_ValidCases(t *testing.T) {
 	tests := map[string]struct {
 		expectations testabilities.LookupListProviderMockExpectations
-		expected     app.LookupServiceProviders
+		expected     map[string]*overlay.MetaData
 	}{
 		"List lookup service returns an empty lookup service providers list.": {
-			expectations: testabilities.LookupListProviderMockExpectations{
-				MetadataList:                   testabilities.LookupListEmptyMetadata,
-				ListLookupServiceProvidersCall: true,
-			},
-			expected: testabilities.LookupListEmptyExpectedResponse,
-		},
-		"List lookup service returns a default lookup service providers list.": {
 			expectations: testabilities.LookupListProviderMockExpectations{
 				MetadataList:                   testabilities.LookupListDefaultMetadata,
 				ListLookupServiceProvidersCall: true,
 			},
-			expected: testabilities.LookupListDefaultExpectedResponse,
+			expected: testabilities.LookupListDefaultMetadata,
+		},
+		"List lookup service returns a default lookup service providers list.": {
+			expectations: testabilities.LookupListProviderMockExpectations{
+				MetadataList:                   map[string]*overlay.MetaData{},
+				ListLookupServiceProvidersCall: true,
+			},
+			expected: map[string]*overlay.MetaData{},
 		},
 	}
 

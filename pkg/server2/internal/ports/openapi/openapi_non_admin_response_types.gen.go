@@ -11,6 +11,13 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"outputsToAdmit"`
 }
 
+// LookupAnswer defines model for LookupAnswer.
+type LookupAnswer struct {
+	Outputs []OutputListItem `json:"outputs"`
+	Result  string           `json:"result"`
+	Type    string           `json:"type"`
+}
+
 // LookupServiceDocumentation defines model for LookupServiceDocumentation.
 type LookupServiceDocumentation struct {
 	// Documentation Markdown-formatted documentation for the lookup service
@@ -19,15 +26,21 @@ type LookupServiceDocumentation struct {
 
 // LookupServiceProviderMetadata defines model for LookupServiceProviderMetadata.
 type LookupServiceProviderMetadata struct {
-	IconURL          *string `json:"iconURL"`
-	InformationURL   *string `json:"informationURL"`
-	Name             string  `json:"name"`
-	ShortDescription string  `json:"shortDescription"`
-	Version          *string `json:"version"`
+	IconURL          string `json:"iconURL"`
+	InformationURL   string `json:"informationURL"`
+	Name             string `json:"name"`
+	ShortDescription string `json:"shortDescription"`
+	Version          string `json:"version"`
 }
 
 // LookupServiceProvidersList defines model for LookupServiceProvidersList.
 type LookupServiceProvidersList map[string]LookupServiceProviderMetadata
+
+// OutputListItem defines model for OutputListItem.
+type OutputListItem struct {
+	Beef        []byte `json:"beef"`
+	OutputIndex uint32 `json:"outputIndex"`
+}
 
 // RequestSyncRes defines model for RequestSyncRes.
 type RequestSyncRes struct {
@@ -71,6 +84,9 @@ type UTXOItem struct {
 	// Vout Output index number
 	Vout int `json:"vout"`
 }
+
+// LookupQuestionResponse defines model for LookupQuestionResponse.
+type LookupQuestionResponse = LookupAnswer
 
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation

@@ -3,56 +3,24 @@ package testabilities
 import (
 	"testing"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/require"
 )
 
-// Standard metadata maps that can be used for testing
-var (
-	// LookupListEmptyMetadata is an empty metadata map
-	LookupListEmptyMetadata = map[string]*overlay.MetaData{}
-
-	// LookupListDefaultMetadata contains standard metadata for testing
-	LookupListDefaultMetadata = map[string]*overlay.MetaData{
-		"lookup_service1": {
-			Description: "Description 1",
-			Icon:        "https://example.com/icon.png",
-			Version:     "1.0.0",
-			InfoUrl:     "https://example.com/info",
-		},
-		"lookup_service2": {
-			Description: "Description 2",
-			Icon:        "https://example.com/icon2.png",
-			Version:     "2.0.0",
-			InfoUrl:     "https://example.com/info2",
-		},
-	}
-)
-
-// Standard expected responses that can be used for testing
-var (
-	// LookupListEmptyExpectedResponse is an empty response
-	LookupListEmptyExpectedResponse = app.LookupServiceProviders{}
-
-	// LookupListDefaultExpectedResponse contains the standard expected response matching LookupListDefaultMetadata
-	LookupListDefaultExpectedResponse = app.LookupServiceProviders{
-		"lookup_service1": app.LookupMetadata{
-			Name:             "lookup_service1",
-			ShortDescription: "Description 1",
-			IconURL:          "https://example.com/icon.png",
-			Version:          "1.0.0",
-			InformationURL:   "https://example.com/info",
-		},
-		"lookup_service2": app.LookupMetadata{
-			Name:             "lookup_service2",
-			ShortDescription: "Description 2",
-			IconURL:          "https://example.com/icon2.png",
-			Version:          "2.0.0",
-			InformationURL:   "https://example.com/info2",
-		},
-	}
-)
+var LookupListDefaultMetadata = map[string]*overlay.MetaData{
+	"lookup_service1": {
+		Description: "Description 1",
+		Icon:        "https://example.com/icon.png",
+		Version:     "1.0.0",
+		InfoUrl:     "https://example.com/info",
+	},
+	"lookup_service2": {
+		Description: "Description 2",
+		Icon:        "https://example.com/icon2.png",
+		Version:     "2.0.0",
+		InfoUrl:     "https://example.com/info2",
+	},
+}
 
 // LookupListProviderMockExpectations defines the expected behavior of the LookupListProviderMock during a test.
 type LookupListProviderMockExpectations struct {
