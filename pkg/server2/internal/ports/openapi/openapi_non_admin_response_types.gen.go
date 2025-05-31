@@ -11,6 +11,33 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"outputsToAdmit"`
 }
 
+// GASPNode A GASP node representation from the overlay engine
+type GASPNode struct {
+	// AncillaryBeef The ancillary beef of the GASP node
+	AncillaryBeef []byte `json:"ancillaryBeef"`
+
+	// GraphID The graph ID of the GASP node
+	GraphID string `json:"graphID"`
+
+	// Inputs The inputs of the GASP node
+	Inputs map[string]interface{} `json:"inputs"`
+
+	// OutputIndex The output index of the GASP node
+	OutputIndex uint32 `json:"outputIndex"`
+
+	// OutputMetadata The metadata of the GASP node
+	OutputMetadata string `json:"outputMetadata"`
+
+	// Proof The proof of the GASP node
+	Proof string `json:"proof"`
+
+	// RawTx The raw transaction of the GASP node
+	RawTx string `json:"rawTx"`
+
+	// TxMetadata The metadata of the GASP node
+	TxMetadata string `json:"txMetadata"`
+}
+
 // LookupServiceDocumentation defines model for LookupServiceDocumentation.
 type LookupServiceDocumentation struct {
 	// Documentation Markdown-formatted documentation for the lookup service
@@ -77,6 +104,9 @@ type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation
 
 // LookupServiceProvidersListResponse defines model for LookupServiceProvidersListResponse.
 type LookupServiceProvidersListResponse = LookupServiceProvidersList
+
+// RequestForeignGASPNodeResponse A GASP node representation from the overlay engine
+type RequestForeignGASPNodeResponse = GASPNode
 
 // RequestSyncResResponse defines model for RequestSyncResResponse.
 type RequestSyncResResponse = RequestSyncRes

@@ -2,6 +2,7 @@ package testabilities
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
@@ -64,6 +65,13 @@ type StartGASPSyncProvider interface {
 // to assert whether it was called during a test.
 type TopicManagerDocumentationProvider interface {
 	app.TopicManagerDocumentationProvider
+	ProviderStateAsserter
+}
+
+// RequestForeignGASPNodeProvider extends app.RequestForeignGASPNodeProvider with the ability
+// to assert whether it was called during a test.
+type RequestForeignGASPNodeProvider interface {
+	app.RequestForeignGASPNodeProvider
 	ProviderStateAsserter
 }
 
@@ -134,6 +142,14 @@ func WithTopicManagerDocumentationProvider(provider TopicManagerDocumentationPro
 	}
 }
 
+// WithRequestForeignGASPNodeProvider allows setting a custom RequestForeignGASPNodeProvider in a TestOverlayEngineStub.
+// This can be used to mock foreign GASP node request behavior during tests.
+func WithRequestForeignGASPNodeProvider(provider RequestForeignGASPNodeProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.requestForeignGASPNodeProvider = provider
+	}
+}
+
 // WithRequestSyncResponseProvider allows setting a custom RequestSyncResponseProvider in a TestOverlayEngineStub.
 // This can be used to mock sync response behavior during tests.
 func WithRequestSyncResponseProvider(provider RequestSyncResponseProvider) TestOverlayEngineStubOption {
@@ -154,6 +170,7 @@ type TestOverlayEngineStub struct {
 	startGASPSyncProvider             StartGASPSyncProvider
 	submitTransactionProvider         SubmitTransactionProvider
 	syncAdvertisementsProvider        SyncAdvertisementsProvider
+	requestForeignGASPNodeProvider    RequestForeignGASPNodeProvider
 	requestSyncResponseProvider       RequestSyncResponseProvider
 }
 
@@ -204,10 +221,11 @@ func (s *TestOverlayEngineStub) Lookup(ctx context.Context, question *lookup.Loo
 	panic("unimplemented")
 }
 
-// ProvideForeignGASPNode returns a foreign GASP node (unimplemented).
-// This is a placeholder function meant to be overridden in actual implementations.
-func (s *TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoins *overlay.Outpoint, topic string) (*core.GASPNode, error) {
-	panic("unimplemented")
+// ProvideForeignGASPNode returns a foreign GASP node using the configured RequestForeignGASPNodeProvider.
+func (s *TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoints *overlay.Outpoint, topic string) (*core.GASPNode, error) {
+	s.t.Helper()
+
+	return s.requestForeignGASPNodeProvider.ProvideForeignGASPNode(ctx, graphId, outpoints, topic)
 }
 
 // ProvideForeignSyncResponse returns a foreign sync response.
@@ -254,6 +272,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 		s.lookupDocumentationProvider,
 		s.syncAdvertisementsProvider,
 		s.startGASPSyncProvider,
+		s.requestForeignGASPNodeProvider,
 		s.requestSyncResponseProvider,
 	}
 	for _, p := range providers {
@@ -273,6 +292,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		startGASPSyncProvider:             NewStartGASPSyncProviderMock(t, StartGASPSyncProviderMockExpectations{StartGASPSyncCall: false}),
 		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
 		syncAdvertisementsProvider:        NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
+		requestForeignGASPNodeProvider:    NewRequestForeignGASPNodeProviderMock(t, RequestForeignGASPNodeProviderMockExpectations{ProvideForeignGASPNodeCall: false}),
 		requestSyncResponseProvider:       NewRequestSyncResponseProviderMock(t, RequestSyncResponseProviderMockExpectations{ProvideForeignSyncResponseCall: false}),
 	}
 
@@ -281,3 +301,6 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 	}
 	return &stub
 }
+
+// ErrTestNoopOpFailure represents a test-specific error used to simulate a no-op operation failure.
+var ErrTestNoopOpFailure = errors.New("noop test error")

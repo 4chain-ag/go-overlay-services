@@ -45,6 +45,23 @@ type GetTopicManagerDocumentationParams struct {
 	TopicManager string `form:"topicManager" json:"topicManager"`
 }
 
+// RequestForeignGASPNodeJSONBody defines parameters for RequestForeignGASPNode.
+type RequestForeignGASPNodeJSONBody struct {
+	// GraphID The graph ID in the format of "txID.outputIndex"
+	GraphID string `json:"graphID"`
+
+	// OutputIndex The output index
+	OutputIndex uint32 `json:"outputIndex"`
+
+	// TxID The transaction ID
+	TxID string `json:"txID"`
+}
+
+// RequestForeignGASPNodeParams defines parameters for RequestForeignGASPNode.
+type RequestForeignGASPNodeParams struct {
+	XBSVTopic string `json:"X-BSV-Topic"`
+}
+
 // RequestSyncResponseJSONBody defines parameters for RequestSyncResponse.
 type RequestSyncResponseJSONBody struct {
 	// Since Timestamp or sequence number from which to start synchronization
@@ -64,6 +81,9 @@ type RequestSyncResponseParams struct {
 type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
+
+// RequestForeignGASPNodeJSONRequestBody defines body for RequestForeignGASPNode for application/json ContentType.
+type RequestForeignGASPNodeJSONRequestBody RequestForeignGASPNodeJSONBody
 
 // RequestSyncResponseJSONRequestBody defines body for RequestSyncResponse for application/json ContentType.
 type RequestSyncResponseJSONRequestBody RequestSyncResponseJSONBody
@@ -88,6 +108,9 @@ type ServerInterface interface {
 
 	// (GET /api/v1/listTopicManagers)
 	ListTopicManagers(c *fiber.Ctx) error
+
+	// (POST /api/v1/requestForeignGASPNode)
+	RequestForeignGASPNode(c *fiber.Ctx, params RequestForeignGASPNodeParams) error
 
 	// (POST /api/v1/requestSyncResponse)
 	RequestSyncResponse(c *fiber.Ctx, params RequestSyncResponseParams) error
@@ -229,6 +252,41 @@ func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
 	return siw.handler.ListTopicManagers(c)
 }
 
+// RequestForeignGASPNode operation middleware
+func (siw *ServerInterfaceWrapper) RequestForeignGASPNode(c *fiber.Ctx) error {
+
+	var err error
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RequestForeignGASPNodeParams
+
+	headers := c.GetReqHeaders()
+
+	// ------------- Required header parameter "X-BSV-Topic" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-BSV-Topic")]; found {
+		var XBSVTopic string
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-BSV-Topic", valueList[0], &XBSVTopic, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "One or more topics are in an invalid format. Empty string values are not allowed.")
+		}
+
+		params.XBSVTopic = XBSVTopic
+
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "The submitted request does not include required header: X-BSV-Topic.")
+	}
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.RequestForeignGASPNode(c, params)
+}
+
 // RequestSyncResponse operation middleware
 func (siw *ServerInterfaceWrapper) RequestSyncResponse(c *fiber.Ctx) error {
 
@@ -334,6 +392,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Get(options.BaseURL+"/api/v1/listLookupServiceProviders", wrapper.ListLookupServiceProviders)
 
 	router.Get(options.BaseURL+"/api/v1/listTopicManagers", wrapper.ListTopicManagers)
+
+	router.Post(options.BaseURL+"/api/v1/requestForeignGASPNode", wrapper.RequestForeignGASPNode)
 
 	router.Post(options.BaseURL+"/api/v1/requestSyncResponse", wrapper.RequestSyncResponse)
 

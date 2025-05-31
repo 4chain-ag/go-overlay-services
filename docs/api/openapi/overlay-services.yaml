@@ -332,6 +332,93 @@ paths:
           $ref: '#/components/responses/BadRequestResponse'
         '500':
           $ref: '#/components/responses/InternalServerErrorResponse'
+  /api/v1/requestForeignGASPNode:
+    post:
+      tags:
+        - non-admin
+      operationId: RequestForeignGASPNode
+      security:
+        - bearerAuth:
+            - user
+      parameters:
+        - in: header
+          name: X-BSV-Topic
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - graphID
+                - txID
+                - outputIndex
+              properties:
+                graphID:
+                  type: string
+                  description: The graph ID in the format of "txID.outputIndex"
+                  example: 0000000000000000000000000000000000000000000000000000000000000000.1
+                txID:
+                  type: string
+                  description: The transaction ID
+                  example: '0000000000000000000000000000000000000000000000000000000000000000'
+                outputIndex:
+                  type: integer
+                  description: The output index
+                  format: uint32
+                  example: 1
+      responses:
+        '200':
+          description: |
+            Overlay engine successfully provided the requested foreign GASP node.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: A GASP node representation from the overlay engine
+                properties:
+                  graphID:
+                    type: string
+                    description: The graph ID of the GASP node
+                  rawTx:
+                    type: string
+                    description: The raw transaction of the GASP node
+                  outputIndex:
+                    type: integer
+                    format: uint32
+                    description: The output index of the GASP node
+                  proof:
+                    type: string
+                    description: The proof of the GASP node
+                  txMetadata:
+                    type: string
+                    description: The metadata of the GASP node
+                  outputMetadata:
+                    type: string
+                    description: The metadata of the GASP node
+                  inputs:
+                    type: object
+                    description: The inputs of the GASP node
+                  ancillaryBeef:
+                    type: string
+                    format: byte
+                    description: The ancillary beef of the GASP node
+                required:
+                  - graphID
+                  - rawTx
+                  - outputIndex
+                  - proof
+                  - txMetadata
+                  - outputMetadata
+                  - inputs
+                  - ancillaryBeef
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
 components:
   schemas:
     Error:
