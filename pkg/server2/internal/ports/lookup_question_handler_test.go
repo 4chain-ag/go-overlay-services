@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
@@ -16,41 +17,25 @@ import (
 func TestLookupQuestionHandler_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
 		expectedStatusCode int
-		body               interface{}
+		payload            any
 		expectedResponse   openapi.Error
 		expectations       testabilities.LookupQuestionProviderMockExpectations
 	}{
-		"Lookup Question service fails with invalid request body malformed JSON": {
-			expectedStatusCode: fiber.StatusBadRequest,
-			body:               `{invalid json`,
-			expectedResponse:   testabilities.NewLookupQuestionInvalidRequestBodyResponse(),
-			expectations: testabilities.LookupQuestionProviderMockExpectations{
-				LookupQuestionCall: false,
-			},
-		},
-		"Lookup Question service fails with missing service field in request body": {
-			expectedStatusCode: fiber.StatusBadRequest,
-			body:               map[string]interface{}{"query": map[string]string{"test": "value"}},
-			expectedResponse:   testabilities.NewLookupQuestionMissingServiceFieldResponse(),
-			expectations: testabilities.LookupQuestionProviderMockExpectations{
-				LookupQuestionCall: false,
-			},
-		},
-		"Lookup Question service fails with empty service field in request body": {
-			expectedStatusCode: fiber.StatusBadRequest,
-			body:               map[string]interface{}{"service": "", "query": map[string]string{"test": "value"}},
-			expectedResponse:   testabilities.NewLookupQuestionMissingServiceFieldResponse(),
-			expectations: testabilities.LookupQuestionProviderMockExpectations{
-				LookupQuestionCall: false,
-			},
-		},
-		"Lookup Question service fails with provider error": {
+		"Malformed request body content in the HTTP request": {
 			expectedStatusCode: fiber.StatusInternalServerError,
-			body:               map[string]interface{}{"service": "test-service", "query": map[string]string{"test": "value"}},
-			expectedResponse:   testabilities.NewLookupQuestionProviderErrorResponse(),
+			payload:            `{invalid json`,
+			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, ports.NewRequestBodyParserError(errors.New("noop test error"))), // TODO: this should be updated after merging 130-add-request-foreign-gasp-node-service
+			expectations: testabilities.LookupQuestionProviderMockExpectations{
+				LookupQuestionCall: false,
+			},
+		},
+		"Lookup question service fails to handle the request - internal error": {
+			expectedStatusCode: fiber.StatusInternalServerError,
+			payload:            map[string]any{"service": "test-service", "query": map[string]string{"test": "value"}},
+			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewLookupQuestionProviderError(errors.New("noop test error"))), // TODO: this should be updated after merging 130-add-request-foreign-gasp-node-service
 			expectations: testabilities.LookupQuestionProviderMockExpectations{
 				LookupQuestionCall: true,
-				Error:              errors.New("provider error"),
+				Error:              errors.New("noop test error"), // TODO: this should be updated after merging 130-add-request-foreign-gasp-node-service
 			},
 		},
 	}
@@ -67,7 +52,7 @@ func TestLookupQuestionHandler_InvalidCases(t *testing.T) {
 			res, _ := fixture.Client().
 				R().
 				SetHeader("Content-Type", "application/json").
-				SetBody(tc.body).
+				SetBody(tc.payload).
 				SetError(&actualResponse).
 				Post("/api/v1/lookup")
 
@@ -85,29 +70,33 @@ func TestLookupQuestionHandler_ValidCase(t *testing.T) {
 		LookupQuestionCall: true,
 		Answer: &lookup.LookupAnswer{
 			Type:   lookup.AnswerTypeFreeform,
-			Result: map[string]interface{}{"test": "value"},
+			Result: map[string]any{"test": "value"},
 		},
 	}
 
 	stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithLookupQuestionProvider(testabilities.NewLookupQuestionProviderMock(t, expectations)))
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
 
-	requestBody := map[string]interface{}{
-		"service": "test-service",
-		"query":   map[string]string{"test": "query"},
-	}
-
 	// when:
 	var actualResponse openapi.LookupAnswer
+
 	res, _ := fixture.Client().
 		R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(requestBody).
+		SetBody(openapi.LookupQuestionJSONRequestBody{
+			Query:   map[string]any{"test": "query"},
+			Service: "test-service",
+		}).
 		SetResult(&actualResponse).
 		Post("/api/v1/lookup")
 
 	// then:
-	expectedResponse := ports.NewLookupQuestionSuccessResponse(expectations.Answer)
+	expectedResponse, err := ports.NewLookupQuestionSuccessResponse(&app.LookupAnswerDTO{
+		Result: "{\"test\":\"value\"}",
+		Type:   "freeform",
+	})
+	require.NoError(t, err)
+
 	require.Equal(t, fiber.StatusOK, res.StatusCode())
 	require.Equal(t, expectedResponse, &actualResponse)
 	stub.AssertProvidersState()

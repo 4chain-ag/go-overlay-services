@@ -2,89 +2,81 @@ package ports
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
-	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 	"github.com/gofiber/fiber/v2"
 )
 
-// LookupQuestionService defines the contract for handling lookup questions.
+// LookupQuestionService defines the interface for a service that performs
+// lookup operations based on a service name and query parameters. It returns
+// the result in a LookupAnswerDTO format suitable for further processing or response.
 type LookupQuestionService interface {
-	LookupQuestion(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error)
+	LookupQuestion(ctx context.Context, service string, query map[string]any) (*app.LookupAnswerDTO, error)
 }
 
-// LookupQuestionHandler handles lookup question requests.
+// LookupQuestionHandler is an HTTP handler that processes requests to perform
+// a lookup operation on a specific question. It uses a LookupQuestionService to
+// evaluate the query and returns the results formatted according to the OpenAPI schema.
 type LookupQuestionHandler struct {
 	service LookupQuestionService
 }
 
-// Handle processes a lookup question request and returns the answer.
+// Handle is the HTTP endpoint function for handling a lookup question request.
+// It parses the request body, validates and forwards the data to the service layer,
+// and returns a JSON response with the lookup results or an appropriate error.
 func (h *LookupQuestionHandler) Handle(c *fiber.Ctx, params openapi.LookupQuestionBody) error {
-	if err := c.BodyParser(&params); err != nil {
-		return app.NewLookupQuestionInvalidRequestBodyResponse()
+	err := c.BodyParser(&params)
+	if err != nil {
+		return NewRequestBodyParserError(err)
 	}
 
-	var queryJSON json.RawMessage
-	if params.Query != nil {
-		if queryBytes, err := json.Marshal(params.Query); err != nil {
-			return app.NewLookupQuestionInvalidRequestBodyResponse()
-		} else {
-			queryJSON = queryBytes
-		}
-	}
-
-	question := lookup.LookupQuestion{
-		Service: params.Service,
-		Query:   queryJSON,
-	}
-
-	answer, err := h.service.LookupQuestion(c.UserContext(), &question)
+	dto, err := h.service.LookupQuestion(c.UserContext(), params.Service, params.Query)
 	if err != nil {
 		return err
 	}
 
-	return c.Status(fiber.StatusOK).JSON(NewLookupQuestionSuccessResponse(answer))
+	res, err := NewLookupQuestionSuccessResponse(dto)
+	if err != nil {
+		return err
+	}
+	return c.Status(fiber.StatusOK).JSON(res)
 }
 
-// NewLookupQuestionHandler creates a new LookupQuestionHandler.
-// It initializes a LookupQuestionService with the provided provider.
-// Panics if the provider is nil.
+// NewLookupQuestionHandler creates and returns a new LookupQuestionHandler.
+// It initializes the handler with a LookupQuestionService using the provided provider.
+// The function panics if the provider is nil.
 func NewLookupQuestionHandler(provider app.LookupQuestionProvider) *LookupQuestionHandler {
 	if provider == nil {
 		panic("lookup question provider is nil")
 	}
-
 	return &LookupQuestionHandler{service: app.NewLookupQuestionService(provider)}
 }
 
-// NewLookupQuestionSuccessResponse creates a successful response for a lookup question.
-func NewLookupQuestionSuccessResponse(answer *lookup.LookupAnswer) *openapi.LookupAnswer {
+// NewLookupQuestionSuccessResponse constructs an OpenAPI-compatible LookupAnswer
+// from a LookupAnswerDTO. It marshals the output items and the result string into
+// the format expected by the HTTP client.
+func NewLookupQuestionSuccessResponse(dto *app.LookupAnswerDTO) (*openapi.LookupAnswer, error) {
 	var outputs []openapi.OutputListItem
-	if len(answer.Outputs) > 0 {
-		outputs = make([]openapi.OutputListItem, len(answer.Outputs))
-		for i, output := range answer.Outputs {
+	if len(dto.Outputs) > 0 {
+		outputs = make([]openapi.OutputListItem, len(dto.Outputs))
+		for i, output := range dto.Outputs {
 			outputs[i] = openapi.OutputListItem{
-				Beef:        output.Beef,
+				Beef:        output.BEEF,
 				OutputIndex: output.OutputIndex,
 			}
-		}
-	}
-	// TODO: Here we are converting the result to a string.
-	// We should not do this, but rather return the result as is.
-	// This is a temporary solution to avoid breaking changes.
-	// we need to look how we can implement this type in open api to make it compatible with its own types.
-	var resultStr string
-	if answer.Result != nil {
-		if resultBytes, err := json.Marshal(answer.Result); err == nil {
-			resultStr = string(resultBytes)
 		}
 	}
 
 	return &openapi.LookupAnswer{
 		Outputs: outputs,
-		Result:  resultStr,
-		Type:    string(answer.Type),
-	}
+		Result:  dto.Result,
+		Type:    dto.Type,
+	}, nil
+}
+
+// NewRequestBodyParserError defines the error that should be returned when the request body content
+// cannot be parsed successfully due to an invalid format or any other issue that occurred during decoding phase.
+func NewRequestBodyParserError(err error) app.Error {
+	return app.NewRawDataProcessingError(err.Error(), "Unable to process the request body content due to an internal error. Please verify content, try again later or contact the support team.")
 }

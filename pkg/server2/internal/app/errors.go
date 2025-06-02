@@ -1,5 +1,7 @@
 package app
 
+import "fmt"
+
 // ErrorType represents a generic category of error used as descriptor
 // to clarify the nature of a failure that occurred in dependencies.
 type ErrorType struct {
@@ -112,4 +114,14 @@ func NewContextCancellationError() Error {
 		err:       msg,
 		slug:      msg,
 	}
+}
+
+// NewIncorrectInputWithFieldError returns an error indicating that a specific input field is invalid.
+// This is typically caused by partial state, incorrect data formats, or other issues related to user input.
+func NewIncorrectInputWithFieldError(field string) Error {
+	msg := fmt.Sprintf("Unable to process the '%s' field. Please verify its content and try again.", field)
+	return NewIncorrectInputError(
+		msg,
+		msg,
+	)
 }

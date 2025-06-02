@@ -1,8 +1,6 @@
 package app_test
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"testing"
 
@@ -14,72 +12,63 @@ import (
 
 func TestLookupQuestionService_ValidCase(t *testing.T) {
 	// given:
-	expectations := testabilities.LookupQuestionProviderMockExpectations{
-		Answer: &lookup.LookupAnswer{
-			Type:   lookup.AnswerTypeFreeform,
-			Result: map[string]interface{}{"test": "value"},
-		},
+	mock := testabilities.NewLookupQuestionProviderMock(t, testabilities.LookupQuestionProviderMockExpectations{
+		Answer:             &lookup.LookupAnswer{Type: lookup.AnswerTypeFreeform, Result: map[string]any{"test": "value"}},
 		LookupQuestionCall: true,
-	}
-
-	question := &lookup.LookupQuestion{
-		Service: "test-service",
-		Query:   json.RawMessage(`{}`),
-	}
-
-	mock := testabilities.NewLookupQuestionProviderMock(t, expectations)
+	})
 	service := app.NewLookupQuestionService(mock)
+	expectedDTO := &app.LookupAnswerDTO{
+		Result: "{\"test\":\"value\"}",
+		Type:   string(lookup.AnswerTypeFreeform),
+	}
 
 	// when:
-	answer, err := service.LookupQuestion(context.Background(), question)
+	actualDTO, err := service.LookupQuestion(t.Context(), "service1", map[string]any{"key": "value"})
 
 	// then:
 	require.NoError(t, err)
-	require.Equal(t, expectations.Answer, answer)
+	require.Equal(t, expectedDTO, actualDTO)
 	mock.AssertCalled()
 }
 
 func TestLookupQuestionService_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
 		expectations  testabilities.LookupQuestionProviderMockExpectations
-		question      *lookup.LookupQuestion
+		service       string
+		query         map[string]any
 		expectedError app.Error
 	}{
-		"LookupQuestion should return error when question is nil": {
-			expectations: testabilities.LookupQuestionProviderMockExpectations{
-				LookupQuestionCall: false,
-			},
-			question:      nil,
-			expectedError: app.NewInvalidLookupQuestionError(),
-		},
 		"LookupQuestion should return error when service is empty": {
 			expectations: testabilities.LookupQuestionProviderMockExpectations{
 				LookupQuestionCall: false,
 			},
-			question: &lookup.LookupQuestion{
-				Service: "",
-				Query:   json.RawMessage(`{}`),
-			},
-			expectedError: app.NewLookupQuestionMissingServiceFieldError(),
+			service:       "",
+			expectedError: app.NewIncorrectInputWithFieldError("service"),
 		},
 		"LookupQuestion should return error when query is nil": {
 			expectations: testabilities.LookupQuestionProviderMockExpectations{
 				LookupQuestionCall: false,
 			},
-			question: &lookup.LookupQuestion{
-				Service: "test-service",
-				Query:   nil,
+			service:       "test-service",
+			query:         nil,
+			expectedError: app.NewIncorrectInputWithFieldError("query"),
+		},
+		"LookupQuestion should return error when query is empty": {
+			expectations: testabilities.LookupQuestionProviderMockExpectations{
+				LookupQuestionCall: false,
 			},
-			expectedError: app.NewLookupQuestionMissingQueryFieldError(),
+			service:       "test-service",
+			query:         map[string]any{},
+			expectedError: app.NewIncorrectInputWithFieldError("query"),
 		},
 		"LookupQuestion should return error from provider": {
 			expectations: testabilities.LookupQuestionProviderMockExpectations{
 				LookupQuestionCall: true,
 				Error:              errors.New("provider error"),
 			},
-			question: &lookup.LookupQuestion{
-				Service: "test-service",
-				Query:   json.RawMessage(`{}`),
+			service: "test-service",
+			query: map[string]any{
+				"query1": "value1",
 			},
 			expectedError: app.NewLookupQuestionProviderError(errors.New("provider error")),
 		},
@@ -92,13 +81,13 @@ func TestLookupQuestionService_InvalidCases(t *testing.T) {
 			service := app.NewLookupQuestionService(mock)
 
 			// when:
-			answer, err := service.LookupQuestion(context.Background(), tc.question)
+			actualDTO, err := service.LookupQuestion(t.Context(), tc.service, tc.query)
 
 			// then:
 			var actualErr app.Error
 			require.ErrorAs(t, err, &actualErr)
 			require.Equal(t, tc.expectedError, actualErr)
-			require.Nil(t, answer)
+			require.Nil(t, actualDTO)
 			mock.AssertCalled()
 		})
 	}
