@@ -5,9 +5,29 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/stretchr/testify/require"
 )
+
+// Default test values for RequestForeignGASPNode operations.
+const (
+	DefaultValidGraphID     = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.0"
+	DefaultValidTxID        = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	DefaultValidOutputIndex = uint32(0)
+	DefaultValidTopic       = "test-topic"
+	DefaultInvalidTxID      = "invalid-txid"
+	DefaultInvalidGraphID   = "invalid-graphid"
+	DefaultEmptyTopic       = ""
+)
+
+// ForeignGASPNodeDefaultDTO provides a default DTO for RequestForeignGASPNode tests.
+var ForeignGASPNodeDefaultDTO = app.RequestForeignGASPNodeDTO{
+	GraphID:     DefaultValidGraphID,
+	TxID:        DefaultValidTxID,
+	OutputIndex: DefaultValidOutputIndex,
+	Topic:       DefaultValidTopic,
+}
 
 // Default expectations for successful RequestForeignGASPNode operations
 var DefaultRequestForeignGASPNodeProviderMockExpectations = RequestForeignGASPNodeProviderMockExpectations{
