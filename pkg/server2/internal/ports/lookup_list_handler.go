@@ -3,30 +3,42 @@ package ports
 import (
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
-	"github.com/bsv-blockchain/go-sdk/overlay"
 	"github.com/gofiber/fiber/v2"
 )
 
-// LookupListService defines the interface for a service that provides access to
-// lookup service provider metadata.
+// LookupListService defines the contract for retrieving metadata
+// about registered lookup service providers.
+//
+// It is designed to abstract away the underlying implementation details of how
+// the metadata is collected—whether it be static, dynamic, or retrieved from an external system.
 type LookupListService interface {
-	// ListLookupServiceProviders returns a map of all registered lookup service providers.
-	ListLookupServiceProviders() map[string]*overlay.MetaData
+	// ListLookupServiceProviders returns a collection of lookup service metadata,
+	// where each entry is keyed by the service name.
+	//
+	// This metadata typically includes information such as the service's name,
+	// description, version, icon, and reference documentation URL.
+	ListLookupServiceProviders() app.LookupServicesMetadataDTO
 }
 
-// LookupListHandler is an HTTP handler that serves requests to retrieve
-// a list of registered lookup service providers along with their metadata.
-// It uses a LookupListService to fetch the provider data and formats the
-// response according to the OpenAPI schema.
+// LookupListHandler is an HTTP handler responsible for processing incoming requests
+// to enumerate all available lookup service providers.
+//
+// The handler retrieves the metadata through the associated LookupListService
+// and responds with a JSON object that complies with the OpenAPI schema.
 type LookupListHandler struct {
 	service LookupListService
 }
 
-// Handle processes a request to list all available lookup service providers.
-// It invokes the service layer to fetch metadata about the providers, transforms
-// the result into an OpenAPI-compliant response structure, and returns it as a JSON response with a 200 OK status.
+// Handle handles an HTTP GET request to retrieve the list of registered lookup service providers.
+//
+// The response includes metadata for each service such as name, description,
+// version, icon URL, and informational URL. The handler returns this metadata
+// as a JSON object with a 200 OK HTTP status.
 func (h *LookupListHandler) Handle(c *fiber.Ctx) error {
-	return c.Status(fiber.StatusOK).JSON(NewLookupListSuccessResponse(h.service.ListLookupServiceProviders()))
+	metadata := h.service.ListLookupServiceProviders()
+	return c.
+		Status(fiber.StatusOK).
+		JSON(NewLookupServicesMetadataSuccessResponse(metadata))
 }
 
 // NewLookupListHandler creates a new LookupListHandler with the given provider.
@@ -38,17 +50,20 @@ func NewLookupListHandler(provider app.LookupListProvider) *LookupListHandler {
 	return &LookupListHandler{service: app.NewLookupListService(provider)}
 }
 
-// NewLookupListSuccessResponse transforms a map of provider metadata into an
-// OpenAPI-compliant LookupServiceProvidersListResponse. It maps internal metadata fields into their public-facing API counterparts.
-func NewLookupListSuccessResponse(lookupList map[string]*overlay.MetaData) openapi.LookupServiceProvidersListResponse {
-	response := make(openapi.LookupServiceProvidersList, len(lookupList))
-	for name, metadata := range lookupList {
-		response[name] = openapi.LookupServiceProviderMetadata{
+// NewLookupServicesMetadataSuccessResponse converts a service metadata DTO map (internal representation)
+// into a response structure that complies with the OpenAPI schema.
+//
+// It creates an OpenAPI-compliant response containing metadata such as service name, description,
+// icon URL, version, and documentation URL for each registered lookup service.
+func NewLookupServicesMetadataSuccessResponse(dto app.LookupServicesMetadataDTO) openapi.LookupServiceProvidersListResponse {
+	response := make(openapi.LookupServiceProvidersList, len(dto))
+	for serviceID, metadata := range dto {
+		response[serviceID] = openapi.LookupServiceProviderMetadata{
 			Name:             metadata.Name,
 			ShortDescription: metadata.Description,
-			IconURL:          metadata.Icon,
+			IconURL:          metadata.IconURL,
 			Version:          metadata.Version,
-			InformationURL:   metadata.InfoUrl,
+			InformationURL:   metadata.InfoURL,
 		}
 	}
 	return response

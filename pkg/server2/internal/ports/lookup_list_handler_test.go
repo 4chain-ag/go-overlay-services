@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/server2"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/testabilities"
@@ -14,15 +15,28 @@ import (
 func TestLookupListHandler_ValidCases(t *testing.T) {
 	tests := map[string]struct {
 		expectations       testabilities.LookupListProviderMockExpectations
-		expected           openapi.LookupServiceProvidersListResponse
+		expectedResponse   openapi.LookupServiceProvidersListResponse
 		expectedStatusCode int
 	}{
 		"List lookup service returns a default lookup service providers list.": {
 			expectations: testabilities.LookupListProviderMockExpectations{
-				MetadataList:                   testabilities.LookupListDefaultMetadata,
+				MetadataList:                   testabilities.DefaultOverlayMetadata,
 				ListLookupServiceProvidersCall: true,
 			},
-			expected:           ports.NewLookupListSuccessResponse(testabilities.LookupListDefaultMetadata),
+			expectedResponse: ports.NewLookupServicesMetadataSuccessResponse(app.LookupServicesMetadataDTO{
+				"lookup_service1": {
+					Description: "Description 1",
+					IconURL:     "https://example.com/icon.png",
+					Version:     "1.0.0",
+					InfoURL:     "https://example.com/info",
+				},
+				"lookup_service2": {
+					Description: "Description 2",
+					IconURL:     "https://example.com/icon2.png",
+					Version:     "2.0.0",
+					InfoURL:     "https://example.com/info2",
+				},
+			}),
 			expectedStatusCode: fiber.StatusOK,
 		},
 	}
@@ -42,7 +56,7 @@ func TestLookupListHandler_ValidCases(t *testing.T) {
 
 			// then:
 			require.Equal(t, tc.expectedStatusCode, res.StatusCode())
-			require.Equal(t, tc.expected, actualResponse)
+			require.Equal(t, tc.expectedResponse, actualResponse)
 			stub.AssertProvidersState()
 		})
 	}

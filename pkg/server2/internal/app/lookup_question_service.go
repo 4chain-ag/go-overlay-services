@@ -7,37 +7,40 @@ import (
 	"github.com/bsv-blockchain/go-sdk/overlay/lookup"
 )
 
-// OutputListItemDTO represents an output item in the final answer returned to the caller.
-// It includes the raw output data ('BEEF') and its positional index.
+// OutputListItemDTO represents an individual output item returned as part of a lookup answer.
+// Each output includes the raw binary output ('BEEF') and its index in the overall output sequence.
 type OutputListItemDTO struct {
-	BEEF        []byte
-	OutputIndex uint32
+	BEEF        []byte // Binary Encoded External Format (BEEF) of the output data.
+	OutputIndex uint32 // Index indicating the position of this output in the result set.
 }
 
-// LookupAnswerDTO is a response DTO that represents the result of a successful lookup question
-// evaluation. It contains the result, output items, and the answer type.
+// LookupAnswerDTO encapsulates the response of a successful lookup question evaluation.
+// It contains a list of output items, a JSON-encoded result, and a string indicating the type of the answer.
 type LookupAnswerDTO struct {
-	Outputs []OutputListItemDTO
-	Result  string
-	Type    string
+	Outputs []OutputListItemDTO // List of output items produced by the lookup operation.
+	Result  string              // JSON-encoded string representing the result object.
+	Type    string              // Describes the type/category of the answer (e.g., "exact", "partial").
 }
 
-// LookupQuestionProvider defines the interface for a provider capable of processing lookup questions.
-// It encapsulates the logic required to evaluate a question and produce a corresponding answer.
+// LookupQuestionProvider defines the interface for any provider capable of evaluating
+// lookup questions. Implementations encapsulate the business logic to process questions
+// and produce corresponding answers.
 type LookupQuestionProvider interface {
+	// Lookup evaluates the given question and returns a structured answer or an error.
 	Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error)
 }
 
 // LookupQuestionService provides a higher-level abstraction over a LookupQuestionProvider.
-// It performs validation on incoming questions before delegating the lookup operation to
-// the underlying provider.
+// It performs request validation, transforms query data into a provider-friendly format,
+// invokes the provider, and transforms the result into a transport-friendly DTO.
 type LookupQuestionService struct {
 	provider LookupQuestionProvider
 }
 
-// LookupQuestion validates the service and query fields, serializes the query to JSON,
-// constructs a lookup question, delegates the call to the underlying provider, and
-// converts the provider's response into a DTO.
+// LookupQuestion handles the end-to-end processing of a lookup question request.
+// It validates inputs, delegates evaluation to the underlying provider,
+// and returns a structured answer suitable for use in the presentation layer.
+// Returns an error if the input is invalid, the evaluation fails, or the result cannot be processed..
 func (s *LookupQuestionService) LookupQuestion(ctx context.Context, service string, query map[string]any) (*LookupAnswerDTO, error) {
 	if len(service) == 0 {
 		return nil, NewIncorrectInputWithFieldError("service")
@@ -58,11 +61,11 @@ func (s *LookupQuestionService) LookupQuestion(ctx context.Context, service stri
 		return nil, NewLookupQuestionProviderError(err)
 	}
 
-	return NewLookupAnswerDTO(answer)
+	return NewLookupQuestionAnswerDTO(answer)
 }
 
-// NewLookupQuestionService constructs a new LookupQuestionService using the provided provider.
-// It panics if the given provider is nil, ensuring proper service initialization.
+// NewLookupQuestionService constructs a LookupQuestionService with the given provider.
+// Panics if the provider is nil, as service functionality depends on a valid provider.
 func NewLookupQuestionService(provider LookupQuestionProvider) *LookupQuestionService {
 	if provider == nil {
 		panic("lookup question provider is nil")
@@ -70,8 +73,11 @@ func NewLookupQuestionService(provider LookupQuestionProvider) *LookupQuestionSe
 	return &LookupQuestionService{provider: provider}
 }
 
-// NewLookupAnswerDTO transforms a LookupAnswer into a LookupAnswerDTO.
-func NewLookupAnswerDTO(answer *lookup.LookupAnswer) (*LookupAnswerDTO, error) {
+// NewLookupQuestionAnswerDTO converts a core LookupAnswer model into a LookupAnswerDTO,
+// a transport-layer structure suitable for API responses. It serializes the Result object
+// to a JSON string and transforms output entries into DTO-compatible types.
+// Returns an error if serialization fails.
+func NewLookupQuestionAnswerDTO(answer *lookup.LookupAnswer) (*LookupAnswerDTO, error) {
 	var outputs []OutputListItemDTO
 	if len(answer.Outputs) > 0 {
 		outputs = make([]OutputListItemDTO, len(answer.Outputs))
@@ -87,7 +93,10 @@ func NewLookupAnswerDTO(answer *lookup.LookupAnswer) (*LookupAnswerDTO, error) {
 	if answer.Result != nil {
 		bb, err := json.Marshal(answer.Result)
 		if err != nil {
-			return nil, NewRawDataProcessingError(err.Error(), "Unable to create the lookup question response due to an internal error. Please try again later or contact the support team.")
+			return nil, NewRawDataProcessingError(
+				err.Error(),
+				"Unable to create the lookup question response due to an internal error. Please try again later or contact the support team.",
+			)
 		}
 		result = string(bb)
 	}
@@ -99,17 +108,22 @@ func NewLookupAnswerDTO(answer *lookup.LookupAnswer) (*LookupAnswerDTO, error) {
 	}, nil
 }
 
-// NewLookupQuestionQueryParserError defines the error returned when the query parameters cannot
-// be parsed due to an invalid format or an internal JSON encoding error.
+// NewLookupQuestionQueryParserError creates a structured error to be returned
+// when JSON serialization of the lookup query fails. Provides a generic,
+// user-friendly error message for external consumers.
 func NewLookupQuestionQueryParserError(err error) Error {
-	return NewRawDataProcessingError(err.Error(), "Unable to process the request query params content due to an internal error. Please verify the content, try again later, or contact the support team.")
+	return NewRawDataProcessingError(
+		err.Error(),
+		"Unable to process the request query params content due to an internal error. Please verify the content, try again later, or contact the support team.",
+	)
 }
 
-// NewLookupQuestionProviderError wraps a provider-level error that occurred during the lookup question processing.
-// It returns a generic provider failure error message intended for client-facing responses while preserving
-// the original error message internally.
+// NewLookupQuestionProviderError wraps an internal error that occurred during provider evaluation.
+// Produces a standardized user-facing error message while retaining the original error internally
+// for logging or diagnostics.
 func NewLookupQuestionProviderError(err error) Error {
-	return NewProviderFailureError(err.Error(),
+	return NewProviderFailureError(
+		err.Error(),
 		"Unable to process lookup question due to an internal error. Please try again later or contact the support team.",
 	)
 }

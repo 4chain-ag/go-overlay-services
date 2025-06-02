@@ -7,7 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var LookupListDefaultMetadata = map[string]*overlay.MetaData{
+// DefaultOverlayMetadata holds the default metadata definitions
+// for all available lookup service providers.
+//
+// Each entry in the map is keyed by the service identifier and
+// contains descriptive information such as version, icon, and info URL.
+// This can be used as fallback or built-in metadata when dynamic discovery is not available.
+var DefaultOverlayMetadata = map[string]*overlay.MetaData{
 	"lookup_service1": {
 		Description: "Description 1",
 		Icon:        "https://example.com/icon.png",

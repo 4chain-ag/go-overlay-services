@@ -12,21 +12,21 @@ import (
 func TestLookupListService_ValidCases(t *testing.T) {
 	tests := map[string]struct {
 		expectations testabilities.LookupListProviderMockExpectations
-		expected     map[string]*overlay.MetaData
+		expectedDTO  app.LookupServicesMetadataDTO
 	}{
-		"List lookup service returns an empty lookup service providers list.": {
+		"List lookup service returns a default lookup service providers list.": {
 			expectations: testabilities.LookupListProviderMockExpectations{
-				MetadataList:                   testabilities.LookupListDefaultMetadata,
+				MetadataList:                   testabilities.DefaultOverlayMetadata,
 				ListLookupServiceProvidersCall: true,
 			},
-			expected: testabilities.LookupListDefaultMetadata,
+			expectedDTO: app.NewLookupServicesMetadataDTO(testabilities.DefaultOverlayMetadata),
 		},
-		"List lookup service returns a default lookup service providers list.": {
+		"List lookup service returns an empty lookup service providers list.": {
 			expectations: testabilities.LookupListProviderMockExpectations{
 				MetadataList:                   map[string]*overlay.MetaData{},
 				ListLookupServiceProvidersCall: true,
 			},
-			expected: map[string]*overlay.MetaData{},
+			expectedDTO: app.LookupServicesMetadataDTO{},
 		},
 	}
 
@@ -37,10 +37,10 @@ func TestLookupListService_ValidCases(t *testing.T) {
 			service := app.NewLookupListService(mock)
 
 			// when:
-			response := service.ListLookupServiceProviders()
+			actualDTO := service.ListLookupServiceProviders()
 
 			// then:
-			require.Equal(t, tc.expected, response)
+			require.Equal(t, tc.expectedDTO, actualDTO)
 			mock.AssertCalled()
 		})
 	}
