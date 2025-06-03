@@ -150,7 +150,7 @@ func (siw *ServerInterfaceWrapper) AdvertisementsSync(c *fiber.Ctx) error {
 // ArcIngest operation middleware
 func (siw *ServerInterfaceWrapper) ArcIngest(c *fiber.Ctx) error {
 
-	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user", "arcCallBackToken"})
 
 	for _, m := range siw.handlerMiddleware {
 		if err := m(c); err != nil {

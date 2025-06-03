@@ -32,6 +32,12 @@ type Config struct {
 	// AdminBearerToken is the token required to access admin-only endpoints.
 	AdminBearerToken string `mapstructure:"admin_bearer_token"`
 
+	// ArcApiKey is the API key for ARC service integration.
+	ArcApiKey string `mapstructure:"arc_api_key"`
+
+	// ArcCallbackToken is the token for authenticating ARC callback requests.
+	ArcCallbackToken string `mapstructure:"arc_callback_token"`
+
 	// OctetStreamLimit defines the maximum allowed bytes read size (in bytes).
 	// This limit by default is set to 1GB to protect against excessively large payloads.
 	OctetStreamLimit int64 `mapstructure:"octet_stream_limit"`
@@ -48,6 +54,8 @@ var DefaultConfig = Config{
 	Addr:                  "localhost",
 	ServerHeader:          "Overlay API",
 	AdminBearerToken:      uuid.NewString(),
+	ArcApiKey:             "",
+	ArcCallbackToken:      uuid.NewString(),
 	OctetStreamLimit:      middleware.ReadBodyLimit1GB,
 	ConnectionReadTimeout: 10 * time.Second,
 }
@@ -78,6 +86,23 @@ func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 func WithAdminBearerToken(token string) ServerOption {
 	return func(s *ServerHTTP) {
 		s.cfg.AdminBearerToken = token
+	}
+}
+
+// WithArcApiKey sets the ARC API key used for ARC service integration.
+// It returns a ServerOption that applies this configuration to ServerHTTP.
+func WithArcApiKey(apiKey string) ServerOption {
+	return func(s *ServerHTTP) {
+		s.cfg.ArcApiKey = apiKey
+	}
+}
+
+// WithArcCallbackToken sets the ARC callback token used for authenticating
+// ARC callback requests on the HTTP server.
+// It returns a ServerOption that applies this configuration to ServerHTTP.
+func WithArcCallbackToken(token string) ServerOption {
+	return func(s *ServerHTTP) {
+		s.cfg.ArcCallbackToken = token
 	}
 }
 
@@ -150,6 +175,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	openapi.RegisterHandlersWithOptions(srv.app, srv.registry, openapi.FiberServerOptions{
 		HandlerMiddleware: []fiber.Handler{
 			middleware.BearerTokenAuthorizationMiddleware(srv.cfg.AdminBearerToken),
+			middleware.ArcCallbackTokenMiddleware(srv.cfg.ArcCallbackToken, srv.cfg.ArcApiKey),
 		},
 		GlobalMiddleware: middleware.BasicMiddlewareGroup(middleware.BasicMiddlewareGroupConfig{
 			EnableStackTrace: true,
