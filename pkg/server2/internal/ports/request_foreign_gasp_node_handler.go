@@ -27,15 +27,16 @@ type RequestForeignGASPNodeHandler struct {
 // It parses the request body and parameters, delegates the request to the service,
 // and returns a formatted JSON response or an appropriate error.
 func (h *RequestForeignGASPNodeHandler) Handle(c *fiber.Ctx, params openapi.RequestForeignGASPNodeParams) error {
-	var payload openapi.RequestForeignGASPNodeJSONBody
-	if err := c.BodyParser(&payload); err != nil {
-		return NewForeignGASPBodyReadError(err)
+	var body openapi.RequestForeignGASPNodeJSONBody
+	err := c.BodyParser(&body)
+	if err != nil {
+		return NewRequestBodyParserError(err)
 	}
 
 	node, err := h.service.RequestForeignGASPNode(c.Context(), app.RequestForeignGASPNodeDTO{
-		GraphID:     payload.GraphID,
-		TxID:        payload.TxID,
-		OutputIndex: payload.OutputIndex,
+		GraphID:     body.GraphID,
+		TxID:        body.TxID,
+		OutputIndex: body.OutputIndex,
 		Topic:       params.XBSVTopic,
 	})
 	if err != nil {
@@ -85,13 +86,4 @@ func NewRequestForeignGASPNodeSuccessResponse(node *core.GASPNode) openapi.GASPN
 		Inputs:         inputs,
 		AncillaryBeef:  node.AncillaryBeef,
 	}
-}
-
-// NewForeignGASPBodyReadError wraps a low-level error encountered when reading or parsing the request body.
-// It returns a standardized app.Error with a user-friendly message.
-func NewForeignGASPBodyReadError(err error) app.Error {
-	return app.NewRawDataProcessingError(
-		err.Error(),
-		"Unable to process request with the given request body. Please verify the request content and try again later.",
-	)
 }

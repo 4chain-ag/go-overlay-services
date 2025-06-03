@@ -24,6 +24,7 @@ components:
                 description: 'The version number of the GASP protocol'
               since:
                 type: integer
+                format: uint32
                 description: 'Timestamp or sequence number from which to start synchronization'
             required:
               - version

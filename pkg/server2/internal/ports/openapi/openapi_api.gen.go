@@ -65,7 +65,7 @@ type RequestForeignGASPNodeParams struct {
 // RequestSyncResponseJSONBody defines parameters for RequestSyncResponse.
 type RequestSyncResponseJSONBody struct {
 	// Since Timestamp or sequence number from which to start synchronization
-	Since int `json:"since"`
+	Since uint32 `json:"since"`
 
 	// Version The version number of the GASP protocol
 	Version int `json:"version"`

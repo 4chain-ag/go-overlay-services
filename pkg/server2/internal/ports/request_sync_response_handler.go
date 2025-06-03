@@ -3,73 +3,67 @@ package ports
 import (
 	"context"
 
-	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 )
 
-// RequestSyncResponseService defines the interface for the sync response service
+// RequestSyncResponseService defines the application-level interface responsible for
+// handling foreign sync response requests.
 type RequestSyncResponseService interface {
-	RequestSyncResponse(ctx context.Context, dto *app.RequestSyncResponseDTO) (*core.GASPInitialResponse, error)
+	RequestSyncResponse(ctx context.Context, topic app.Topic, version app.Version, since app.Since) (*app.RequestSyncResponseDTO, error)
 }
 
-// RequestSyncResponseHandler handles requests for sync responses
+// RequestSyncResponseHandler handles incoming HTTP requests related to sync response processing.
+// It coordinates parsing, validation, service delegation, and response formatting.
 type RequestSyncResponseHandler struct {
 	service RequestSyncResponseService
 }
 
-// Handle processes sync response requests
+// Handle process a request to fetch sync response data for a given topic.
+// It parses the request body, transforms input into domain models, delegates to the service layer,
+// and returns a serialized success response or an appropriate error.
 func (h *RequestSyncResponseHandler) Handle(c *fiber.Ctx, params openapi.RequestSyncResponseParams) error {
-	var requestBody openapi.RequestSyncResponseJSONRequestBody
-	if err := c.BodyParser(&requestBody); err != nil {
-		return app.NewRequestSyncResponseInvalidJSONError()
+	var body openapi.RequestSyncResponseJSONRequestBody
+	err := c.BodyParser(&body)
+	if err != nil {
+		return NewRequestBodyParserError(err)
 	}
 
-	response, err := h.service.RequestSyncResponse(c.Context(), &app.RequestSyncResponseDTO{
-		Version: requestBody.Version,
-		Since:   requestBody.Since,
-		Topic:   params.XBSVTopic,
-	})
+	dto, err := h.service.RequestSyncResponse(
+		c.Context(),
+		app.NewTopic(params.XBSVTopic),
+		app.Version(body.Version),
+		app.Since(body.Since),
+	)
 	if err != nil {
 		return err
 	}
-
-	return c.Status(fiber.StatusOK).JSON(NewRequestSyncResponseSuccessResponse(response))
+	return c.Status(fiber.StatusOK).JSON(NewRequestSyncResponseSuccessResponse(dto))
 }
 
-// NewRequestSyncResponseHandler creates a new handler
+// NewRequestSyncResponseHandler creates a new instance of RequestSyncResponseHandler,
+// wiring it with the provided application-level service provider.
 func NewRequestSyncResponseHandler(provider app.RequestSyncResponseProvider) *RequestSyncResponseHandler {
-	if provider == nil {
-		panic("request sync response provider is nil")
+	return &RequestSyncResponseHandler{
+		service: app.NewRequestSyncResponseService(provider),
 	}
-
-	return &RequestSyncResponseHandler{service: app.NewRequestSyncResponseService(provider)}
 }
 
-// NewRequestSyncResponseSuccessResponse creates a successful response for the sync response request
-// It maps the GASPInitialResponse data to an OpenAPI response format.
-func NewRequestSyncResponseSuccessResponse(response *core.GASPInitialResponse) *openapi.RequestSyncResResponse {
-
-	if response == nil || len(response.UTXOList) == 0 {
-		return &openapi.RequestSyncResResponse{
-			UTXOList: []openapi.UTXOItem{},
-			Since:    0,
-		}
+// NewRequestSyncResponseSuccessResponse transforms a RequestSyncResponseDTO into OpenAPI-compliant
+// response format suitable for HTTP transmission.
+func NewRequestSyncResponseSuccessResponse(response *app.RequestSyncResponseDTO) *openapi.RequestSyncResResponse {
+	if response == nil {
+		return &openapi.RequestSyncResResponse{UTXOList: []openapi.UTXOItem{}, Since: 0}
 	}
 
-	utxoList := make([]openapi.UTXOItem, 0, len(response.UTXOList))
-
+	utxos := make([]openapi.UTXOItem, 0, len(response.UTXOList))
 	for _, utxo := range response.UTXOList {
-		utxoList = append(utxoList, openapi.UTXOItem{
-			Txid: utxo.Txid.String(),
-			Vout: int(utxo.OutputIndex),
-		})
+		utxos = append(utxos, openapi.UTXOItem{Txid: utxo.TxID, Vout: int(utxo.OutputIndex)})
 	}
 
 	return &openapi.RequestSyncResResponse{
-		UTXOList: utxoList,
+		UTXOList: utxos,
 		Since:    int(response.Since),
 	}
-
 }

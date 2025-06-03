@@ -50,7 +50,7 @@ func TestRequestForeignGASPNodeHandler_InvalidCases(t *testing.T) {
 				ProvideForeignGASPNodeCall: false,
 			},
 			expectedStatusCode: fiber.StatusInternalServerError,
-			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, ports.NewForeignGASPBodyReadError(testabilities.ErrTestNoopOpFailure)),
+			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, ports.NewRequestBodyParserError(testabilities.ErrTestNoopOpFailure)),
 		},
 	}
 

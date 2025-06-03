@@ -51,3 +51,12 @@ func NewUnhandledErrorTypeResponse() openapi.Error {
 		Message: "An internal error occurred during processing the request. Please try again later or contact the support team.",
 	}
 }
+
+// NewRequestBodyParserError wraps a body parsing failure into a user-friendly application error,
+// indicating that the input was malformed or invalid.
+func NewRequestBodyParserError(err error) app.Error {
+	return app.NewRawDataProcessingError(
+		err.Error(),
+		"Unable to process request with given request body. Please verify the request content and try again later.",
+	)
+}

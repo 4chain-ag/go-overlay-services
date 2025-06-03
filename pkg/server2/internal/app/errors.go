@@ -100,7 +100,7 @@ func NewRawDataProcessingError(err, slug string) Error {
 func NewRawDataProcessingWithFieldError(err error, field string) Error {
 	return NewRawDataProcessingError(
 		err.Error(),
-		fmt.Sprintf("Unable to process request with given %s. Please verify the request content and try again later.", field),
+		fmt.Sprintf("Unable to process data structure the '%s' field. Please verify the content and try again later.", field),
 	)
 }
 
@@ -113,6 +113,16 @@ func NewUnknownError(err, slug string) Error {
 		errorType: ErrorTypeUnknown,
 		err:       err,
 	}
+}
+
+// NewIncorrectInputWithFieldError returns an error indicating that a specific input field is invalid.
+// This is typically caused by partial state, incorrect data formats, or other issues related to user input.
+func NewIncorrectInputWithFieldError(field string) Error {
+	msg := fmt.Sprintf("Unable to process the '%s' field. Please verify the content and try again.", field)
+	return NewIncorrectInputError(
+		msg,
+		msg,
+	)
 }
 
 // NewContextCancellationError returns an error indicating that the submitted request exceeded the context timeout limit or

@@ -1,7 +1,6 @@
 package ports_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
@@ -17,7 +16,7 @@ import (
 
 func TestRequestSyncResponseHandler_InvalidCases(t *testing.T) {
 	tests := map[string]struct {
-		payload            interface{}
+		payload            any
 		headers            map[string]string
 		expectations       testabilities.RequestSyncResponseProviderMockExpectations
 		expectedStatusCode int
@@ -40,11 +39,11 @@ func TestRequestSyncResponseHandler_InvalidCases(t *testing.T) {
 				"Content-Type": "application/json",
 				"X-BSV-Topic":  testabilities.DefaultTopic,
 			},
-			expectedStatusCode: fiber.StatusBadRequest,
+			expectedStatusCode: fiber.StatusInternalServerError,
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
 				ProvideForeignSyncResponseCall: false,
 			},
-			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestSyncResponseInvalidJSONError()),
+			expectedResponse: testabilities.NewTestOpenapiErrorResponse(t, ports.NewRequestBodyParserError(testabilities.ErrTestNoopOpFailure)),
 		},
 		"Request sync response handler fails due to provider error": {
 			payload: testabilities.NewDefaultRequestSyncResponseBody(),
@@ -53,7 +52,7 @@ func TestRequestSyncResponseHandler_InvalidCases(t *testing.T) {
 				"X-BSV-Topic":  testabilities.DefaultTopic,
 			},
 			expectations: testabilities.RequestSyncResponseProviderMockExpectations{
-				Error:                          errors.New("internal request sync response provider error during request sync response handler unit test"),
+				Error:                          testabilities.ErrTestNoopOpFailure,
 				ProvideForeignSyncResponseCall: true,
 				InitialRequest: &core.GASPInitialRequest{
 					Version: testabilities.DefaultVersion,
@@ -62,7 +61,7 @@ func TestRequestSyncResponseHandler_InvalidCases(t *testing.T) {
 				Topic: testabilities.DefaultTopic,
 			},
 			expectedStatusCode: fiber.StatusInternalServerError,
-			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestSyncResponseProviderError(errors.New("internal request sync response provider error during request sync response handler unit test"))),
+			expectedResponse:   testabilities.NewTestOpenapiErrorResponse(t, app.NewRequestSyncResponseProviderError(testabilities.ErrTestNoopOpFailure)),
 		},
 	}
 
@@ -98,16 +97,30 @@ func TestRequestSyncResponseHandler_ValidCase(t *testing.T) {
 		ProvideForeignSyncResponseCall: true,
 		InitialRequest: &core.GASPInitialRequest{
 			Version: testabilities.DefaultVersion,
-			Since:   uint32(testabilities.DefaultSince),
+			Since:   testabilities.DefaultSince,
 		},
 		Topic: testabilities.DefaultTopic,
 		Response: &core.GASPInitialResponse{
-			UTXOList: []*overlay.Outpoint{},
-			Since:    0,
+			Since: testabilities.DefaultSince,
+			UTXOList: []*overlay.Outpoint{
+				{
+					Txid:        *testabilities.DummyTxHash(t, "03895fb984362a4196bc9931629318fcbb2aeba7c6293638119ea653fa31d119"),
+					OutputIndex: 0,
+				},
+				{
+					Txid:        *testabilities.DummyTxHash(t, "27c8f37851aabc468d3dbb6bf0789dc398a602dcb897ca04e7815d939d621595"),
+					OutputIndex: 1,
+				},
+				{
+					Txid:        *testabilities.DummyTxHash(t, "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"),
+					OutputIndex: 2,
+				},
+			},
 		},
 	}
 
-	expectedResponse := ports.NewRequestSyncResponseSuccessResponse(expectations.Response)
+	expectedDTO := app.NewRequestSyncResponseDTO(expectations.Response)
+	expectedResponse := ports.NewRequestSyncResponseSuccessResponse(expectedDTO)
 	stub := testabilities.NewTestOverlayEngineStub(t, testabilities.WithRequestSyncResponseProvider(testabilities.NewRequestSyncResponseProviderMock(t, expectations)))
 	fixture := server2.NewServerTestFixture(t, server2.WithEngine(stub))
 
