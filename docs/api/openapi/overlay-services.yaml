@@ -396,6 +396,66 @@ paths:
           $ref: '#/components/responses/BadRequestResponse'
         '500':
           $ref: '#/components/responses/InternalServerErrorResponse'
+  /api/v1/lookup:
+    post:
+      tags:
+        - non-admin
+      operationId: LookupQuestion
+      security:
+        - bearerAuth:
+            - user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                service:
+                  type: string
+                  description: Service name to query
+                query:
+                  type: object
+                  description: Query parameters specific to the service
+                  additionalProperties: true
+              required:
+                - service
+                - query
+      responses:
+        '200':
+          description: |
+            Overlay engine successfully processed the lookup question and returned an answer.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                  outputs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        beef:
+                          type: string
+                          format: byte
+                        outputIndex:
+                          type: integer
+                          format: uint32
+                      required:
+                        - beef
+                        - outputIndex
+                  result:
+                    type: string
+                required:
+                  - type
+                  - outputs
+                  - result
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
 components:
   schemas:
     Error:

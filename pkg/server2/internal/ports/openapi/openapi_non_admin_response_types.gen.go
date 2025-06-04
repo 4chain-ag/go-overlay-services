@@ -38,6 +38,13 @@ type GASPNode struct {
 	TxMetadata string `json:"txMetadata"`
 }
 
+// LookupAnswer defines model for LookupAnswer.
+type LookupAnswer struct {
+	Outputs []OutputListItem `json:"outputs"`
+	Result  string           `json:"result"`
+	Type    string           `json:"type"`
+}
+
 // LookupServiceDocumentation defines model for LookupServiceDocumentation.
 type LookupServiceDocumentation struct {
 	// Documentation Markdown-formatted documentation for the lookup service
@@ -46,6 +53,12 @@ type LookupServiceDocumentation struct {
 
 // Metadata defines model for Metadata.
 type Metadata map[string]ServiceMetadata
+
+// OutputListItem defines model for OutputListItem.
+type OutputListItem struct {
+	Beef        []byte `json:"beef"`
+	OutputIndex uint32 `json:"outputIndex"`
+}
 
 // RequestSyncRes defines model for RequestSyncRes.
 type RequestSyncRes struct {
@@ -86,6 +99,9 @@ type UTXOItem struct {
 	// Vout Output index number
 	Vout int `json:"vout"`
 }
+
+// LookupQuestionResponse defines model for LookupQuestionResponse.
+type LookupQuestionResponse = LookupAnswer
 
 // LookupServiceProviderDocumentationResponse defines model for LookupServiceProviderDocumentationResponse.
 type LookupServiceProviderDocumentationResponse = LookupServiceDocumentation

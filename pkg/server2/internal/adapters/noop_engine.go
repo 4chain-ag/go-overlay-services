@@ -46,7 +46,7 @@ func (*NoopEngineProvider) GetTopicManagerDocumentation(ctx context.Context) err
 // Lookup is a no-op call that always returns an empty lookup answer with nil error.
 func (*NoopEngineProvider) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
 	return &lookup.LookupAnswer{
-		Type: "",
+		Type: "noop_engine_provider",
 		Outputs: []*lookup.OutputListItem{
 			{
 				Beef:        []byte{},
@@ -55,7 +55,10 @@ func (*NoopEngineProvider) Lookup(ctx context.Context, question *lookup.LookupQu
 		},
 		Formulas: []lookup.LookupFormula{
 			{
-				Outpoint: &overlay.Outpoint{},
+				Outpoint: &overlay.Outpoint{
+					Txid:        chainhash.Hash{},
+					OutputIndex: 0,
+				},
 			},
 		},
 		Result: nil,

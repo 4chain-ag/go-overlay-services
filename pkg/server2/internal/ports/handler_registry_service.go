@@ -18,6 +18,12 @@ type HandlerRegistryService struct {
 	requestForeignGASPNode    *RequestForeignGASPNodeHandler
 	requestSyncResponse       *RequestSyncResponseHandler
 	metadataHandler           *MetadataHandler
+	lookupQuestion            *LookupQuestionHandler
+}
+
+// LookupQuestion implements openapi.ServerInterface.
+func (h *HandlerRegistryService) LookupQuestion(c *fiber.Ctx) error {
+	return h.lookupQuestion.Handle(c)
 }
 
 // ListLookupServiceProviders method delegates the request to the configured lookup list handler.
@@ -76,6 +82,7 @@ func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRe
 				app.NewLookupListService(provider),
 				app.NewTopicManagersMetadataService(provider),
 			)),
+		lookupQuestion:            NewLookupQuestionHandler(provider),
 		topicManagerDocumentation: NewTopicManagerDocumentationHandler(provider),
 		submitTransaction:         NewSubmitTransactionHandler(provider),
 		syncAdvertisements:        NewSyncAdvertisementsHandler(provider),

@@ -84,6 +84,35 @@ components:
       required:
         - documentation
 
+    OutputListItem:
+      type: object
+      properties:
+        beef:
+          type: string
+          format: byte
+        outputIndex:
+          type: integer
+          format: uint32
+      required:
+        - beef
+        - outputIndex
+
+    LookupAnswer:
+      type: object
+      properties:
+        type:
+          type: string
+        outputs:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutputListItem"
+        result:
+          type: string
+      required:
+        - type
+        - outputs
+        - result
+
     GASPNode:
       type: object
       description: A GASP node representation from the overlay engine
@@ -199,3 +228,11 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/RequestSyncRes'
+
+    LookupQuestionResponse:
+      description: |
+        Overlay engine successfully processed the lookup question and returned an answer.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LookupAnswer'

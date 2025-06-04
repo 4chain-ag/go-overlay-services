@@ -45,6 +45,15 @@ type GetTopicManagerDocumentationParams struct {
 	TopicManager string `form:"topicManager" json:"topicManager"`
 }
 
+// LookupQuestionJSONBody defines parameters for LookupQuestion.
+type LookupQuestionJSONBody struct {
+	// Query Query parameters specific to the service
+	Query map[string]interface{} `json:"query"`
+
+	// Service Service name to query
+	Service string `json:"service"`
+}
+
 // RequestForeignGASPNodeJSONBody defines parameters for RequestForeignGASPNode.
 type RequestForeignGASPNodeJSONBody struct {
 	// GraphID The graph ID in the format of "txID.outputIndex"
@@ -82,6 +91,9 @@ type SubmitTransactionParams struct {
 	XTopics []string `json:"x-topics"`
 }
 
+// LookupQuestionJSONRequestBody defines body for LookupQuestion for application/json ContentType.
+type LookupQuestionJSONRequestBody LookupQuestionJSONBody
+
 // RequestForeignGASPNodeJSONRequestBody defines body for RequestForeignGASPNode for application/json ContentType.
 type RequestForeignGASPNodeJSONRequestBody RequestForeignGASPNodeJSONBody
 
@@ -108,6 +120,9 @@ type ServerInterface interface {
 
 	// (GET /api/v1/listTopicManagers)
 	ListTopicManagers(c *fiber.Ctx) error
+
+	// (POST /api/v1/lookup)
+	LookupQuestion(c *fiber.Ctx) error
 
 	// (POST /api/v1/requestForeignGASPNode)
 	RequestForeignGASPNode(c *fiber.Ctx, params RequestForeignGASPNodeParams) error
@@ -252,6 +267,19 @@ func (siw *ServerInterfaceWrapper) ListTopicManagers(c *fiber.Ctx) error {
 	return siw.handler.ListTopicManagers(c)
 }
 
+// LookupQuestion operation middleware
+func (siw *ServerInterfaceWrapper) LookupQuestion(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(BearerAuthScopes, []string{"user"})
+
+	for _, m := range siw.handlerMiddleware {
+		if err := m(c); err != nil {
+			return err
+		}
+	}
+	return siw.handler.LookupQuestion(c)
+}
+
 // RequestForeignGASPNode operation middleware
 func (siw *ServerInterfaceWrapper) RequestForeignGASPNode(c *fiber.Ctx) error {
 
@@ -392,6 +420,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Get(options.BaseURL+"/api/v1/listLookupServiceProviders", wrapper.ListLookupServiceProviders)
 
 	router.Get(options.BaseURL+"/api/v1/listTopicManagers", wrapper.ListTopicManagers)
+
+	router.Post(options.BaseURL+"/api/v1/lookup", wrapper.LookupQuestion)
 
 	router.Post(options.BaseURL+"/api/v1/requestForeignGASPNode", wrapper.RequestForeignGASPNode)
 

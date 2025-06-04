@@ -53,3 +53,20 @@ components:
                 description: The output index
                 format: uint32
                 example: 1
+                
+    LookupQuestionBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              service:
+                type: string
+                description: 'Service name to query'
+              query:
+                type: object
+                description: 'Query parameters specific to the service'
+                additionalProperties: true
+            required:
+              - service
+              - query
