@@ -46,23 +46,23 @@ func TestMetadataHandler_ValidCases(t *testing.T) {
 		"Metadata handler should return metadata for configured lookup services": {
 			endpoint: "/api/v1/listLookupServiceProviders",
 			expectedResponse: openapi.MetadataResponse{
-				"lookup_metdata_service": {
-					IconURL:          "lookup_metdata_service_icon",
-					InformationURL:   "lookup_metdata_service_info",
-					Name:             "lookup_metdata_service_name",
-					ShortDescription: "lookup_metdata_service_short_desc",
-					Version:          "lookup_metdata_service_version",
+				"lookup_metadata_service": {
+					IconURL:          "lookup_metadata_service_icon",
+					InformationURL:   "lookup_metadata_service_info",
+					Name:             "lookup_metadata_service_name",
+					ShortDescription: "lookup_metadata_service_short_desc",
+					Version:          "lookup_metadata_service_version",
 				},
 			},
 			expectedStatusCode: fiber.StatusOK,
 			expectedProviderToCall: testabilities.WithLookupListProvider(testabilities.NewLookupListProviderMock(t, testabilities.LookupListProviderMockExpectations{
 				Metadata: map[string]*overlay.MetaData{
-					"lookup_metdata_service": {
-						Icon:        "lookup_metdata_service_icon",
-						InfoUrl:     "lookup_metdata_service_info",
-						Name:        "lookup_metdata_service_name",
-						Description: "lookup_metdata_service_short_desc",
-						Version:     "lookup_metdata_service_version",
+					"lookup_metadata_service": {
+						Icon:        "lookup_metadata_service_icon",
+						InfoUrl:     "lookup_metadata_service_info",
+						Name:        "lookup_metadata_service_name",
+						Description: "lookup_metadata_service_short_desc",
+						Version:     "lookup_metadata_service_version",
 					},
 				},
 				ListLookupServiceProvidersCall: true,
