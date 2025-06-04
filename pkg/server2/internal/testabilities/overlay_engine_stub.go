@@ -94,19 +94,19 @@ func WithSubmitTransactionProvider(provider SubmitTransactionProvider) TestOverl
 	}
 }
 
-// WithLookupListProvider allows setting a custom LookupListProvider in a TestOverlayEngineStub.
-// This can be used to mock lookup service provider list behavior during tests.
-func WithLookupListProvider(provider LookupListProvider) TestOverlayEngineStubOption {
-	return func(stub *TestOverlayEngineStub) {
-		stub.lookupListProvider = provider
-	}
-}
-
 // WithTopicManagersListProvider allows setting a custom TopicManagersListProvider in a TestOverlayEngineStub.
 // This can be used to mock topic managers list behavior during tests.
 func WithTopicManagersListProvider(provider TopicManagersListProvider) TestOverlayEngineStubOption {
 	return func(stub *TestOverlayEngineStub) {
 		stub.topicManagersListProvider = provider
+	}
+}
+
+// WithLookupListProvider allows setting a custom LookupListProvider in a TestOverlayEngineStub.
+// This can be used to mock lookup service provider list behavior during tests.
+func WithLookupListProvider(provider LookupListProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.lookupListProvider = provider
 	}
 }
 
@@ -212,6 +212,7 @@ func (s *TestOverlayEngineStub) ListLookupServiceProviders() map[string]*overlay
 // ListTopicManagers lists the available topic managers.
 func (s *TestOverlayEngineStub) ListTopicManagers() map[string]*overlay.MetaData {
 	s.t.Helper()
+
 	return s.topicManagersListProvider.ListTopicManagers()
 }
 
@@ -285,12 +286,12 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption) *TestOverlayEngineStub {
 	stub := TestOverlayEngineStub{
 		t:                                 t,
-		lookupListProvider:                NewLookupListProviderMock(t, LookupListProviderMockExpectations{ListLookupServiceProvidersCall: false}),
-		topicManagersListProvider:         NewTopicManagersListProviderMock(t, TopicManagersListProviderMockExpectations{ListTopicManagersCall: false}),
 		lookupDocumentationProvider:       NewLookupServiceDocumentationProviderMock(t, LookupServiceDocumentationProviderMockExpectations{DocumentationCall: false}),
 		topicManagerDocumentationProvider: NewTopicManagerDocumentationProviderMock(t, TopicManagerDocumentationProviderMockExpectations{DocumentationCall: false}),
+		topicManagersListProvider:         NewTopicManagersListProviderMock(t, TopicManagersListProviderMockExpectations{ListTopicManagersCall: false}),
 		startGASPSyncProvider:             NewStartGASPSyncProviderMock(t, StartGASPSyncProviderMockExpectations{StartGASPSyncCall: false}),
 		submitTransactionProvider:         NewSubmitTransactionProviderMock(t, SubmitTransactionProviderMockExpectations{SubmitCall: false}),
+		lookupListProvider:                NewLookupListProviderMock(t, LookupListProviderMockExpectations{ListLookupServiceProvidersCall: false}),
 		syncAdvertisementsProvider:        NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
 		requestForeignGASPNodeProvider:    NewRequestForeignGASPNodeProviderMock(t, RequestForeignGASPNodeProviderMockExpectations{ProvideForeignGASPNodeCall: false}),
 		requestSyncResponseProvider:       NewRequestSyncResponseProviderMock(t, RequestSyncResponseProviderMockExpectations{ProvideForeignSyncResponseCall: false}),

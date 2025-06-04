@@ -41,7 +41,7 @@ components:
       required:
         - STEAK
 
-    LookupServiceProviderMetadata:
+    ServiceMetadata:
       type: object
       properties:
         name:
@@ -50,46 +50,21 @@ components:
           type: string
         iconURL:
           type: string
-          nullable: true
         version:
           type: string
-          nullable: true
         informationURL:
           type: string
-          nullable: true
       required:
         - name
         - shortDescription
+        - iconURL
+        - version
+        - informationURL
 
-    TopicManagerMetadata:
-      type: object
-      properties:
-        name:
-          type: string
-        shortDescription:
-          type: string
-        iconURL:
-          type: string
-          nullable: true
-        version:
-          type: string
-          nullable: true
-        informationURL:
-          type: string
-          nullable: true
-      required:
-        - name
-        - shortDescription
-
-    LookupServiceProvidersList:
+    Metadata:
       type: object
       additionalProperties:
-        $ref: "#/components/schemas/LookupServiceProviderMetadata"
-
-    TopicManagersList:
-      type: object
-      additionalProperties:
-        $ref: "#/components/schemas/TopicManagerMetadata"
+        $ref: "#/components/schemas/ServiceMetadata"
 
     TopicManagerDocumentation:
       type: object
@@ -185,21 +160,13 @@ components:
           schema:
             $ref: '#/components/schemas/SubmitTransaction'
 
-    LookupServiceProvidersListResponse:
+    MetadataResponse:
       description: |
-        A list of lookup service providers with their metadata.
+        A list of services with their metadata.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/LookupServiceProvidersList'
-
-    TopicManagersListResponse:
-      description: |
-        A list of topic managers with their metadata.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/TopicManagersList'
+            $ref: '#/components/schemas/Metadata'
 
     LookupServiceProviderDocumentationResponse:
       description: |

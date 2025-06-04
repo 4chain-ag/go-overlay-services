@@ -46,6 +46,7 @@ func (m *LookupServiceDocumentationProviderMock) GetDocumentationForLookupServic
 // with the expected arguments.
 func (m *LookupServiceDocumentationProviderMock) AssertCalled() {
 	m.t.Helper()
+
 	require.Equal(m.t, m.expectations.DocumentationCall, m.called, "Discrepancy between expected and actual DocumentationCall")
 }
 

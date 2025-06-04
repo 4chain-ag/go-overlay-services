@@ -58,7 +58,6 @@ func TestLookupServiceProviderDocumentationHandler_InvalidCases(t *testing.T) {
 			stub.AssertProvidersState()
 		})
 	}
-
 }
 
 func TestLookupServiceProviderDocumentationHandler_ValidCase(t *testing.T) {

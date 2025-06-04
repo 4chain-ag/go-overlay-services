@@ -38,7 +38,7 @@ paths:
             - user
       responses:
         200:
-          $ref: '../paths/non_admin/responses.yaml#/components/responses/LookupServiceProvidersListResponse'
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/MetadataResponse'
 
   /api/v1/listTopicManagers:
     get:
@@ -50,7 +50,7 @@ paths:
             - user
       responses:
         200:
-          $ref: '../paths/non_admin/responses.yaml#/components/responses/TopicManagersListResponse'
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/MetadataResponse'
 
   /api/v1/getDocumentationForLookupServiceProvider:
     get:
