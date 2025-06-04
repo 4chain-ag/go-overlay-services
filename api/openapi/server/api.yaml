@@ -191,7 +191,7 @@ paths:
           $ref: '#/components/responses/BadRequestResponse'
         500:
           $ref: '#/components/responses/InternalServerErrorResponse'
- 
+
   /api/v1/lookup:
     post:
       tags:
