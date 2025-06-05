@@ -180,6 +180,19 @@ components:
         - UTXOList
         - since
 
+    ArcIngest:
+      type: object
+      properties:
+        status:
+          type: string
+          example: 'success'
+        message:
+          type: string
+          example: 'Transaction status updated'
+      required:
+        - status
+        - message
+
   responses:
     SubmitTransactionResponse:
       description: |
@@ -236,3 +249,11 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/LookupAnswer'
+
+    ArcIngestResponse:
+      description: |
+         Merkle proof successfully processed and transaction status updated.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ArcIngest'
