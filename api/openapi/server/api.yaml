@@ -118,7 +118,7 @@ paths:
       security:
         - bearerAuth:
             - user
-            - arcCallBackToken
+            - arcIngest
       requestBody:
         required: true
         $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/ArcIngestBody'

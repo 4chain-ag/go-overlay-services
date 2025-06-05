@@ -76,7 +76,7 @@ func WithMiddleware(f fiber.Handler) ServerOption {
 // It configures the ServerHTTP handlers to use the provided engine implementation.
 func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
-		s.registry = ports.NewHandlerRegistryService(provider)
+		s.provider = provider
 	}
 }
 
@@ -138,6 +138,7 @@ type ServerHTTP struct {
 
 	// Handlers for processing incoming HTTP requests
 	registry *ports.HandlerRegistryService
+	provider engine.OverlayEngineProvider // provider is stored to create registry after all options applied
 }
 
 // SocketAddr builds the address string for binding.
@@ -163,19 +164,26 @@ func (s *ServerHTTP) Shutdown(ctx context.Context) error {
 // and applies any optional functional configuration options passed via opts.
 func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
-		registry: ports.NewHandlerRegistryService(adapters.NewNoopEngineProvider()),
-		cfg:      DefaultConfig,
-		app:      newFiberApp(DefaultConfig),
+		cfg: DefaultConfig,
+		app: newFiberApp(DefaultConfig),
 	}
 
 	for _, o := range opts {
 		o(srv)
 	}
 
+	provider := srv.provider
+	if provider == nil {
+		provider = adapters.NewNoopEngineProvider()
+	}
+	srv.registry = ports.NewHandlerRegistryService(provider, ports.ArcIngestHandlerConfig{
+		ArcApiKey:        srv.cfg.ArcApiKey,
+		ArcCallbackToken: srv.cfg.ArcCallbackToken,
+	})
+
 	openapi.RegisterHandlersWithOptions(srv.app, srv.registry, openapi.FiberServerOptions{
 		HandlerMiddleware: []fiber.Handler{
 			middleware.BearerTokenAuthorizationMiddleware(srv.cfg.AdminBearerToken),
-			middleware.ArcCallbackTokenMiddleware(srv.cfg.ArcCallbackToken, srv.cfg.ArcApiKey),
 		},
 		GlobalMiddleware: middleware.BasicMiddlewareGroup(middleware.BasicMiddlewareGroupConfig{
 			EnableStackTrace: true,

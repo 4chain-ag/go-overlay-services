@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestArcIngestHandler_InvalidJSONCase(t *testing.T) {
+func TestArcIngestHandler_InvalidCase(t *testing.T) {
 	// given:
 	const arcCallbackToken = "valid_arc_callback_token"
 	const arcApiKey = "valid_arc_api_key"
@@ -28,7 +28,7 @@ func TestArcIngestHandler_InvalidJSONCase(t *testing.T) {
 
 	res, _ := fixture.Client().
 		R().
-		SetHeader("Content-Type", "application/json").
+		SetHeader(fiber.HeaderContentType, fiber.MIMEApplicationJSON).
 		SetHeader(fiber.HeaderAuthorization, "Bearer "+arcCallbackToken).
 		SetBody("INVALID_JSON").
 		SetError(&actualResponse).
@@ -72,7 +72,7 @@ func TestArcIngestHandler_ValidCase(t *testing.T) {
 
 	res, _ := fixture.Client().
 		R().
-		SetHeader("Content-Type", fiber.MIMEApplicationJSON).
+		SetHeader(fiber.HeaderContentType, fiber.MIMEApplicationJSON).
 		SetHeader(fiber.HeaderAuthorization, "Bearer "+arcCallbackToken).
 		SetBody(payload).
 		SetResult(&actualResponse).

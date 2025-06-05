@@ -6,6 +6,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+type Handler interface {
+	Handle(c *fiber.Ctx) error
+}
+
 // HandlerRegistryService defines the main point for registering HTTP handler dependencies.
 // It acts as a central registry for mapping API endpoints to their handler implementations.
 type HandlerRegistryService struct {
@@ -16,7 +20,7 @@ type HandlerRegistryService struct {
 	topicManagerDocumentation *TopicManagerDocumentationHandler
 	submitTransaction         *SubmitTransactionHandler
 	syncAdvertisements        *SyncAdvertisementsHandler
-	arcIngest                 *ArcIngestHandler
+	arcIngest                 Handler
 	requestSyncResponse       *RequestSyncResponseHandler
 }
 
@@ -67,7 +71,7 @@ func (h *HandlerRegistryService) RequestSyncResponse(c *fiber.Ctx, params openap
 
 // NewHandlerRegistryService creates and returns a new HandlerRegistryService instance.
 // It initializes all handler implementations with their required dependencies.
-func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
+func NewHandlerRegistryService(provider engine.OverlayEngineProvider, arcIngestHandlerConfig ArcIngestHandlerConfig) *HandlerRegistryService {
 	return &HandlerRegistryService{
 		lookupList:                NewLookupListHandler(provider),
 		topicManagersList:         NewTopicManagersListHandler(provider),
@@ -76,7 +80,7 @@ func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRe
 		topicManagerDocumentation: NewTopicManagerDocumentationHandler(provider),
 		submitTransaction:         NewSubmitTransactionHandler(provider),
 		syncAdvertisements:        NewSyncAdvertisementsHandler(provider),
-		arcIngest:                 NewArcIngestHandler(provider),
+		arcIngest:                 NewArcAuthorizationDecorator(NewArcIngestHandler(provider), arcIngestHandlerConfig),
 		requestSyncResponse:       NewRequestSyncResponseHandler(provider),
 	}
 }
