@@ -40,7 +40,7 @@ type LookupQuestionService struct {
 // LookupQuestion handles the end-to-end processing of a lookup question request.
 // It validates inputs, delegates evaluation to the underlying provider,
 // and returns a structured answer suitable for use in the presentation layer.
-// Returns an error if the input is invalid, the evaluation fails, or the result cannot be processed..
+// Returns an error if the input is invalid, the evaluation fails, or the result cannot be processed.
 func (s *LookupQuestionService) LookupQuestion(ctx context.Context, service string, query map[string]any) (*LookupAnswerDTO, error) {
 	if len(service) == 0 {
 		return nil, NewIncorrectInputWithFieldError("service")
