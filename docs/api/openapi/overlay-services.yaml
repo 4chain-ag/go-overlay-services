@@ -456,6 +456,59 @@ paths:
           $ref: '#/components/responses/BadRequestResponse'
         '500':
           $ref: '#/components/responses/InternalServerErrorResponse'
+  /api/v1/arc-ingest:
+    post:
+      tags:
+        - non-admin
+      operationId: ArcIngest
+      security:
+        - bearerAuth:
+            - user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                txid:
+                  type: string
+                  description: Transaction ID in hexadecimal format
+                merklePath:
+                  type: string
+                  description: Merkle path in hexadecimal format
+                blockHeight:
+                  type: integer
+                  format: uint32
+                  description: Block height where the transaction was included
+              required:
+                - txid
+                - merklePath
+                - blockHeight
+      responses:
+        '200':
+          description: |
+            Merkle proof successfully processed and transaction status updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Transaction status updated
+                required:
+                  - status
+                  - message
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '408':
+          $ref: '#/components/responses/RequestTimeoutResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
 components:
   schemas:
     Error:
