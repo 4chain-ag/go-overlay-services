@@ -4,21 +4,21 @@ This standalone HTTP server provides a customizable interface for interacting wi
 
 ## 📋 Table of Contents
 
-- [✨ Features](#✨-features)
-- [🔧 Middleware & Built-in Components](#🔧-middleware--built-in-components)
-- [🛠️ Supported API Endpoints](#🛠️-supported-api-endpoints)
-- [⚙️ Configuration](#⚙️-configuration)
-  - [⚙️ Default Configuration](#⚙️-default-configuration)
-  - [🧩 Server Options](#🧩-server-options)
-- [🛠️ Development Task Automation](#🛠️-development-task-automation)
-  - [🔑 Available Tasks](#🔑-available-tasks)
-  - [💡 Usage Examples](#💡-usage-examples)
-- [📚 Code Snippet Examples](#📚-code-snippet-examples)
+- [✨ Features](#features)
+- [🔧 Middleware & Built-in Components](#middleware--built-in-components)
+- [🛠️ Supported API Endpoints](#supported-api-endpoints)
+- [⚙️ Configuration](#configuration)
+  - [⚙️ Default Configuration](#default-configuration)
+  - [🧩 Server Options](#server-options)
+- [🛠️ Development Task Automation](#development-task-automation)
+  - [🔑 Available Tasks](#available-tasks)
+  - [💡 Usage Examples](#usage-examples)
+- [📚 Code Snippet Examples](#code-snippet-examples)
 - [Support & Contacts 🤝](#support--contacts-🤝)
 - [License 📜](#license-📜)
 
 
-## ✨ Features
+## Features 
 
 - **Standalone HTTP Server**  
   Operates as a self-contained server with customizable configuration and overlay engine layers.
@@ -32,7 +32,7 @@ This standalone HTTP server provides a customizable interface for interacting wi
 - **📊 Real-Time Observability**  
   Provides basic real-time observability and performance monitoring out of the box.
 
-## 🔧 Middleware & Built-in Components
+## Middleware & Built-in Components
 
 - **🔎 Request Tracing**  
   Attaches a unique `request ID` to every incoming request for consistent traceability across logs and systems.
@@ -61,7 +61,7 @@ This standalone HTTP server provides a customizable interface for interacting wi
 - **🔐 Bearer Token Authorization**  
   Validates Bearer tokens found in the `Authorization` header of incoming HTTP requests. Also enforces authorization based on OpenAPI security scopes.
 
-### 🛠️ Supported API Endpoints
+### Supported API Endpoints
 
 | HTTP Method | Endpoint                                    | Description                                 | Protection      |
 |-------------|---------------------------------------------|---------------------------------------------|-----------------|
@@ -76,7 +76,7 @@ This standalone HTTP server provides a customizable interface for interacting wi
 | POST        | `/api/v1/requestSyncResponse`                   | Request a synchronization response             | Public          |
 | POST        | `/api/v1/submit`                               | Submit a transaction                            | Public          |
 
-## ⚙️ Configuration
+## Configuration
 
 The server configuration is encapsulated in the `Config` struct with the following fields:
 
@@ -90,11 +90,11 @@ The server configuration is encapsulated in the `Config` struct with the followi
 | `OctetStreamLimit`      | `int64`         | Maximum allowed size in bytes for requests with `Content-Type: application/octet-stream`.      | `1GB` (1_073_741_824 bytes)    |
 | `ConnectionReadTimeout` | `time.Duration` | Maximum duration to keep an open connection before forcefully closing it.                       | `10 seconds`                    |
 
-### ⚙️ Default Configuration
+### Default Configuration
 
 A default configuration `DefaultConfig` is provided for local development and testing, with sensible defaults for all fields.
 
-### 🧩 Server Options
+### Server Options
 
 The HTTP server supports flexible setup via functional options (`ServerOption`), allowing customization during server creation:
 
@@ -106,7 +106,7 @@ The HTTP server supports flexible setup via functional options (`ServerOption`),
 | `WithOctetStreamLimit(int64)`    | Sets a custom limit on octet-stream request body sizes to control memory usage.                |
 | `WithConfig(Config)`              | Applies a full configuration struct to initialize the Fiber app with specified settings.      |
 
-## 🛠️ Development Task Automation
+## Development Task Automation
 
 This project uses a dedicated **Taskfile.yml** powered by the [`task`](https://taskfile.dev/) CLI to automate common workflows. This centralizes critical operations such as testing, code generation, API documentation bundling, and code linting into a single, easy-to-use interface.
 
@@ -118,7 +118,7 @@ Formalizing these processes ensures:
 - 🔁 **Reproducibility** in CI/CD and local setups  
 - 🧹 **Maintainability** with centralized workflow updates  
 
-### 🔑 Available Tasks
+### Available Tasks
 
 - **`execute-unit-tests`**  
   Runs all unit tests with fail-fast, vet checks, and disables caching for fresh results.
@@ -141,20 +141,20 @@ Formalizing these processes ensures:
 - **`execute-linters`**  
   Runs Go linters and applies automatic fixes to maintain code quality.
 
-### 💡 Usage Examples
+### Usage Examples
 
 - Run all unit tests: ```task execute-unit-tests```
 
-### 📚 Code Snippet Examples
+### Code Snippet Examples
 
 All the proposed examples are available in the [examples directory](./examples/).
 
 
-## Support & Contacts 🤝
+## Support & Contacts 
 
 For questions, bug reports, or feature requests, please open an issue on GitHub.
 
-## License 📜
+## License  
 
 The license for the code in this repository is the Open BSV License. Refer to [LICENSE.txt](./LICENSE) for the license text.
 Thank you for being a part of the BSV Blockchain Libraries Project. Let's build the future of BSV Blockchain together! 🚀🔥
