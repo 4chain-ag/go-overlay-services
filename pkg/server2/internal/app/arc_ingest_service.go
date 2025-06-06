@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 
 	"github.com/bsv-blockchain/go-sdk/chainhash"
 	"github.com/bsv-blockchain/go-sdk/transaction"
@@ -36,7 +37,7 @@ func (a *ARCIngestService) ProcessIngest(ctx context.Context, txID, merklePath s
 	}
 
 	if blockHeight == 0 {
-		return NewInvalidBlockHeightError()
+		return NewInvalidBlockHeightError(errors.New("block height must be a positive integer (greater than 0)"))
 	}
 
 	path.BlockHeight = blockHeight
@@ -89,9 +90,9 @@ func NewArcIngestProviderError(err error) Error {
 
 // NewInvalidBlockHeightError returns an error indicating that the provided block height
 // is invalid. This typically happens when the block height is zero or otherwise invalid.
-func NewInvalidBlockHeightError() Error {
+func NewInvalidBlockHeightError(err error) Error {
 	return NewIncorrectInputError(
-		"block height must be a positive integer (greater than 0)",
+		err.Error(),
 		"Unable to process block height due to an invalid value. Please verify the block height and try again.",
 	)
 }
