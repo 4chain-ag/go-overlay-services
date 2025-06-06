@@ -188,7 +188,7 @@ components:
           example: 'success'
         message:
           type: string
-          example: 'Transaction status updated'
+          example: 'Transaction with ID:0000000000000000000000000000000000000000000000000000000000000000 successfully ingested.'
       required:
         - status
         - message

@@ -16,8 +16,8 @@ const (
 )
 
 const (
-	DefaultARCallbackToken = "valid_arc_callback_token"
-	DefaultARCAPIKey       = "valid_arc_api_key"
+	DefaultARCCallbackToken = "valid_arc_callback_token"
+	DefaultARCAPIKey        = "valid_arc_api_key"
 )
 
 func NewTestMerklePath(t *testing.T) string {

@@ -60,7 +60,7 @@ func TestArcIngestHandler_InvalidCases(t *testing.T) {
 
 			fixture := server2.NewServerTestFixture(t,
 				server2.WithEngine(stub),
-				server2.WithARCCallbackToken(testabilities.DefaultARCallbackToken),
+				server2.WithARCCallbackToken(testabilities.DefaultARCCallbackToken),
 				server2.WithARCApiKey(testabilities.DefaultARCAPIKey),
 			)
 
@@ -100,7 +100,7 @@ func TestArcIngestHandler_ValidCase(t *testing.T) {
 
 	fixture := server2.NewServerTestFixture(t,
 		server2.WithEngine(stub),
-		server2.WithARCCallbackToken(testabilities.DefaultARCallbackToken),
+		server2.WithARCCallbackToken(testabilities.DefaultARCCallbackToken),
 		server2.WithARCApiKey(testabilities.DefaultARCAPIKey),
 	)
 
@@ -111,7 +111,7 @@ func TestArcIngestHandler_ValidCase(t *testing.T) {
 		R().
 		SetHeaders(map[string]string{
 			fiber.HeaderContentType:   fiber.MIMEApplicationJSON,
-			fiber.HeaderAuthorization: "Bearer " + testabilities.DefaultARCallbackToken,
+			fiber.HeaderAuthorization: "Bearer " + testabilities.DefaultARCCallbackToken,
 		}).
 		SetBody(openapi.ArcIngestBody{
 			Txid:        testabilities.NewTxID(t),
