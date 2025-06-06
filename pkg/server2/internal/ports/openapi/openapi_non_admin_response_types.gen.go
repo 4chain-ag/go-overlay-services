@@ -11,6 +11,12 @@ type AdmittanceInstructions struct {
 	OutputsToAdmit []uint32 `json:"outputsToAdmit"`
 }
 
+// ArcIngest defines model for ArcIngest.
+type ArcIngest struct {
+	Message string `json:"message"`
+	Status  string `json:"status"`
+}
+
 // GASPNode A GASP node representation from the overlay engine
 type GASPNode struct {
 	// AncillaryBeef The ancillary beef of the GASP node
@@ -99,6 +105,9 @@ type UTXOItem struct {
 	// Vout Output index number
 	Vout int `json:"vout"`
 }
+
+// ArcIngestResponse defines model for ArcIngestResponse.
+type ArcIngestResponse = ArcIngest
 
 // LookupQuestionResponse defines model for LookupQuestionResponse.
 type LookupQuestionResponse = LookupAnswer

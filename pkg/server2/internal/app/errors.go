@@ -9,13 +9,14 @@ type ErrorType struct {
 }
 
 var (
-	ErrorTypeProviderFailure   = ErrorType{"provider-failure"}
-	ErrorTypeAuthorization     = ErrorType{"authorization"}
-	ErrorTypeAccessForbidden   = ErrorType{"access-forbidden"}
-	ErrorTypeIncorrectInput    = ErrorType{"incorrect-input"}
-	ErrorTypeUnknown           = ErrorType{"unknown"}
-	ErrorTypeOperationTimeout  = ErrorType{"operation-timeout"}
-	ErrorTypeRawDataProcessing = ErrorType{"raw-data-processing"}
+	ErrorTypeProviderFailure      = ErrorType{"provider-failure"}
+	ErrorTypeAuthorization        = ErrorType{"authorization"}
+	ErrorTypeAccessForbidden      = ErrorType{"access-forbidden"}
+	ErrorTypeIncorrectInput       = ErrorType{"incorrect-input"}
+	ErrorTypeUnknown              = ErrorType{"unknown"}
+	ErrorTypeOperationTimeout     = ErrorType{"operation-timeout"}
+	ErrorTypeRawDataProcessing    = ErrorType{"raw-data-processing"}
+	ErrorTypeUnsupportedOperation = ErrorType{"unsupported-operation"}
 )
 
 // Error defines a generic application-layer error that should be translated
@@ -40,6 +41,14 @@ func (e Error) Slug() string         { return e.slug }
 func (e Error) IsZero() bool         { return e == Error{} }
 func (e Error) Error() string        { return e.err }
 func (e Error) ErrorType() ErrorType { return e.errorType }
+
+func NewUnsupportedOperationError(err, slug string) Error {
+	return Error{
+		slug:      slug,
+		err:       err,
+		errorType: ErrorTypeUnsupportedOperation,
+	}
+}
 
 // NewIncorrectInputError returns an error that handles invalid input data,
 // typically caused by partial state, inappropriate data formats, or other

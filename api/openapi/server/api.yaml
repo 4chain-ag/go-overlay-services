@@ -211,6 +211,27 @@ paths:
         500:
           $ref: '#/components/responses/InternalServerErrorResponse'
 
+  /api/v1/arc-ingest:
+    post:
+      tags:
+        - non-admin
+      operationId: ArcIngest
+      security:
+        - bearerAuth:
+            - user
+      requestBody:
+        required: true
+        $ref: '../paths/non_admin/request-bodies.yaml#/components/requestBodies/ArcIngestBody'
+      responses:
+        200:
+          $ref: '../paths/non_admin/responses.yaml#/components/responses/ArcIngestResponse'
+        400:
+          $ref: '#/components/responses/BadRequestResponse'
+        408:
+          $ref: '#/components/responses/RequestTimeoutResponse'
+        500:
+          $ref: '#/components/responses/InternalServerErrorResponse'
+
 components:
   schemas:
     Error:
