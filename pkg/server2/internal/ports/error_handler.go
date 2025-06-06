@@ -15,12 +15,13 @@ import (
 // returns a generic internal server error response.
 func ErrorHandler() fiber.ErrorHandler {
 	codes := map[app.ErrorType]int{
-		app.ErrorTypeAuthorization:     fiber.StatusUnauthorized,
-		app.ErrorTypeAccessForbidden:   fiber.StatusForbidden,
-		app.ErrorTypeIncorrectInput:    fiber.StatusBadRequest,
-		app.ErrorTypeOperationTimeout:  fiber.StatusRequestTimeout,
-		app.ErrorTypeProviderFailure:   fiber.StatusInternalServerError,
-		app.ErrorTypeRawDataProcessing: fiber.StatusInternalServerError,
+		app.ErrorTypeAuthorization:        fiber.StatusUnauthorized,
+		app.ErrorTypeAccessForbidden:      fiber.StatusForbidden,
+		app.ErrorTypeIncorrectInput:       fiber.StatusBadRequest,
+		app.ErrorTypeOperationTimeout:     fiber.StatusRequestTimeout,
+		app.ErrorTypeProviderFailure:      fiber.StatusInternalServerError,
+		app.ErrorTypeRawDataProcessing:    fiber.StatusInternalServerError,
+		app.ErrorTypeUnsupportedOperation: fiber.StatusNotFound,
 	}
 
 	return func(c *fiber.Ctx, err error) error {

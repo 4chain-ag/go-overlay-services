@@ -3,6 +3,7 @@ package ports
 import (
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/decorators"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 )
@@ -19,6 +20,12 @@ type HandlerRegistryService struct {
 	requestSyncResponse       *RequestSyncResponseHandler
 	metadataHandler           *MetadataHandler
 	lookupQuestion            *LookupQuestionHandler
+	arcIngest                 decorators.Handler
+}
+
+// ArcIngest implements openapi.ServerInterface.
+func (h *HandlerRegistryService) ArcIngest(c *fiber.Ctx) error {
+	return h.arcIngest.Handle(c)
 }
 
 // LookupQuestion implements openapi.ServerInterface.
@@ -73,10 +80,11 @@ func (h *HandlerRegistryService) RequestSyncResponse(c *fiber.Ctx, params openap
 
 // NewHandlerRegistryService creates and returns a new HandlerRegistryService instance.
 // It initializes all handler implementations with their required dependencies.
-func NewHandlerRegistryService(provider engine.OverlayEngineProvider) *HandlerRegistryService {
+func NewHandlerRegistryService(provider engine.OverlayEngineProvider, cfg *decorators.ARCAuthorizationDecoratorConfig) *HandlerRegistryService {
 	return &HandlerRegistryService{
 		lookupDocumentation: NewLookupProviderDocumentationHandler(provider),
 		startGASPSync:       NewStartGASPSyncHandler(provider),
+		arcIngest:           decorators.NewArcAuthorizationDecorator(NewARCIngestHandler(provider), cfg),
 		metadataHandler: NewMetadataHandler(
 			app.NewMetadataService(
 				app.NewLookupListService(provider),

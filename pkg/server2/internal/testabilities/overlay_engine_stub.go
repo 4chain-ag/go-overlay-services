@@ -19,6 +19,13 @@ type ProviderStateAsserter interface {
 	AssertCalled()
 }
 
+// ARCIngestProvider extends app.ArcIngestProvider with the ability
+// to assert whether it was called during a test.
+type ARCIngestProvider interface {
+	app.ARCIngestProvider
+	ProviderStateAsserter
+}
+
 // LookupQuestionProvider extends app.LookupQuestionProvider with the ability
 // to assert whether it was called during a test.
 type LookupQuestionProvider interface {
@@ -92,6 +99,14 @@ type RequestSyncResponseProvider interface {
 // TestOverlayEngineStubOption is a functional option type used to configure a TestOverlayEngineStub.
 // It allows setting custom behaviors for different parts of the TestOverlayEngineStub.
 type TestOverlayEngineStubOption func(*TestOverlayEngineStub)
+
+// WithARCIngestProvider allows setting a custom ARCIngestProvider in a TestOverlayEngineStub.
+// This can be used to mock arc ingest behavior during tests.
+func WithARCIngestProvider(provider ARCIngestProvider) TestOverlayEngineStubOption {
+	return func(stub *TestOverlayEngineStub) {
+		stub.arcIngestProvider = provider
+	}
+}
 
 // WithSubmitTransactionProvider allows setting a custom SubmitTransactionProvider in a TestOverlayEngineStub.
 // This can be used to mock transaction submission behavior during tests.
@@ -188,13 +203,13 @@ type TestOverlayEngineStub struct {
 	syncAdvertisementsProvider        SyncAdvertisementsProvider
 	requestForeignGASPNodeProvider    RequestForeignGASPNodeProvider
 	requestSyncResponseProvider       RequestSyncResponseProvider
+	arcIngestProvider                 ARCIngestProvider
 }
 
 // GetDocumentationForLookupServiceProvider returns documentation for a lookup service provider
 // using the configured LookupServiceDocumentationProvider.
 func (s *TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provider string) (string, error) {
 	s.t.Helper()
-
 	return s.lookupDocumentationProvider.GetDocumentationForLookupServiceProvider(provider)
 }
 
@@ -202,7 +217,6 @@ func (s *TestOverlayEngineStub) GetDocumentationForLookupServiceProvider(provide
 // It delegates to the configured topic manager documentation provider.
 func (s *TestOverlayEngineStub) GetDocumentationForTopicManager(provider string) (string, error) {
 	s.t.Helper()
-
 	return s.topicManagerDocumentationProvider.GetDocumentationForTopicManager(provider)
 }
 
@@ -215,20 +229,19 @@ func (s *TestOverlayEngineStub) GetUTXOHistory(ctx context.Context, outpus *engi
 // HandleNewMerkleProof processes a new Merkle proof for a transaction (unimplemented).
 // This is a placeholder function meant to be overridden in actual implementations.
 func (s *TestOverlayEngineStub) HandleNewMerkleProof(ctx context.Context, txid *chainhash.Hash, proof *transaction.MerklePath) error {
-	panic("unimplemented")
+	s.t.Helper()
+	return s.arcIngestProvider.HandleNewMerkleProof(ctx, txid, proof)
 }
 
 // ListLookupServiceProviders lists the available lookup service providers.
 func (s *TestOverlayEngineStub) ListLookupServiceProviders() map[string]*overlay.MetaData {
 	s.t.Helper()
-
 	return s.lookupListProvider.ListLookupServiceProviders()
 }
 
 // ListTopicManagers lists the available topic managers.
 func (s *TestOverlayEngineStub) ListTopicManagers() map[string]*overlay.MetaData {
 	s.t.Helper()
-
 	return s.topicManagersListProvider.ListTopicManagers()
 }
 
@@ -236,14 +249,12 @@ func (s *TestOverlayEngineStub) ListTopicManagers() map[string]*overlay.MetaData
 // This is a placeholder function meant to be overridden in actual implementations.
 func (s *TestOverlayEngineStub) Lookup(ctx context.Context, question *lookup.LookupQuestion) (*lookup.LookupAnswer, error) {
 	s.t.Helper()
-
 	return s.lookupQuestionProvider.Lookup(ctx, question)
 }
 
 // ProvideForeignGASPNode returns a foreign GASP node using the configured RequestForeignGASPNodeProvider.
 func (s *TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, graphId *overlay.Outpoint, outpoints *overlay.Outpoint, topic string) (*core.GASPNode, error) {
 	s.t.Helper()
-
 	return s.requestForeignGASPNodeProvider.ProvideForeignGASPNode(ctx, graphId, outpoints, topic)
 }
 
@@ -251,7 +262,6 @@ func (s *TestOverlayEngineStub) ProvideForeignGASPNode(ctx context.Context, grap
 // It calls the ProvideForeignSyncResponse method of the configured RequestSyncResponseProvider.
 func (s *TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, initialRequess *core.GASPInitialRequest, topic string) (*core.GASPInitialResponse, error) {
 	s.t.Helper()
-
 	return s.requestSyncResponseProvider.ProvideForeignSyncResponse(ctx, initialRequess, topic)
 }
 
@@ -259,7 +269,6 @@ func (s *TestOverlayEngineStub) ProvideForeignSyncResponse(ctx context.Context, 
 // It calls the StartGASPSync method of the configured StartGASPSyncProvider.
 func (s *TestOverlayEngineStub) StartGASPSync(ctx context.Context) error {
 	s.t.Helper()
-
 	return s.startGASPSyncProvider.StartGASPSync(ctx)
 }
 
@@ -267,7 +276,6 @@ func (s *TestOverlayEngineStub) StartGASPSync(ctx context.Context) error {
 // It calls the Submit method of the configured SubmitTransactionProvider and handles the steak callback.
 func (s *TestOverlayEngineStub) Submit(ctx context.Context, taggedBEEF overlay.TaggedBEEF, mode engine.SumbitMode, onSteakReady engine.OnSteakReady) (overlay.Steak, error) {
 	s.t.Helper()
-
 	return s.submitTransactionProvider.Submit(ctx, taggedBEEF, mode, onSteakReady)
 }
 
@@ -275,7 +283,6 @@ func (s *TestOverlayEngineStub) Submit(ctx context.Context, taggedBEEF overlay.T
 // It calls the SyncAdvertisements method of the provider and handles the result.
 func (s *TestOverlayEngineStub) SyncAdvertisements(ctx context.Context) error {
 	s.t.Helper()
-
 	return s.syncAdvertisementsProvider.SyncAdvertisements(ctx)
 }
 
@@ -294,6 +301,7 @@ func (s *TestOverlayEngineStub) AssertProvidersState() {
 		s.startGASPSyncProvider,
 		s.requestForeignGASPNodeProvider,
 		s.requestSyncResponseProvider,
+		s.arcIngestProvider,
 	}
 	for _, p := range providers {
 		p.AssertCalled()
@@ -315,6 +323,7 @@ func NewTestOverlayEngineStub(t *testing.T, opts ...TestOverlayEngineStubOption)
 		syncAdvertisementsProvider:        NewSyncAdvertisementsProviderMock(t, SyncAdvertisementsProviderMockExpectations{SyncAdvertisementsCall: false}),
 		requestForeignGASPNodeProvider:    NewRequestForeignGASPNodeProviderMock(t, RequestForeignGASPNodeProviderMockExpectations{ProvideForeignGASPNodeCall: false}),
 		requestSyncResponseProvider:       NewRequestSyncResponseProviderMock(t, RequestSyncResponseProviderMockExpectations{ProvideForeignSyncResponseCall: false}),
+		arcIngestProvider:                 NewARCIngestProviderMock(t, ARCIngestProviderMockExpectations{HandleNewMerkleProofCall: false}),
 	}
 
 	for _, opt := range opts {
