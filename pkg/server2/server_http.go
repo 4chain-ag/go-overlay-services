@@ -8,6 +8,7 @@ import (
 	"github.com/4chain-ag/go-overlay-services/pkg/core/engine"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/adapters"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports"
+	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/decorators"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/middleware"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
@@ -39,6 +40,12 @@ type Config struct {
 	// ConnectionReadTimeout defines the maximum duration an active connection is allowed to stay open.
 	// Once this threshold is exceeded, the connection will be forcefully closed.
 	ConnectionReadTimeout time.Duration `mapstructure:"connection_read_timeout_limit"`
+
+	// ARCApiKey is the API key for ARC service integration.
+	ARCApiKey string `mapstructure:"arc_api_key"`
+
+	// ARCCallbackToken is the token for authenticating ARC callback requests.
+	ARCCallbackToken string `mapstructure:"arc_callback_token"`
 }
 
 // DefaultConfig provides a default configuration with reasonable values for local development.
@@ -50,11 +57,30 @@ var DefaultConfig = Config{
 	AdminBearerToken:      uuid.NewString(),
 	OctetStreamLimit:      middleware.ReadBodyLimit1GB,
 	ConnectionReadTimeout: 10 * time.Second,
+	ARCApiKey:             "",
+	ARCCallbackToken:      uuid.NewString(),
 }
 
 // ServerOption defines a functional option for configuring an HTTP server.
 // These options allow for flexible setup of middlewares and configurations.
 type ServerOption func(*ServerHTTP)
+
+// WithARCApiKey sets the ARC API key used for ARC service integration.
+// It returns a ServerOption that applies this configuration to ServerHTTP.
+func WithARCApiKey(APIKey string) ServerOption {
+	return func(s *ServerHTTP) {
+		s.cfg.ARCApiKey = APIKey
+	}
+}
+
+// WithARCCallbackToken sets the ARC callback token used for authenticating
+// ARC callback requests on the HTTP server.
+// It returns a ServerOption that applies this configuration to ServerHTTP.
+func WithARCCallbackToken(token string) ServerOption {
+	return func(s *ServerHTTP) {
+		s.cfg.ARCCallbackToken = token
+	}
+}
 
 // WithMiddleware adds a Fiber middleware handler to the HTTP server configuration.
 // It returns a ServerOption that appends the given middleware to the server's middleware stack.
@@ -68,7 +94,7 @@ func WithMiddleware(f fiber.Handler) ServerOption {
 // It configures the ServerHTTP handlers to use the provided engine implementation.
 func WithEngine(provider engine.OverlayEngineProvider) ServerOption {
 	return func(s *ServerHTTP) {
-		s.registry = ports.NewHandlerRegistryService(provider)
+		s.engine = provider
 	}
 }
 
@@ -110,9 +136,7 @@ type ServerHTTP struct {
 	cfg        Config          // cfg holds the server configuration settings.
 	app        *fiber.App      // app is the Fiber application instance serving HTTP requests.
 	middleware []fiber.Handler // middleware is a list of Fiber middleware functions to be applied globally.
-
-	// Handlers for processing incoming HTTP requests
-	registry *ports.HandlerRegistryService
+	engine     engine.OverlayEngineProvider
 }
 
 // SocketAddr builds the address string for binding.
@@ -138,16 +162,22 @@ func (s *ServerHTTP) Shutdown(ctx context.Context) error {
 // and applies any optional functional configuration options passed via opts.
 func New(opts ...ServerOption) *ServerHTTP {
 	srv := &ServerHTTP{
-		registry: ports.NewHandlerRegistryService(adapters.NewNoopEngineProvider()),
-		cfg:      DefaultConfig,
-		app:      newFiberApp(DefaultConfig),
+		cfg:    DefaultConfig,
+		app:    newFiberApp(DefaultConfig),
+		engine: adapters.NewNoopEngineProvider(),
 	}
 
 	for _, o := range opts {
 		o(srv)
 	}
 
-	openapi.RegisterHandlersWithOptions(srv.app, srv.registry, openapi.FiberServerOptions{
+	registry := ports.NewHandlerRegistryService(srv.engine, &decorators.ARCAuthorizationDecoratorConfig{
+		APIKey:        srv.cfg.ARCApiKey,
+		CallbackToken: srv.cfg.ARCCallbackToken,
+		Scheme:        "Bearer ",
+	})
+
+	openapi.RegisterHandlersWithOptions(srv.app, registry, openapi.FiberServerOptions{
 		HandlerMiddleware: []fiber.Handler{
 			middleware.BearerTokenAuthorizationMiddleware(srv.cfg.AdminBearerToken),
 		},
