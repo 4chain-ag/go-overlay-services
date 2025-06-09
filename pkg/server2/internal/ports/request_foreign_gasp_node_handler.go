@@ -1,33 +1,31 @@
 package ports
 
 import (
-	"context"
-
 	"github.com/4chain-ag/go-overlay-services/pkg/core/gasp/core"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 )
 
-// RequestForeignGASPNodeService defines the interface for a service responsible for
-// requesting foreign GASP nodes. It encapsulates the business logic for resolving node data.
-type RequestForeignGASPNodeService interface {
-	// RequestForeignGASPNode processes the given request and returns the corresponding GASP node
-	// or an error if the request cannot be fulfilled.
-	RequestForeignGASPNode(ctx context.Context, dto app.RequestForeignGASPNodeDTO) (*core.GASPNode, error)
-}
-
-// RequestForeignGASPNodeHandler handles HTTP requests for foreign GASP nodes.
-// It parses input, delegates to the service layer, and formats the response.
+// RequestForeignGASPNodeHandler is a Fiber-compatible HTTP handler that processes
+// foreign GASP node requests. It belongs to the ports layer and acts as the interface
+// adapter between HTTP input and application-layer logic provided by RequestForeignGASPNodeService.
 type RequestForeignGASPNodeHandler struct {
-	service RequestForeignGASPNodeService
+	service *app.RequestForeignGASPNodeService
 }
 
-// Handle processes an incoming request for a foreign GASP node.
-// It parses the request body and parameters, delegates the request to the service,
-// and returns a formatted JSON response or an appropriate error.
+// Handle processes an HTTP POST request for requesting a foreign GASP node.
+// It expects a JSON body conforming to the RequestForeignGASPNodeJSONBody OpenAPI definition,
+// along with an X-BSV-Topic header passed via params.
+//
+// The request is parsed and validated before being forwarded to the application layer.
+// The response is formatted as a GASPNode object in OpenAPI-compatible JSON format.
+//
+// On success, returns a 200 OK response with the GASP node data.
+// On failure, returns a request parsing or service-level error.
 func (h *RequestForeignGASPNodeHandler) Handle(c *fiber.Ctx, params openapi.RequestForeignGASPNodeParams) error {
 	var body openapi.RequestForeignGASPNodeJSONBody
+
 	err := c.BodyParser(&body)
 	if err != nil {
 		return NewRequestBodyParserError(err)
@@ -46,17 +44,21 @@ func (h *RequestForeignGASPNodeHandler) Handle(c *fiber.Ctx, params openapi.Requ
 	return c.Status(fiber.StatusOK).JSON(NewRequestForeignGASPNodeSuccessResponse(node))
 }
 
-// NewRequestForeignGASPNodeHandler creates and returns a new RequestForeignGASPNodeHandler
-// using the provided RequestForeignGASPNodeProvider. It panics if the provider is nil.
+// NewRequestForeignGASPNodeHandler constructs a new RequestForeignGASPNodeHandler
+// using the given RequestForeignGASPNodeProvider to instantiate the underlying service.
+//
+// The provider must implement the RequestForeignGASPNodeProvider interface.
+// This function bridges infrastructure (provider) with application-layer logic.
+// Panics if the provider is nil.
 func NewRequestForeignGASPNodeHandler(provider app.RequestForeignGASPNodeProvider) *RequestForeignGASPNodeHandler {
-	if provider == nil {
-		panic("request foreign GASP node provider is nil")
-	}
 	return &RequestForeignGASPNodeHandler{service: app.NewRequestForeignGASPNodeService(provider)}
 }
 
-// NewRequestForeignGASPNodeSuccessResponse constructs a success response from the given GASPNode.
-// It maps internal types to the OpenAPI response format, ensuring compatibility with the API spec.
+// NewRequestForeignGASPNodeSuccessResponse converts a core.GASPNode into a
+// GASPNode object compatible with the OpenAPI specification.
+//
+// It ensures proper mapping of fields including inputs, optional graph ID and proof,
+// and transaction/output metadata.
 func NewRequestForeignGASPNodeSuccessResponse(node *core.GASPNode) openapi.GASPNode {
 	var inputs map[string]any
 	if len(node.Inputs) > 0 {

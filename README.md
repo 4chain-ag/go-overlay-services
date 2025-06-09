@@ -14,11 +14,10 @@ This standalone HTTP server provides a customizable interface for interacting wi
   - [🔑 Available Tasks](#available-tasks)
   - [💡 Usage Examples](#usage-examples)
 - [📚 Code Snippet Examples](#code-snippet-examples)
-- [Support & Contacts 🤝](#support--contacts-🤝)
-- [License 📜](#license-📜)
+- [🤝 Support & Contacts](#support--contacts)
+- [📜 License](#license)
 
-
-## Features 
+## ✨ Features
 
 - **Standalone HTTP Server**  
   Operates as a self-contained server with customizable configuration and overlay engine layers.
@@ -32,7 +31,7 @@ This standalone HTTP server provides a customizable interface for interacting wi
 - **📊 Real-Time Observability**  
   Provides basic real-time observability and performance monitoring out of the box.
 
-## Middleware & Built-in Components
+## 🔧 Middleware & Built-in Components
 
 - **🔎 Request Tracing**  
   Attaches a unique `request ID` to every incoming request for consistent traceability across logs and systems.
@@ -59,54 +58,59 @@ This standalone HTTP server provides a customizable interface for interacting wi
   Enforces size limits on `application/octet-stream` payloads to protect against abuse.
 
 - **🔐 Bearer Token Authorization**  
-  Validates Bearer tokens found in the `Authorization` header of incoming HTTP requests. Also enforces authorization based on OpenAPI security scopes.
+  Validates Bearer tokens found in the `Authorization` header of incoming HTTP requests and enforces authorization based on OpenAPI security scopes.
 
-### Supported API Endpoints
+## 🛠️ Supported API Endpoints
 
-| HTTP Method | Endpoint                                    | Description                                 | Protection      |
-|-------------|---------------------------------------------|---------------------------------------------|-----------------|
-| POST        | `/api/v1/admin/startGASPSync`                | Start GASP synchronization                   | **Admin only**  |
-| POST        | `/api/v1/admin/syncAdvertisements`           | Synchronize advertisements                    | **Admin only**  |
-| GET         | `/api/v1/getDocumentationForLookupServiceProvider` | Retrieve documentation for Lookup Service Providers | Public          |
-| GET         | `/api/v1/getDocumentationForTopicManager`    | Retrieve documentation for Topic Managers     | Public          |
-| GET         | `/api/v1/listLookupServiceProviders`          | List all Lookup Service Providers              | Public          |
-| GET         | `/api/v1/listTopicManagers`                    | List all Topic Managers                         | Public          |
-| POST        | `/api/v1/lookup`                               | Submit a lookup question                        | Public          |
-| POST        | `/api/v1/requestForeignGASPNode`               | Request a foreign GASP node                     | Public          |
-| POST        | `/api/v1/requestSyncResponse`                   | Request a synchronization response             | Public          |
-| POST        | `/api/v1/submit`                               | Submit a transaction                            | Public          |
+| HTTP Method | Endpoint                                      | Description                                           | Protection          |
+|-------------|-----------------------------------------------|-------------------------------------------------------|---------------------|
+| POST        | `/api/v1/admin/startGASPSync`                 | Starts GASP synchronization                           | **Admin only**      |
+| POST        | `/api/v1/admin/syncAdvertisements`            | Synchronizes advertisements                           | **Admin only**      |
+| GET         | `/api/v1/getDocumentationForLookupServiceProvider` | Retrieves documentation for Lookup Service Providers | Public              |
+| GET         | `/api/v1/getDocumentationForTopicManager`     | Retrieves documentation for Topic Managers            | Public              |
+| GET         | `/api/v1/listLookupServiceProviders`          | Lists all Lookup Service Providers                    | Public              |
+| GET         | `/api/v1/listTopicManagers`                   | Lists all Topic Managers                              | Public              |
+| POST        | `/api/v1/lookup`                              | Submits a lookup question                             | Public              |
+| POST        | `/api/v1/requestForeignGASPNode`              | Requests a foreign GASP node                          | Public              |
+| POST        | `/api/v1/requestSyncResponse`                 | Requests a synchronization response                   | Public              |
+| POST        | `/api/v1/submit`                              | Submits a transaction                                 | Public              |
+| POST        | `/api/v1/arc-ingest`                          | Ingests a Merkle proof                                | **ARC callback token** |
 
-## Configuration
+## ⚙️ Configuration
 
 The server configuration is encapsulated in the `Config` struct with the following fields:
 
 | Field                   | Type            | Description                                                                                         | Default Value                    |
-|-------------------------|-----------------|-------------------------------------------------------------------------------------------------|---------------------------------|
-| `AppName`               | `string`        | Name of the application shown in server metadata.                                               | `"Overlay API v0.0.0"`           |
-| `Port`                  | `int`           | TCP port number on which the server listens.                                                    | `3000`                          |
-| `Addr`                  | `string`        | Network address the server binds to.                                                            | `"localhost"`                   |
-| `ServerHeader`          | `string`        | Value sent in the `Server` HTTP response header.                                               | `"Overlay API"`                 |
-| `AdminBearerToken`      | `string`        | Bearer token required for authentication on admin-only routes.                                 | Random UUID generated by default |
-| `OctetStreamLimit`      | `int64`         | Maximum allowed size in bytes for requests with `Content-Type: application/octet-stream`.      | `1GB` (1_073_741_824 bytes)    |
-| `ConnectionReadTimeout` | `time.Duration` | Maximum duration to keep an open connection before forcefully closing it.                       | `10 seconds`                    |
+|-------------------------|-----------------|-----------------------------------------------------------------------------------------------------|----------------------------------|
+| `AppName`               | `string`        | Name of the application shown in server metadata.                                                   | `"Overlay API v0.0.0"`           |
+| `Port`                  | `int`           | TCP port number on which the server listens.                                                        | `3000`                           |
+| `Addr`                  | `string`        | Network address the server binds to.                                                                | `"localhost"`                    |
+| `ServerHeader`          | `string`        | Value sent in the `Server` HTTP response header.                                                    | `"Overlay API"`                  |
+| `AdminBearerToken`      | `string`        | Bearer token required for authentication on admin-only routes.                                      | Random UUID generated by default |
+| `OctetStreamLimit`      | `int64`         | Maximum allowed size in bytes for requests with `Content-Type: application/octet-stream`.           | `1GB` (1,073,741,824 bytes)      |
+| `ConnectionReadTimeout` | `time.Duration` | Maximum duration to keep an open connection before forcefully closing it.                           | `10 seconds`                     |
+| `ARCAPIKey`             | `string`        | API key for ARC service integration.                                                                | Empty string                     |
+| `ARCCallbackToken`      | `string`        | Token for authenticating ARC callback requests.                                                     | Random UUID generated by default |
 
-### Default Configuration
+### ⚙️ Default Configuration
 
-A default configuration `DefaultConfig` is provided for local development and testing, with sensible defaults for all fields.
+A default configuration, `DefaultConfig`, is provided for local development and testing, with sensible defaults for all fields.
 
-### Server Options
+### 🧩 Server Options
 
 The HTTP server supports flexible setup via functional options (`ServerOption`), allowing customization during server creation:
 
-| Option                             | Description                                                                                      |
-|----------------------------------|------------------------------------------------------------------------------------------------|
-| `WithMiddleware(fiber.Handler)`  | Adds a Fiber middleware handler to the server's middleware stack.                              |
-| `WithEngine(engine.OverlayEngineProvider)` | Sets the overlay engine provider handling business logic in the server.                   |
-| `WithAdminBearerToken(string)`   | Overrides the default admin bearer token securing admin routes.                               |
-| `WithOctetStreamLimit(int64)`    | Sets a custom limit on octet-stream request body sizes to control memory usage.                |
-| `WithConfig(Config)`              | Applies a full configuration struct to initialize the Fiber app with specified settings.      |
+| Option                                | Description                                                                                       |
+|--------------------------------------|---------------------------------------------------------------------------------------------------|
+| `WithMiddleware(fiber.Handler)`      | Adds a Fiber middleware handler to the server's middleware stack.                                |
+| `WithEngine(engine.OverlayEngineProvider)` | Sets the overlay engine provider that handles business logic in the server.                 |
+| `WithAdminBearerToken(string)`       | Overrides the default admin bearer token securing admin routes.                                  |
+| `WithOctetStreamLimit(int64)`        | Sets a custom limit on octet-stream request body sizes to control memory usage.                   |
+| `WithARCCallbackToken(string)`       | Sets the ARC callback token used to authenticate ARC callback requests on the HTTP server.        |
+| `WithARCAPIKey(string)`              | Sets the ARC API key used for ARC service integration.                                            |
+| `WithConfig(Config)`                 | Applies a full configuration struct to initialize the Fiber app with specified settings.          |
 
-## Development Task Automation
+## 🛠️ Development Task Automation
 
 This project uses a dedicated **Taskfile.yml** powered by the [`task`](https://taskfile.dev/) CLI to automate common workflows. This centralizes critical operations such as testing, code generation, API documentation bundling, and code linting into a single, easy-to-use interface.
 
@@ -118,16 +122,16 @@ Formalizing these processes ensures:
 - 🔁 **Reproducibility** in CI/CD and local setups  
 - 🧹 **Maintainability** with centralized workflow updates  
 
-### Available Tasks
+### 🔑 Available Tasks
 
 - **`execute-unit-tests`**  
   Runs all unit tests with fail-fast, vet checks, and disables caching for fresh results.
 
 - **`oapi-codegen`**  
-  Generates HTTP server code and models from the OpenAPI spec to keep API and code in sync.
+  Generates HTTP server code and models from the OpenAPI spec to keep the API and code in sync.
 
 - **`swagger-doc-gen`**  
-  Bundles the OpenAPI spec into a single YAML file, ready for validation and docs tools.
+  Bundles the OpenAPI spec into a single YAML file, ready for validation and documentation tools.
 
 - **`swagger-ui-up`**  
   Bundles, validates, and starts Swagger UI with Docker Compose for interactive API exploration.
@@ -136,7 +140,7 @@ Formalizing these processes ensures:
   Stops Swagger UI services and cleans up containers.
 
 - **`swagger-cleanup`**  
-  Removes generated Swagger files and stops running Swagger UI containers.
+  Removes generated Swagger files and stops any running Swagger UI containers.
 
 - **`execute-linters`**  
   Runs Go linters and applies automatic fixes to maintain code quality.

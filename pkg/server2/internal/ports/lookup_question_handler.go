@@ -1,32 +1,32 @@
 package ports
 
 import (
-	"context"
-
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/app"
 	"github.com/4chain-ag/go-overlay-services/pkg/server2/internal/ports/openapi"
 	"github.com/gofiber/fiber/v2"
 )
 
-// LookupQuestionService defines the interface for a service that performs
-// lookup operations based on a service name and query parameters. It returns
-// the result in a LookupAnswerDTO format suitable for further processing or response.
-type LookupQuestionService interface {
-	LookupQuestion(ctx context.Context, service string, query map[string]any) (*app.LookupAnswerDTO, error)
-}
-
-// LookupQuestionHandler is an HTTP handler that processes requests to perform
-// a lookup operation on a specific question. It uses a LookupQuestionService to
-// evaluate the query and returns the results formatted according to the OpenAPI schema.
+// LookupQuestionHandler is a Fiber-compatible HTTP handler that processes
+// lookup requests for a specific question against a provider-defined lookup service.
+//
+// It belongs to the ports layer and acts as the interface adapter between
+// HTTP requests and the application-layer LookupQuestionService.
 type LookupQuestionHandler struct {
-	service LookupQuestionService
+	service *app.LookupQuestionService
 }
 
-// Handle is the HTTP endpoint function for handling a lookup question request.
-// It parses the request body, validates and forwards the data to the service layer,
-// and returns a JSON response with the lookup results or an appropriate error.
+// Handle processes an HTTP POST request to perform a lookup on a question.
+// It expects a JSON body matching the LookupQuestionBody OpenAPI definition.
+//
+// The handler parses and validates the request body, then delegates the lookup
+// operation to the LookupQuestionService. The response is formatted according
+// to the OpenAPI LookupAnswer schema.
+//
+// On success, it returns a 200 OK response with the lookup results.
+// On failure, it returns either a request parsing error or a service-level error.
 func (h *LookupQuestionHandler) Handle(c *fiber.Ctx) error {
 	var body openapi.LookupQuestionBody
+
 	err := c.BodyParser(&body)
 	if err != nil {
 		return NewRequestBodyParserError(err)
@@ -41,21 +41,31 @@ func (h *LookupQuestionHandler) Handle(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+
 	return c.Status(fiber.StatusOK).JSON(res)
 }
 
-// NewLookupQuestionHandler creates and returns a new LookupQuestionHandler.
-// It initializes the handler with a LookupQuestionService using the provided provider.
-// The function panics if the provider is nil.
+// NewLookupQuestionHandler constructs a new LookupQuestionHandler using the given
+// LookupQuestionProvider to initialize the underlying LookupQuestionService.
+//
+// The provider must implement the LookupQuestionProvider interface.
+// This function bridges the infrastructure (provider) with the application logic.
+// Panics if the provider is nil.
 func NewLookupQuestionHandler(provider app.LookupQuestionProvider) *LookupQuestionHandler {
+	if provider == nil {
+		panic("LookupQuestionProvider cannot be nil")
+	}
 	return &LookupQuestionHandler{service: app.NewLookupQuestionService(provider)}
 }
 
-// NewLookupQuestionSuccessResponse constructs an OpenAPI-compatible LookupAnswer
-// from a LookupAnswerDTO. It marshals the output items and the result string into
-// the format expected by the HTTP client.
+// NewLookupQuestionSuccessResponse transforms a LookupAnswerDTO into an OpenAPI-compatible
+// LookupAnswer response structure.
+//
+// It marshals the output items and result string into the format expected by the client.
+// Returns an error if the transformation fails.
 func NewLookupQuestionSuccessResponse(dto *app.LookupAnswerDTO) (*openapi.LookupAnswer, error) {
 	var outputs []openapi.OutputListItem
+
 	if len(dto.Outputs) > 0 {
 		outputs = make([]openapi.OutputListItem, len(dto.Outputs))
 		for i, output := range dto.Outputs {

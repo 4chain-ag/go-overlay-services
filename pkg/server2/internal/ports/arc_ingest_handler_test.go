@@ -61,7 +61,7 @@ func TestArcIngestHandler_InvalidCases(t *testing.T) {
 			fixture := server2.NewServerTestFixture(t,
 				server2.WithEngine(stub),
 				server2.WithARCCallbackToken(testabilities.DefaultARCCallbackToken),
-				server2.WithARCApiKey(testabilities.DefaultARCAPIKey),
+				server2.WithARCAPIKey(testabilities.DefaultARCAPIKey),
 			)
 
 			// when:
@@ -101,7 +101,7 @@ func TestArcIngestHandler_ValidCase(t *testing.T) {
 	fixture := server2.NewServerTestFixture(t,
 		server2.WithEngine(stub),
 		server2.WithARCCallbackToken(testabilities.DefaultARCCallbackToken),
-		server2.WithARCApiKey(testabilities.DefaultARCAPIKey),
+		server2.WithARCAPIKey(testabilities.DefaultARCAPIKey),
 	)
 
 	// when:

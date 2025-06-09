@@ -46,8 +46,8 @@ type Config struct {
 	// Once this threshold is exceeded, the connection will be forcefully closed.
 	ConnectionReadTimeout time.Duration `mapstructure:"connection_read_timeout_limit"`
 
-	// ARCApiKey is the API key for ARC service integration.
-	ARCApiKey string `mapstructure:"arc_api_key"`
+	// ARCAPIKey is the API key for ARC service integration.
+	ARCAPIKey string `mapstructure:"arc_api_key"`
 
 	// ARCCallbackToken is the token for authenticating ARC callback requests.
 	ARCCallbackToken string `mapstructure:"arc_callback_token"`
@@ -62,7 +62,7 @@ var DefaultConfig = Config{
 	AdminBearerToken:      uuid.NewString(),
 	OctetStreamLimit:      middleware.ReadBodyLimit1GB,
 	ConnectionReadTimeout: 10 * time.Second,
-	ARCApiKey:             "",
+	ARCAPIKey:             "",
 	ARCCallbackToken:      uuid.NewString(),
 }
 
@@ -70,11 +70,11 @@ var DefaultConfig = Config{
 // These options allow for flexible setup of middlewares and configurations.
 type ServerOption func(*ServerHTTP)
 
-// WithARCApiKey sets the ARC API key used for ARC service integration.
+// WithARCAPIKey sets the ARC API key used for ARC service integration.
 // It returns a ServerOption that applies this configuration to ServerHTTP.
-func WithARCApiKey(APIKey string) ServerOption {
+func WithARCAPIKey(APIKey string) ServerOption {
 	return func(s *ServerHTTP) {
-		s.cfg.ARCApiKey = APIKey
+		s.cfg.ARCAPIKey = APIKey
 	}
 }
 
@@ -177,7 +177,7 @@ func New(opts ...ServerOption) *ServerHTTP {
 	}
 
 	registry := ports.NewHandlerRegistryService(srv.engine, &decorators.ARCAuthorizationDecoratorConfig{
-		APIKey:        srv.cfg.ARCApiKey,
+		APIKey:        srv.cfg.ARCAPIKey,
 		CallbackToken: srv.cfg.ARCCallbackToken,
 		Scheme:        "Bearer ",
 	})
