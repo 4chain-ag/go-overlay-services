@@ -161,6 +161,12 @@ func (s *ServerHTTP) Shutdown(ctx context.Context) error {
 	return s.app.ShutdownWithContext(ctx)
 }
 
+// RegisterRoute registers a new route with the given HTTP method, path, and one or more handlers.
+// This is a wrapper around fiber.App.Add, which allows dynamic route registration.
+func (s *ServerHTTP) RegisterRoute(method, path string, handlers ...fiber.Handler) {
+	s.app.Add(method, path, handlers...)
+}
+
 // New creates and configures a new instance of ServerHTTP.
 // It initializes the application with default settings and middleware, registers OpenAPI handlers,
 // sets up transaction submission and advertisement synchronization handlers using the provided OverlayEngineProvider,
